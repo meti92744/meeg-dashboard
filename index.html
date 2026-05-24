@@ -1139,8 +1139,8 @@ function renderLocSection(wrap,locName,rows){
     {label:'Lidar — FP',mod:'Lidar',pass:'FP'},
     {label:'Lidar — QA',mod:'Lidar',pass:'QA'},
   ];
-  // Colors per mod
-  const FILTER_COLORS={'Lane Line':'#2563eb','Lidar':'#16a34a','All':'var(--info)'};
+  // Colors: Lane Line uses orange/amber (visible in dark), Lidar uses green
+  const FILTER_COLORS={'Lane Line':'#f59e0b','Lidar':'#16a34a','All':'var(--info)'};
 
   function mkPersonTable(icon,title,nameLabel,dataMap,detailMap,tableId){
     const sorted=Object.entries(dataMap).sort((a,b)=>b[1]-a[1]);if(!sorted.length)return null;
@@ -1173,7 +1173,9 @@ function renderLocSection(wrap,locName,rows){
     const tableWrap=document.createElement('div');tableWrap.id='wrap_'+tableId;tableWrap.style.cssText='overflow-x:auto;max-height:360px;overflow-y:auto;-webkit-overflow-scrolling:touch;';
     sec.appendChild(tableWrap);
     window['_ptData_'+tableId]={sorted,dataMap,detailMap,nameLabel,allMods,allPasses,modColor,mkGroupedThead,mkGroupedCells,mkGroupedFootCells};
-    renderPersonTable(tableId,0);
+    // Restore saved filter index for this table (persists across refresh)
+    const savedIdx = window['_ptFilter_'+tableId] || 0;
+    renderPersonTable(tableId, savedIdx);
     return sec;
   }
 
@@ -1184,6 +1186,9 @@ function renderLocSection(wrap,locName,rows){
     const f=FIXED_FILTERS[filterIdx]||FIXED_FILTERS[0];
     const isAll=f.mod==='All';
 
+    // Save active filter index so it survives refresh
+    window['_ptFilter_'+tableId]=filterIdx;
+
     // Get rows filtered by mod+pass
     let filteredSorted;
     if(isAll){
@@ -1191,9 +1196,8 @@ function renderLocSection(wrap,locName,rows){
     } else {
       filteredSorted=sorted.map(([name])=>{
         const passMap=(detailMap[name]||{})[f.mod]||{};
-        const val=f.pass==='All'
-          ? Object.values(passMap).reduce((a,b)=>a+b,0)
-          : (passMap[f.pass]||0);
+        // total = only the selected pass value
+        const val=passMap[f.pass]||0;
         return[name,val,passMap];
       }).filter(([,t])=>t>0).sort((a,b)=>b[1]-a[1]);
     }
@@ -1213,24 +1217,14 @@ function renderLocSection(wrap,locName,rows){
     if(isAll){
       thead=d.mkGroupedThead(nameLabel);
     } else {
-      // Show mod header + FP & QA sub-columns
-      const allPassesForMod=[...new Set(
-        Object.values(detailMap).flatMap(dm=>Object.keys((dm[f.mod]||{})))
-      )].sort();
-      const showPasses=allPassesForMod.length?allPassesForMod:['FP','QA'];
-      const passHeaders=showPasses.map((pv,pi)=>
-        `<th style="background:var(--elevated);color:${col};font-size:.52rem;padding:4px 6px;text-align:center;border-bottom:1.5px solid var(--border);${pi===0?'border-left:2px solid '+col+'30;':''}font-weight:700;white-space:nowrap">${esc(pv)}</th>`
-      ).join('');
+      // Show only the selected pass as a single column
+      const selectedPass=f.pass;
       thead=`<thead><tr>
-        <th rowspan="2" style="background:var(--elevated);color:var(--text-soft);font-size:.52rem;padding:6px 8px;text-align:left;border-bottom:1.5px solid var(--border);font-weight:700;vertical-align:bottom">${nameLabel}</th>
-        <th colspan="${showPasses.length}" style="background:var(--elevated);color:${col};font-size:.55rem;padding:5px 8px;text-align:center;border-bottom:1px solid var(--border);border-left:2px solid ${col}30;font-weight:800;white-space:nowrap">${esc(f.mod)}</th>
-        <th rowspan="2" style="background:var(--elevated);color:var(--text-soft);font-size:.52rem;padding:6px 8px;text-align:right;border-bottom:1.5px solid var(--border);font-weight:700;vertical-align:bottom">Total</th>
-      </tr><tr>${passHeaders}</tr></thead>`;
-      // Store passes for cell rendering
-      wrap._showPasses=showPasses;
+        <th style="background:var(--elevated);color:var(--text-soft);font-size:.52rem;padding:6px 8px;text-align:left;border-bottom:1.5px solid var(--border);font-weight:700;white-space:nowrap">${nameLabel}</th>
+        <th style="background:var(--elevated);color:${col};font-size:.55rem;padding:5px 8px;text-align:center;border-bottom:1.5px solid var(--border);border-left:2px solid ${col}40;font-weight:800;white-space:nowrap">${esc(f.mod)} — ${esc(selectedPass)}</th>
+        <th style="background:var(--elevated);color:var(--text-soft);font-size:.52rem;padding:6px 8px;text-align:right;border-bottom:1.5px solid var(--border);font-weight:700">Total</th>
+      </tr></thead>`;
     }
-
-    const showPasses=isAll?null:wrap._showPasses;
 
     const bodyRows=filteredSorted.map(([name,total,passMap],i)=>{
       const pct=max?Math.round(total/max*100):0;
@@ -1241,19 +1235,16 @@ function renderLocSection(wrap,locName,rows){
       if(isAll){
         subCells=d.mkGroupedCells(detailMap[name]||{});
       } else {
-        subCells=showPasses.map((pv,pi)=>{
-          const c=(passMap||{})[pv]||0;
-          // Highlight the selected pass
-          const isSelected=f.pass===pv;
-          return`<td style="padding:4px 6px;text-align:center;font-size:.65rem;font-weight:${c?'700':'400'};color:${c?col:'var(--muted)'};font-family:var(--mono);${pi===0?'border-left:2px solid '+col+'20;':''}${isSelected&&c?'background:'+col+'12;border-radius:4px;':''}">${c||'—'}</td>`;
-        }).join('');
+        // Single pass column
+        const c=(passMap||{})[f.pass]||0;
+        subCells=`<td style="padding:4px 8px;text-align:center;font-size:.7rem;font-weight:${c?'800':'400'};color:${c?col:'var(--muted)'};font-family:var(--mono);border-left:2px solid ${col}20;background:${c?col+'10':'transparent'}">${c||'—'}</td>`;
       }
 
       return`<tr style="border-bottom:1px solid var(--border-light)">
         <td style="padding:5px 8px;font-size:.6rem;color:var(--text);white-space:nowrap">
           <div style="display:flex;align-items:center;gap:4px">
             <span style="min-width:16px">${medal}</span>
-            <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:120px">${esc(name)}</span>
+            <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:130px">${esc(name)}</span>
           </div></td>
         ${subCells}
         <td style="padding:5px 8px;text-align:right">
@@ -1269,10 +1260,8 @@ function renderLocSection(wrap,locName,rows){
     if(isAll){
       footCells=d.mkGroupedFootCells(Object.values(detailMap));
     } else {
-      footCells=showPasses.map((pv,pi)=>{
-        const t=filteredSorted.reduce((s,[,,pm])=>s+((pm||{})[pv]||0),0);
-        return`<td style="padding:5px 6px;text-align:center;font-size:.65rem;font-weight:800;color:${t?col:'var(--muted)'};font-family:var(--mono);${pi===0?'border-left:2px solid '+col+'20;':''}">${t||'—'}</td>`;
-      }).join('');
+      const t=filteredSorted.reduce((s,[,v])=>s+v,0);
+      footCells=`<td style="padding:5px 8px;text-align:center;font-size:.65rem;font-weight:800;color:${t?col:'var(--muted)'};font-family:var(--mono);border-left:2px solid ${col}20">${t||'—'}</td>`;
     }
 
     wrap.innerHTML=`<table style="width:100%;border-collapse:collapse;font-size:.65rem">
@@ -1284,7 +1273,7 @@ function renderLocSection(wrap,locName,rows){
       </tr></tfoot></table>`;
   }
 
-  // ✅ Fixed: uses index, stopPropagation already in onclick, chip styles update correctly
+  // filterPersonTable: update chips + re-render, stopPropagation in onclick prevents panel close
   window.filterPersonTable=function(tableId,filterIdx){
     const sec=document.getElementById('wrap_'+tableId);
     if(sec){
