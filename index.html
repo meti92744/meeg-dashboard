@@ -1049,9 +1049,16 @@ function renderLocSection(wrap,locName,rows){
   const obIdx=hdrs.findIndex(h=>h.toLowerCase()==='object count');
   const qMap={},qDetailMap={},modPassMap={};
   let totalObjects=0,objRowCount=0;
-  const MOD_PALETTE=['#1a3a6b','#e8a000','#16a34a','#7c3aed','#dc2626','#2563eb','#0891b2','#d97706'];
+  const MOD_PALETTE=['#e8a000','#16a34a','#7c3aed','#dc2626','#0891b2','#d97706','#f59e0b','#8b5cf6'];
   const _mcc={};let _mci=0;
-  function modColor(m){if(!_mcc[m])_mcc[m]=MOD_PALETTE[_mci++%MOD_PALETTE.length];return _mcc[m];}
+  // Use FILTER_COLORS for known mods, fallback to palette
+  function modColor(m){
+    if(!_mcc[m]){
+      const known={'Lane Line':'#f59e0b','Lidar':'#16a34a'};
+      _mcc[m]=known[m]||MOD_PALETTE[_mci++%MOD_PALETTE.length];
+    }
+    return _mcc[m];
+  }
   rows.forEach(r=>{
     const qv=qIdx>=0?String(r[qIdx]||'').trim():'';
     const mv=mIdx>=0?String(r[mIdx]||'').trim():'';
@@ -1173,9 +1180,19 @@ function renderLocSection(wrap,locName,rows){
     const tableWrap=document.createElement('div');tableWrap.id='wrap_'+tableId;tableWrap.style.cssText='overflow-x:auto;max-height:360px;overflow-y:auto;-webkit-overflow-scrolling:touch;';
     sec.appendChild(tableWrap);
     window['_ptData_'+tableId]={sorted,dataMap,detailMap,nameLabel,allMods,allPasses,modColor,mkGroupedThead,mkGroupedCells,mkGroupedFootCells};
-    // Restore saved filter index for this table (persists across refresh)
-    const savedIdx = window['_ptFilter_'+tableId] || 0;
-    renderPersonTable(tableId, savedIdx);
+    // Restore saved filter index from localStorage (survives auto refresh)
+    let savedIdx=0;
+    try{savedIdx=parseInt(localStorage.getItem('meeg_ptf_'+tableId))||0;}catch(e){}
+    renderPersonTable(tableId,savedIdx);
+    // Update chip states to match restored filter
+    setTimeout(()=>{
+      const sec=document.getElementById('wrap_'+tableId);
+      if(sec){sec.closest('.sec').querySelectorAll('[data-fi]').forEach(b=>{
+        const isOn=parseInt(b.dataset.fi)===savedIdx;
+        b.classList.toggle('on',isOn);
+        b.style.cssText=b.dataset.base+(isOn?b.dataset.on:'');
+      });}
+    },0);
     return sec;
   }
 
@@ -1186,8 +1203,9 @@ function renderLocSection(wrap,locName,rows){
     const f=FIXED_FILTERS[filterIdx]||FIXED_FILTERS[0];
     const isAll=f.mod==='All';
 
-    // Save active filter index so it survives refresh
+    // Save active filter index to localStorage so it survives auto refresh
     window['_ptFilter_'+tableId]=filterIdx;
+    try{localStorage.setItem('meeg_ptf_'+tableId,filterIdx);}catch(e){}
 
     // Get rows filtered by mod+pass
     let filteredSorted;
