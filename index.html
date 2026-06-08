@@ -624,7 +624,6 @@ function runCompare(){
     return`<span class="cmp-delta ${cls}">${arrow}${Math.abs(pct)}%</span>`;
   }
 
-  // Top items bar chart
   function barRows(mapA,mapB,colorA,colorB){
     const keys=[...new Set([...Object.keys(mapA),...Object.keys(mapB)])].sort((a,b)=>(mapB[b]||0)+(mapA[b]||0)-(mapB[a]||0)-(mapA[a]||0)).slice(0,8);
     const maxVal=Math.max(...keys.map(k=>Math.max(mapA[k]||0,mapB[k]||0)),1);
@@ -991,7 +990,6 @@ function sid(k){return k.replace(/[\s()]/g,'_');}
 // ── RENDER ───────────────────────────────────────────
 function renderAllSections(){
   const mc=document.getElementById('mainContent');
-  // Keep compare result if exists
   const cmpRes=document.getElementById('cmpResultSection');
   if(fcache.length===0&&rawRows.length===0){
     mc.innerHTML=`<div style="text-align:center;padding:60px 20px;color:var(--muted)"><div style="font-size:2.5rem;margin-bottom:12px">📭</div><div style="font-size:.85rem;font-weight:700;color:var(--text);margin-bottom:6px">No data found</div></div>`;
@@ -1051,7 +1049,6 @@ function renderLocSection(wrap,locName,rows){
   let totalObjects=0,objRowCount=0;
   const MOD_PALETTE=['#e8a000','#16a34a','#7c3aed','#dc2626','#0891b2','#d97706','#f59e0b','#8b5cf6'];
   const _mcc={};let _mci=0;
-  // Use FILTER_COLORS for known mods, fallback to palette
   function modColor(m){
     if(!_mcc[m]){
       const known={'Lane Line':'#f59e0b','Lidar':'#16a34a'};
@@ -1138,7 +1135,6 @@ function renderLocSection(wrap,locName,rows){
     if(labIdx>=0){const lab=String(r[labIdx]||'').trim();if(lab){labMap[lab]=(labMap[lab]||0)+1;if(mv&&pv){if(!labDetailMap[lab])labDetailMap[lab]={};if(!labDetailMap[lab][mv])labDetailMap[lab][mv]={};labDetailMap[lab][mv][pv]=(labDetailMap[lab][mv][pv]||0)+1;}}}
   });
 
-  // Fixed 5 filter chips: All + mod+pass combos
   const FIXED_FILTERS=[
     {label:'All',mod:'All',pass:'All'},
     {label:'Lane Line — FP',mod:'Lane Line',pass:'FP'},
@@ -1146,7 +1142,6 @@ function renderLocSection(wrap,locName,rows){
     {label:'Lidar — FP',mod:'Lidar',pass:'FP'},
     {label:'Lidar — QA',mod:'Lidar',pass:'QA'},
   ];
-  // Colors: Lane Line uses orange/amber (visible in dark), Lidar uses green
   const FILTER_COLORS={'Lane Line':'#f59e0b','Lidar':'#16a34a','All':'var(--info)'};
 
   function mkPersonTable(icon,title,nameLabel,dataMap,detailMap,tableId){
@@ -1163,9 +1158,9 @@ function renderLocSection(wrap,locName,rows){
         ?`border-color:rgba(37,99,235,.7);background:rgba(37,99,235,.18);font-weight:800;`
         :`border-color:${col};background:${col}22;font-weight:800;`;
       return`<button
-        class="mod-chip${fi===0?' on':''}"
+        class="mod-chip"
         data-fi="${fi}"
-        style="${baseStyle}${fi===0?onStyle:''}"
+        style="${baseStyle}"
         data-base="${baseStyle}"
         data-on="${onStyle}"
         onclick="filterPersonTable('${tableId}',${fi});event.stopPropagation();"
@@ -1180,19 +1175,11 @@ function renderLocSection(wrap,locName,rows){
     const tableWrap=document.createElement('div');tableWrap.id='wrap_'+tableId;tableWrap.style.cssText='overflow-x:auto;max-height:360px;overflow-y:auto;-webkit-overflow-scrolling:touch;';
     sec.appendChild(tableWrap);
     window['_ptData_'+tableId]={sorted,dataMap,detailMap,nameLabel,allMods,allPasses,modColor,mkGroupedThead,mkGroupedCells,mkGroupedFootCells};
-    // Restore saved filter index from localStorage (survives auto refresh)
+    // Read saved filter index — persists across auto-refresh via localStorage
     let savedIdx=0;
     try{savedIdx=parseInt(localStorage.getItem('meeg_ptf_'+tableId))||0;}catch(e){}
+    // Render with saved filter (chips updated synchronously inside renderPersonTable)
     renderPersonTable(tableId,savedIdx);
-    // Update chip states to match restored filter
-    setTimeout(()=>{
-      const sec=document.getElementById('wrap_'+tableId);
-      if(sec){sec.closest('.sec').querySelectorAll('[data-fi]').forEach(b=>{
-        const isOn=parseInt(b.dataset.fi)===savedIdx;
-        b.classList.toggle('on',isOn);
-        b.style.cssText=b.dataset.base+(isOn?b.dataset.on:'');
-      });}
-    },0);
     return sec;
   }
 
@@ -1203,18 +1190,26 @@ function renderLocSection(wrap,locName,rows){
     const f=FIXED_FILTERS[filterIdx]||FIXED_FILTERS[0];
     const isAll=f.mod==='All';
 
-    // Save active filter index to localStorage so it survives auto refresh
+    // Persist filter choice
     window['_ptFilter_'+tableId]=filterIdx;
     try{localStorage.setItem('meeg_ptf_'+tableId,filterIdx);}catch(e){}
 
-    // Get rows filtered by mod+pass
+    // ── FIX 2: sync chip update — no setTimeout, happens before DOM write ──
+    const _chipSec=wrap.closest('.sec');
+    if(_chipSec){
+      _chipSec.querySelectorAll('[data-fi]').forEach(b=>{
+        const isOn=parseInt(b.dataset.fi)===filterIdx;
+        b.classList.toggle('on',isOn);
+        b.style.cssText=b.dataset.base+(isOn?b.dataset.on:'');
+      });
+    }
+
     let filteredSorted;
     if(isAll){
       filteredSorted=sorted.map(([name,total])=>[name,total,null]);
     } else {
       filteredSorted=sorted.map(([name])=>{
         const passMap=(detailMap[name]||{})[f.mod]||{};
-        // total = only the selected pass value
         const val=passMap[f.pass]||0;
         return[name,val,passMap];
       }).filter(([,t])=>t>0).sort((a,b)=>b[1]-a[1]);
@@ -1230,12 +1225,10 @@ function renderLocSection(wrap,locName,rows){
 
     const col=isAll?'var(--primary)':FILTER_COLORS[f.mod]||'var(--primary)';
 
-    // Build thead
     let thead;
     if(isAll){
       thead=d.mkGroupedThead(nameLabel);
     } else {
-      // Show only the selected pass as a single column
       const selectedPass=f.pass;
       thead=`<thead><tr>
         <th style="background:var(--elevated);color:var(--text-soft);font-size:.52rem;padding:6px 8px;text-align:left;border-bottom:1.5px solid var(--border);font-weight:700;white-space:nowrap">${nameLabel}</th>
@@ -1253,7 +1246,6 @@ function renderLocSection(wrap,locName,rows){
       if(isAll){
         subCells=d.mkGroupedCells(detailMap[name]||{});
       } else {
-        // Single pass column
         const c=(passMap||{})[f.pass]||0;
         subCells=`<td style="padding:4px 8px;text-align:center;font-size:.7rem;font-weight:${c?'800':'400'};color:${c?col:'var(--muted)'};font-family:var(--mono);border-left:2px solid ${col}20;background:${c?col+'10':'transparent'}">${c||'—'}</td>`;
       }
@@ -1273,7 +1265,6 @@ function renderLocSection(wrap,locName,rows){
           </div></td></tr>`;
     }).join('');
 
-    // Footer
     let footCells='';
     if(isAll){
       footCells=d.mkGroupedFootCells(Object.values(detailMap));
@@ -1291,16 +1282,7 @@ function renderLocSection(wrap,locName,rows){
       </tr></tfoot></table>`;
   }
 
-  // filterPersonTable: update chips + re-render, stopPropagation in onclick prevents panel close
   window.filterPersonTable=function(tableId,filterIdx){
-    const sec=document.getElementById('wrap_'+tableId);
-    if(sec){
-      sec.closest('.sec').querySelectorAll('[data-fi]').forEach(b=>{
-        const isOn=parseInt(b.dataset.fi)===filterIdx;
-        b.classList.toggle('on',isOn);
-        b.style.cssText=b.dataset.base+(isOn?b.dataset.on:'');
-      });
-    }
     renderPersonTable(tableId,filterIdx);
   };
 
@@ -1310,6 +1292,7 @@ function renderLocSection(wrap,locName,rows){
   if(labSec)wrap.appendChild(labSec);
 }
 
+// ── FIX 1: renderCards — skip rows where Pc No === "QTC" ──
 function renderCards(locKey,rows){
   const g=document.getElementById('cgrid_'+sid(locKey));const metaEl=document.getElementById('devMeta_'+sid(locKey));
   const pi=sIdx['Pc No'],qi=hdrs.findIndex(h=>h.toLowerCase()==='queue name');
@@ -1318,7 +1301,11 @@ function renderCards(locKey,rows){
   if(pi===undefined){g.innerHTML='<div class="empty"><span>🖥️</span>"Pc No" column not found.</div>';return;}
   const map={};
   rows.forEach(r=>{
-    const pc=String(r[pi]||'').trim()||'(unknown)';const q=qi>=0?String(r[qi]||''):'—';
+    const _pcRaw=String(r[pi]||'').trim();
+    // ← FIX 1: skip rows where Pc No is "QTC" or empty (not a real device number)
+    if(!_pcRaw||_pcRaw.toUpperCase()==='QTC')return;
+    const pc=_pcRaw;
+    const q=qi>=0?String(r[qi]||''):'—';
     const em=ei>=0?String(r[ei]||''):'';const nm=ni>=0?String(r[ni]||''):'';
     if(!map[pc])map[pc]={pc,em,nm,total:0,queues:{}};map[pc].total++;map[pc].queues[q]=(map[pc].queues[q]||0)+1;
   });
