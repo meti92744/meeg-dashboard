@@ -40,8 +40,6 @@ body::before{width:700px;height:700px;background:radial-gradient(circle,rgba(74,
 body::after{width:600px;height:600px;background:radial-gradient(circle,rgba(232,160,0,.4) 0%,transparent 70%);bottom:-150px;right:-150px;opacity:.35;}
 html[data-theme="dark"] body::before{background:radial-gradient(circle,rgba(20,60,140,.8) 0%,transparent 70%);opacity:.5;}
 html[data-theme="dark"] body::after{background:radial-gradient(circle,rgba(140,80,0,.6) 0%,transparent 70%);opacity:.4;}
-
-/* ── SPLASH ── */
 #splash{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;background:linear-gradient(135deg,#050d1a 0%,#0a1830 50%,#050d1a 100%);transition:opacity .6s ease,transform .6s ease;}
 #splash.fade-out{opacity:0;transform:scale(1.04);pointer-events:none;}
 .splash-svg{animation:splashDrop .7s cubic-bezier(.34,1.56,.64,1) both;}
@@ -58,11 +56,8 @@ html[data-theme="dark"] body::after{background:radial-gradient(circle,rgba(140,8
 .splash-dot:nth-child(2){animation:dotPulse 1.2s ease 1.1s infinite;}
 .splash-dot:nth-child(3){animation:dotPulse 1.2s ease 1.3s infinite;}
 @keyframes dotPulse{0%,100%{background:rgba(255,255,255,.2);transform:scale(1)}50%{background:rgba(232,160,0,.9);transform:scale(1.4)}}
-
 ::-webkit-scrollbar{width:5px;height:5px}
 ::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.2);border-radius:3px}
-
-/* ── HEADER ── */
 .dm-toggle{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.1);color:#fff;font-size:.62rem;font-weight:600;font-family:var(--font);cursor:pointer;transition:all .2s;backdrop-filter:blur(10px);}
 .dm-toggle:hover{background:rgba(255,255,255,.22);}
 .dm-icon{font-size:.85rem;transition:transform .5s;}
@@ -94,19 +89,11 @@ html[data-theme="dark"] .dm-icon{transform:rotate(360deg);}
 .btn-d{background:rgba(220,38,38,.15);border-color:rgba(220,38,38,.3);color:#fca5a5}
 .btn-cmp{background:linear-gradient(135deg,rgba(37,99,235,.4),rgba(22,163,74,.4));border-color:rgba(37,99,235,.4);color:#fff;}
 .btn-cmp.active{background:linear-gradient(135deg,rgba(37,99,235,.7),rgba(22,163,74,.7));border-color:rgba(37,99,235,.6);}
-
 .sync-bar{height:2px;background:rgba(255,255,255,.08);overflow:hidden;position:relative;z-index:99;}
 .sync-progress{height:100%;background:linear-gradient(90deg,var(--accent),#ffcc44);width:0%;border-radius:1px}
 .sync-bar.active .sync-progress{animation:syncpulse 1.5s ease-in-out infinite}
 @keyframes syncpulse{0%{width:0%;margin-left:0}50%{width:40%;margin-left:30%}100%{width:0%;margin-left:100%}}
-
-/* ── COMPARISON BAR ── */
-.cmp-bar{
-  background:var(--glass);border-bottom:1px solid var(--border);
-  padding:8px 16px;display:none;align-items:center;gap:10px;flex-wrap:wrap;
-  backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
-  animation:dropin .2s ease-out;
-}
+.cmp-bar{background:var(--glass);border-bottom:1px solid var(--border);padding:8px 16px;display:none;align-items:center;gap:10px;flex-wrap:wrap;backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);animation:dropin .2s ease-out;}
 .cmp-bar.visible{display:flex;}
 .cmp-side{display:flex;align-items:center;gap:8px;flex:1;min-width:220px;}
 .cmp-label{font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;padding:2px 8px;border-radius:8px;white-space:nowrap;}
@@ -118,8 +105,6 @@ html[data-theme="dark"] .cmp-sel{background:rgba(255,255,255,.06);color:#ddeeff;
 .cmp-vs{font-size:.75rem;font-weight:800;color:var(--muted);padding:0 4px;}
 .cmp-run-btn{padding:6px 16px;border-radius:8px;border:none;background:linear-gradient(135deg,var(--cmp-a),var(--cmp-b));color:#fff;font-size:.65rem;font-weight:700;font-family:var(--font);cursor:pointer;transition:all .2s;white-space:nowrap;}
 .cmp-run-btn:hover{opacity:.85;transform:translateY(-1px);}
-
-/* ── COMPARISON RESULT ── */
 .cmp-result{background:var(--glass);border:1.5px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;box-shadow:var(--shadow);backdrop-filter:var(--blur);margin:0;}
 .cmp-result-hd{padding:10px 16px;border-bottom:1px solid var(--border);background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
 .cmp-result-title{font-size:.75rem;font-weight:700;color:var(--text);display:flex;align-items:center;gap:8px;}
@@ -136,15 +121,12 @@ html[data-theme="dark"] .cmp-sel{background:rgba(255,255,255,.06);color:#ddeeff;
 .cmp-delta{font-size:.55rem;font-weight:700;padding:1px 5px;border-radius:4px;margin-left:4px;}
 .cmp-delta-up{background:rgba(22,163,74,.12);color:var(--success);}
 .cmp-delta-dn{background:rgba(220,38,38,.12);color:var(--danger);}
-.cmp-bar-chart{margin-top:8px;}
 .cmp-bar-item{display:flex;align-items:center;gap:6px;margin-bottom:5px;font-size:.62rem;}
 .cmp-bar-name{width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-soft);flex-shrink:0;}
 .cmp-bar-track{flex:1;height:8px;background:var(--border);border-radius:4px;overflow:hidden;}
 .cmp-bar-fill-a{height:100%;background:var(--cmp-a);border-radius:4px;transition:width .6s cubic-bezier(.34,1.2,.64,1);}
 .cmp-bar-fill-b{height:100%;background:var(--cmp-b);border-radius:4px;transition:width .6s cubic-bezier(.34,1.2,.64,1);}
 .cmp-bar-num{font-size:.58rem;font-family:var(--mono);font-weight:700;color:var(--muted);min-width:24px;text-align:right;}
-
-/* ── SHIFT BANNER ── */
 .shift-banner{background:var(--glass);border-bottom:1px solid var(--border);padding:6px 16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);position:relative;z-index:1;}
 .shift-banner-label{font-size:.55rem;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;font-weight:600;white-space:nowrap}
 .opt-shifts-wrap{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
@@ -153,8 +135,6 @@ html[data-theme="dark"] .cmp-sel{background:rgba(255,255,255,.06);color:#ddeeff;
 .opt-shift-btn.on{border-style:solid;border-color:var(--accent);background:var(--accent-light);color:#7a4000}
 html[data-theme="dark"] .opt-shift-btn.on{color:#ffcc44;}
 .opt-shift-btn .dot{font-size:.5rem}
-
-/* ── FILTER STRIP ── */
 .fstrip{padding:8px 16px;background:var(--glass);border-bottom:1px solid var(--border);box-shadow:var(--shadow);display:flex;align-items:center;gap:8px;flex-wrap:wrap;position:sticky;top:50px;z-index:90;backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);}
 .fg{position:relative}
 .fchip{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;border:1.5px solid var(--border);background:rgba(255,255,255,.15);color:var(--text-soft);font-size:.65rem;font-weight:600;font-family:var(--font);cursor:pointer;transition:all .2s;white-space:nowrap;backdrop-filter:blur(10px);}
@@ -184,8 +164,6 @@ html[data-theme="dark"] .dp-item.on{color:#ffcc44;background:rgba(232,160,0,.15)
 .dp-foot button:hover{border-color:var(--primary);color:var(--primary)}
 html[data-theme="dark"] .dp-foot button:hover{color:var(--dk-accent);}
 .fsep{width:1px;height:20px;background:var(--border);margin:0 2px}
-
-/* ── PILLS ── */
 .pills-row{padding:5px 16px;display:flex;align-items:center;gap:4px;flex-wrap:wrap;min-height:30px;background:rgba(255,255,255,.12);border-bottom:1px solid var(--border);backdrop-filter:blur(10px);}
 .pill{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:12px;font-size:.6rem;font-weight:600;border:1.5px solid rgba(232,160,0,.5);background:rgba(232,160,0,.12);color:#7a4000}
 html[data-theme="dark"] .pill{color:#ffcc44;background:rgba(232,160,0,.12);}
@@ -194,8 +172,6 @@ html[data-theme="dark"] .pill{color:#ffcc44;background:rgba(232,160,0,.12);}
 .pill-all{border-color:var(--border);background:transparent;color:var(--muted)}
 .clr-btn{padding:2px 8px;border-radius:12px;border:1.5px solid rgba(220,38,38,.3);background:rgba(220,38,38,.08);color:#dc2626;font-size:.58rem;font-weight:600;cursor:pointer;transition:all .15s}
 .clr-btn:hover{background:rgba(220,38,38,.18)}
-
-/* ── TABS ── */
 .loc-tabs{display:flex;gap:4px;flex-wrap:wrap;padding:10px 16px 0;border-bottom:1px solid var(--border);background:rgba(255,255,255,.1);backdrop-filter:blur(10px);overflow-x:auto;}
 .loc-tab{padding:6px 12px;border-radius:8px 8px 0 0;font-size:.65rem;font-weight:600;cursor:pointer;border:1.5px solid var(--border);border-bottom:none;background:rgba(255,255,255,.15);color:var(--text-soft);transition:all .2s;position:relative;bottom:-1px;white-space:nowrap;flex-shrink:0;}
 .loc-tab:hover{border-color:rgba(26,58,107,.4);color:var(--primary);background:rgba(255,255,255,.3);}
@@ -213,8 +189,6 @@ html[data-theme="dark"] .loc-tab.act .tab-cnt{background:rgba(0,210,200,.25);col
 .loc-section{display:none}
 .loc-section.visible{display:flex;flex-direction:column;gap:12px;animation:kiIn .3s ease-out}
 @keyframes kiIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-
-/* ── CONTENT ── */
 .content{padding:12px 16px;display:flex;flex-direction:column;gap:12px;position:relative;z-index:1;}
 .sec{background:var(--glass);border:1.5px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;box-shadow:var(--shadow);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);transition:box-shadow .25s;}
 .sec:hover{box-shadow:var(--shadow-hover);}
@@ -222,8 +196,6 @@ html[data-theme="dark"] .loc-tab.act .tab-cnt{background:rgba(0,210,200,.25);col
 html[data-theme="dark"] .sec-hd{background:rgba(255,255,255,.04);}
 .sec-t{font-size:.72rem;font-weight:700;display:flex;align-items:center;gap:6px;color:var(--text)}
 .sec-m{font-size:.6rem;color:var(--muted);font-weight:500}
-
-/* ── LOC HEADER ── */
 .loc-hdr{background:var(--glass);border:1.5px solid var(--border);border-radius:var(--radius-lg);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;backdrop-filter:var(--blur);}
 .loc-hdr-name{font-size:1rem;font-weight:800;letter-spacing:.3px;color:var(--primary)}
 html[data-theme="dark"] .loc-hdr-name{color:var(--dk-accent);}
@@ -231,20 +203,11 @@ html[data-theme="dark"] .loc-hdr-name{color:var(--dk-accent);}
 .loc-stat{text-align:center;min-width:55px}
 .loc-stat .sv{font-size:1.2rem;font-weight:800;color:var(--accent);font-family:var(--mono);}
 .loc-stat .sl{font-size:.52rem;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-top:2px;font-weight:600}
-
-/* ── ANIMATED NUMBER ── */
 .anim-num{display:inline-block;transition:all .1s;}
-
-/* ── MODALITY CHIPS ── */
 .mod-filter-bar{display:flex;align-items:center;gap:5px;padding:6px 14px;border-bottom:1px solid var(--border);flex-wrap:wrap;background:rgba(255,255,255,.06);}
-.mod-filter-label{font-size:.55rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:600;white-space:nowrap;}
 .mod-chip{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:12px;font-size:.6rem;font-weight:600;border:1.5px solid var(--border);background:rgba(255,255,255,.1);color:var(--muted);cursor:pointer;transition:all .15s;}
 .mod-chip:hover{border-color:var(--accent);color:var(--accent);}
 .mod-chip.on{border-color:currentColor;background:rgba(255,255,255,.12);font-weight:700;}
-.mod-chip-all{border-color:rgba(37,99,235,.3);color:var(--info);background:rgba(37,99,235,.08);}
-.mod-chip-all.on{background:rgba(37,99,235,.15);}
-
-/* ── CARDS ── */
 .cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;padding:10px;background:transparent}
 .dcard{background:var(--glass);border:1.5px solid var(--border);border-radius:var(--radius);padding:10px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden;backdrop-filter:blur(12px);}
 .dcard::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--border);transition:background .2s}
@@ -260,8 +223,6 @@ html[data-theme="dark"] .dc-pc{color:var(--dk-accent);}
 .dc-mt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .dc-qs{display:flex;flex-wrap:wrap;gap:3px;margin-top:5px}
 .qtag{font-size:.54rem;font-weight:600;padding:2px 5px;border-radius:3px;background:rgba(37,99,235,.1);color:var(--info);border:1px solid rgba(37,99,235,.2)}
-
-/* ── TABLE ── */
 .ttbar{padding:7px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:rgba(255,255,255,.08);}
 .srch{flex:1;min-width:140px;background:rgba(255,255,255,.25);border:1.5px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:.68rem;font-family:var(--font);padding:5px 10px;outline:none;transition:all .2s;backdrop-filter:blur(8px);}
 html[data-theme="dark"] .srch{background:rgba(255,255,255,.05);color:#ddeeff;}
@@ -293,8 +254,6 @@ html[data-theme="dark"] .pg-btn:hover{color:var(--dk-accent);border-color:rgba(0
 html[data-theme="dark"] .pg-btn.act{color:var(--dk-accent);border-color:rgba(0,210,200,.3);background:rgba(0,210,200,.1);}
 .pg-btn:disabled{opacity:.3;cursor:not-allowed}
 .pg-inf{font-size:.55rem;color:var(--muted);margin-left:auto;font-family:var(--mono)}
-
-/* ── LOADER ── */
 .loader{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px;gap:10px}
 .spin{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:sp .6s linear infinite}
 @keyframes sp{to{transform:rotate(360deg)}}
@@ -304,8 +263,6 @@ html[data-theme="dark"] .pg-btn.act{color:var(--dk-accent);border-color:rgba(0,2
 .errbox{background:rgba(220,38,38,.08);border:1.5px solid rgba(220,38,38,.25);color:#dc2626;border-radius:var(--radius);padding:10px 14px;margin:10px;font-size:.72rem;backdrop-filter:blur(8px);}
 .toast{position:fixed;bottom:16px;right:16px;background:rgba(8,18,40,.92);color:#fff;padding:8px 14px;border-radius:var(--radius);font-size:.68rem;font-weight:600;box-shadow:var(--shadow-hover);display:flex;align-items:center;gap:6px;z-index:9999;animation:toastin .3s ease-out;border-left:3px solid var(--accent);backdrop-filter:blur(16px);max-width:calc(100vw - 32px);}
 @keyframes toastin{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
-
-/* ── MOBILE ── */
 @media(max-width:640px){
   .hdr{padding:8px 12px;gap:6px;}
   .meeg-wordmark .sub,.hdr-title p,.meta-blk{display:none;}
@@ -343,8 +300,6 @@ html[data-theme="dark"] .pg-btn.act{color:var(--dk-accent);border-color:rgba(0,2
 </style>
 </head>
 <body>
-
-<!-- SPLASH -->
 <div id="splash">
   <div style="display:flex;flex-direction:column;align-items:center;gap:16px;">
     <svg class="splash-svg" width="80" height="66" viewBox="0 0 54 46" fill="none">
@@ -363,8 +318,6 @@ html[data-theme="dark"] .pg-btn.act{color:var(--dk-accent);border-color:rgba(0,2
   <div class="splash-bar-wrap"><div class="splash-bar"></div></div>
   <div class="splash-dots"><div class="splash-dot"></div><div class="splash-dot"></div><div class="splash-dot"></div></div>
 </div>
-
-<!-- HEADER -->
 <div class="hdr">
   <div class="hdr-left">
     <div class="meeg-logo">
@@ -402,645 +355,108 @@ html[data-theme="dark"] .pg-btn.act{color:var(--dk-accent);border-color:rgba(0,2
   </div>
 </div>
 <div class="sync-bar" id="syncBar"><div class="sync-progress"></div></div>
-
-<!-- COMPARISON BAR -->
 <div class="cmp-bar" id="cmpBar">
-  <div class="cmp-side">
-    <span class="cmp-label cmp-label-a">A</span>
-    <select class="cmp-sel" id="cmpSelA"><option value="">— Select Period —</option></select>
-  </div>
+  <div class="cmp-side"><span class="cmp-label cmp-label-a">A</span><select class="cmp-sel" id="cmpSelA"><option value="">— Select Period —</option></select></div>
   <span class="cmp-vs">VS</span>
-  <div class="cmp-side">
-    <span class="cmp-label cmp-label-b">B</span>
-    <select class="cmp-sel" id="cmpSelB"><option value="">— Select Period —</option></select>
-  </div>
+  <div class="cmp-side"><span class="cmp-label cmp-label-b">B</span><select class="cmp-sel" id="cmpSelB"><option value="">— Select Period —</option></select></div>
   <button class="cmp-run-btn" onclick="runCompare()">⚖️ Compare Now</button>
 </div>
-
 <div class="shift-banner">
   <span class="shift-banner-label">📋 Shifts:</span>
   <div class="opt-shifts-wrap" id="optShiftsWrap">
-    <button class="opt-shift-btn" id="btn_overnight"    onclick="toggleShift('overnight',this)">   <span class="dot">○</span> Over Night</button>
+    <button class="opt-shift-btn" id="btn_overnight"    onclick="toggleShift('overnight',this)"><span class="dot">○</span> Over Night</button>
     <button class="opt-shift-btn" id="btn_overnight12h" onclick="toggleShift('overnight12h',this)"><span class="dot">○</span> O.Night 12H</button>
-    <button class="opt-shift-btn" id="btn_morning12h"   onclick="toggleShift('morning12h',this)">  <span class="dot">○</span> Morning 12H</button>
-    <button class="opt-shift-btn" id="btn_night"        onclick="toggleShift('night',this)">       <span class="dot">○</span> Night</button>
-    <button class="opt-shift-btn" id="btn_morning"      onclick="toggleShift('morning',this)">     <span class="dot">○</span> Morning</button>
-    <button class="opt-shift-btn" id="btn_overmshift"   onclick="toggleShift('overmshift',this)">  <span class="dot">○</span> O.Shift(M)</button>
-    <button class="opt-shift-btn" id="btn_overnshift"   onclick="toggleShift('overnshift',this)">  <span class="dot">○</span> O.Shift(N)</button>
+    <button class="opt-shift-btn" id="btn_morning12h"   onclick="toggleShift('morning12h',this)"><span class="dot">○</span> Morning 12H</button>
+    <button class="opt-shift-btn" id="btn_night"        onclick="toggleShift('night',this)"><span class="dot">○</span> Night</button>
+    <button class="opt-shift-btn" id="btn_morning"      onclick="toggleShift('morning',this)"><span class="dot">○</span> Morning</button>
+    <button class="opt-shift-btn" id="btn_overmshift"   onclick="toggleShift('overmshift',this)"><span class="dot">○</span> O.Shift(M)</button>
+    <button class="opt-shift-btn" id="btn_overnshift"   onclick="toggleShift('overnshift',this)"><span class="dot">○</span> O.Shift(N)</button>
     <button class="opt-shift-btn" id="btn_oversonshift" onclick="toggleShift('oversonshift',this)"><span class="dot">○</span> O.Shift(ON)</button>
   </div>
 </div>
-<div class="fstrip" id="fstrip">
-  <div style="display:flex;align-items:center;gap:6px">
-    <div class="spin" style="width:14px;height:14px;border-width:2px"></div>
-    <span class="ltxt" style="font-size:.6rem">Loading…</span>
-  </div>
-</div>
+<div class="fstrip" id="fstrip"><div style="display:flex;align-items:center;gap:6px"><div class="spin" style="width:14px;height:14px;border-width:2px"></div><span class="ltxt" style="font-size:.6rem">Loading…</span></div></div>
 <div class="pills-row" id="pillsRow"><span class="pill pill-all">All Data — No Filters Active</span></div>
 <div class="loc-tabs" id="locTabs"><div class="spin" style="width:12px;height:12px;border-width:2px;margin:8px 0"></div></div>
 <div class="content" id="mainContent"><div class="loader"><div class="spin"></div><span class="ltxt">Loading data…</span></div></div>
-
 <script>
-// ── SPLASH ──────────────────────────────────────────
-function hideSplash(){
-  const s=document.getElementById('splash');
-  if(s){setTimeout(()=>{s.classList.add('fade-out');setTimeout(()=>s.remove(),650);},2200);}
-}
-
-// ── DARK MODE ────────────────────────────────────────
-function toggleDark(){
-  const html=document.documentElement;
-  const isDark=html.getAttribute('data-theme')==='dark';
-  const t=isDark?'light':'dark';
-  html.setAttribute('data-theme',t);
-  document.getElementById('dmIcon').textContent=isDark?'🌙':'☀️';
-  document.getElementById('dmLabel').textContent=isDark?'Dark':'Light';
-  localStorage.setItem('meeg_theme',t);
-}
-
-// ── FILTER PERSISTENCE ───────────────────────────────
-function saveFilters(){
-  try{
-    const state={
-      sel:Object.fromEntries(Object.entries(sel).map(([k,v])=>[k,[...v]])),
-      selD:[...selD],selWeeks:[...selWeeks],
-      shifts:Object.fromEntries(Object.entries(shiftState).map(([k,v])=>[k,v.on])),
-      activeLoc
-    };
-    localStorage.setItem('meeg_filters',JSON.stringify(state));
-  }catch(e){}
-}
-function restoreFilters(){
-  try{
-    const raw=localStorage.getItem('meeg_filters');if(!raw)return;
-    const state=JSON.parse(raw);
-    if(state.sel)Object.entries(state.sel).forEach(([k,arr])=>{sel[k]=new Set(arr);});
-    if(state.selD)state.selD.forEach(d=>selD.add(d));
-    if(state.selWeeks)state.selWeeks.forEach(w=>selWeeks.add(w));
-    if(state.shifts)Object.entries(state.shifts).forEach(([k,on])=>{
-      if(shiftState[k]){
-        shiftState[k].on=on;
-        const btn=document.getElementById('btn_'+k);
-        if(btn){btn.classList.toggle('on',on);btn.querySelector('.dot').textContent=on?'●':'○';}
-      }
-    });
-    if(state.activeLoc)activeLoc=state.activeLoc;
-  }catch(e){}
-}
-
-// ── ANIMATED NUMBER ──────────────────────────────────
-function animateNum(el,target,duration=900){
-  const start=performance.now();
-  const from=0;
-  function step(now){
-    const p=Math.min((now-start)/duration,1);
-    const ease=1-Math.pow(1-p,3);
-    const cur=Math.round(from+(target-from)*ease);
-    el.textContent=cur.toLocaleString();
-    if(p<1)requestAnimationFrame(step);
-    else el.textContent=target.toLocaleString();
-  }
-  requestAnimationFrame(step);
-}
-function animateAllNums(){
-  document.querySelectorAll('[data-anim-num]').forEach(el=>{
-    const target=parseInt(el.getAttribute('data-anim-num'));
-    if(!isNaN(target))animateNum(el,target);
-  });
-}
-
-// ── COMPARISON MODE ──────────────────────────────────
+function hideSplash(){const s=document.getElementById('splash');if(s){setTimeout(()=>{s.classList.add('fade-out');setTimeout(()=>s.remove(),650);},2200);}}
+function toggleDark(){const html=document.documentElement;const isDark=html.getAttribute('data-theme')==='dark';const t=isDark?'light':'dark';html.setAttribute('data-theme',t);document.getElementById('dmIcon').textContent=isDark?'🌙':'☀️';document.getElementById('dmLabel').textContent=isDark?'Dark':'Light';localStorage.setItem('meeg_theme',t);}
+function saveFilters(){try{const state={sel:Object.fromEntries(Object.entries(sel).map(([k,v])=>[k,[...v]])),selD:[...selD],selWeeks:[...selWeeks],shifts:Object.fromEntries(Object.entries(shiftState).map(([k,v])=>[k,v.on])),activeLoc};localStorage.setItem('meeg_filters',JSON.stringify(state));}catch(e){}}
+function restoreFilters(){try{const raw=localStorage.getItem('meeg_filters');if(!raw)return;const state=JSON.parse(raw);if(state.sel)Object.entries(state.sel).forEach(([k,arr])=>{sel[k]=new Set(arr);});if(state.selD)state.selD.forEach(d=>selD.add(d));if(state.selWeeks)state.selWeeks.forEach(w=>selWeeks.add(w));if(state.shifts)Object.entries(state.shifts).forEach(([k,on])=>{if(shiftState[k]){shiftState[k].on=on;const btn=document.getElementById('btn_'+k);if(btn){btn.classList.toggle('on',on);btn.querySelector('.dot').textContent=on?'●':'○';}}});if(state.activeLoc)activeLoc=state.activeLoc;}catch(e){}}
+function animateNum(el,target,duration=900){const start=performance.now();function step(now){const p=Math.min((now-start)/duration,1);const ease=1-Math.pow(1-p,3);el.textContent=Math.round(ease*(target)).toLocaleString();if(p<1)requestAnimationFrame(step);else el.textContent=target.toLocaleString();}requestAnimationFrame(step);}
+function animateAllNums(){document.querySelectorAll('[data-anim-num]').forEach(el=>{const t=parseInt(el.getAttribute('data-anim-num'));if(!isNaN(t))animateNum(el,t);});}
 let cmpMode=false;
-function toggleCompare(){
-  cmpMode=!cmpMode;
-  const bar=document.getElementById('cmpBar');
-  const btn=document.getElementById('cmpBtn');
-  bar.classList.toggle('visible',cmpMode);
-  btn.classList.toggle('active',cmpMode);
-  btn.textContent=cmpMode?'✕ Close':'⚖️ Compare';
-  if(cmpMode)populateCmpSelects();
-  else{
-    const old=document.getElementById('cmpResultSection');
-    if(old)old.remove();
-  }
-}
-
-function populateCmpSelects(){
-  const dates=sOpts._dates||[];
-  const weeks=window._weekList||[];
-  const opts=[
-    '<option value="">— Select Period —</option>',
-    '<optgroup label="── Today / Yesterday ──">',
-    ...['Today','Yesterday'].map(l=>`<option value="special_${l.toLowerCase()}">${l}</option>`),
-    '</optgroup>',
-    '<optgroup label="── Weeks ──">',
-    ...weeks.slice(0,12).map(w=>`<option value="week_${esc(w)}">${esc(w)}</option>`),
-    '</optgroup>',
-    '<optgroup label="── Dates ──">',
-    ...dates.slice(0,30).map(d=>`<option value="date_${d}">${d}${d===todayStr?' ⭐':''}</option>`),
-    '</optgroup>'
-  ].join('');
-  document.getElementById('cmpSelA').innerHTML=opts;
-  document.getElementById('cmpSelB').innerHTML=opts;
-}
-
-function getRowsForPeriod(val){
-  if(!val)return[];
-  if(val==='special_today') return rawRows.filter(r=>isRowAllowed(r)&&rDate(r)===todayStr);
-  if(val==='special_yesterday'){
-    const d=new Date(todayStr+'T12:00:00');d.setDate(d.getDate()-1);
-    const yest=d.toISOString().substring(0,10);
-    return rawRows.filter(r=>isRowAllowed(r)&&rDate(r)===yest);
-  }
-  if(val.startsWith('week_')){
-    const wLabel=val.replace('week_','');
-    const dates=(window._weekMap||{})[wLabel]||[];
-    return rawRows.filter(r=>isRowAllowed(r)&&dates.includes(rDate(r)));
-  }
-  if(val.startsWith('date_')){
-    const d=val.replace('date_','');
-    return rawRows.filter(r=>isRowAllowed(r)&&rDate(r)===d);
-  }
-  return[];
-}
-
-function getPeriodLabel(val){
-  if(!val)return'—';
-  if(val==='special_today')return'Today';
-  if(val==='special_yesterday')return'Yesterday';
-  if(val.startsWith('week_'))return val.replace('week_','');
-  if(val.startsWith('date_'))return val.replace('date_','');
-  return val;
-}
-
-function runCompare(){
-  const valA=document.getElementById('cmpSelA').value;
-  const valB=document.getElementById('cmpSelB').value;
-  if(!valA||!valB){showToast('⚠️ Select both periods first');return;}
-  if(valA===valB){showToast('⚠️ Select two different periods');return;}
-
-  const rowsA=getRowsForPeriod(valA);
-  const rowsB=getRowsForPeriod(valB);
-  const lblA=getPeriodLabel(valA);
-  const lblB=getPeriodLabel(valB);
-
-  const mIdx=hdrs.findIndex(h=>h.toLowerCase()==='modality');
-  const qIdx=hdrs.findIndex(h=>h.toLowerCase()==='queue name');
-  const labIdx=hdrs.findIndex(h=>h.toLowerCase()==='labeler name');
-  const qtcIdx=hdrs.findIndex(h=>h.toLowerCase()==='qtc name');
-  const obIdx=hdrs.findIndex(h=>h.toLowerCase()==='object count');
-
-  function stats(rows){
-    const modMap={},qMap={},labMap={},qtcMap={};
-    let totalObj=0,objCount=0;
-    rows.forEach(r=>{
-      const mv=mIdx>=0?String(r[mIdx]||'').trim():'';
-      const qv=qIdx>=0?String(r[qIdx]||'').trim():'';
-      const lv=labIdx>=0?String(r[labIdx]||'').trim():'';
-      const qc=qtcIdx>=0?String(r[qtcIdx]||'').trim():'';
-      if(mv)modMap[mv]=(modMap[mv]||0)+1;
-      if(qv)qMap[qv]=(qMap[qv]||0)+1;
-      if(lv)labMap[lv]=(labMap[lv]||0)+1;
-      if(qc)qtcMap[qc]=(qtcMap[qc]||0)+1;
-      if(obIdx>=0){const n=parseFloat(String(r[obIdx]||''));if(!isNaN(n)){totalObj+=n;objCount++;}}
-    });
-    const topLab=Object.entries(labMap).sort((a,b)=>b[1]-a[1])[0];
-    const topQtc=Object.entries(qtcMap).sort((a,b)=>b[1]-a[1])[0];
-    const topMod=Object.entries(modMap).sort((a,b)=>b[1]-a[1])[0];
-    return{total:rows.length,modMap,qMap,labMap,qtcMap,totalObj,objCount,
-      topLab:topLab?`${topLab[0]} (${topLab[1]})`:'—',
-      topQtc:topQtc?`${topQtc[0]} (${topQtc[1]})`:'—',
-      topMod:topMod?`${topMod[0]} (${topMod[1]})`:'—'};
-  }
-
-  const sA=stats(rowsA),sB=stats(rowsB);
-
-  function deltaHtml(a,b){
-    if(!b)return'';
-    const diff=a-b;const pct=b?Math.round((diff/b)*100):0;
-    if(diff===0)return'';
-    const cls=diff>0?'cmp-delta-up':'cmp-delta-dn';
-    const arrow=diff>0?'▲':'▼';
-    return`<span class="cmp-delta ${cls}">${arrow}${Math.abs(pct)}%</span>`;
-  }
-
-  function barRows(mapA,mapB,colorA,colorB){
-    const keys=[...new Set([...Object.keys(mapA),...Object.keys(mapB)])].sort((a,b)=>(mapB[b]||0)+(mapA[b]||0)-(mapB[a]||0)-(mapA[a]||0)).slice(0,8);
-    const maxVal=Math.max(...keys.map(k=>Math.max(mapA[k]||0,mapB[k]||0)),1);
-    return keys.map(k=>{
-      const a=mapA[k]||0,b=mapB[k]||0;
-      return`<div class="cmp-bar-item">
-        <div class="cmp-bar-name" title="${esc(k)}">${esc(k)}</div>
-        <div style="flex:1;display:flex;flex-direction:column;gap:2px">
-          <div class="cmp-bar-track"><div class="cmp-bar-fill-a" style="width:${Math.round(a/maxVal*100)}%;background:${colorA}"></div></div>
-          <div class="cmp-bar-track"><div class="cmp-bar-fill-b" style="width:${Math.round(b/maxVal*100)}%;background:${colorB}"></div></div>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:2px;min-width:28px;text-align:right">
-          <span class="cmp-bar-num" style="color:${colorA}">${a}</span>
-          <span class="cmp-bar-num" style="color:${colorB}">${b}</span>
-        </div>
-      </div>`;
-    }).join('');
-  }
-
-  const old=document.getElementById('cmpResultSection');if(old)old.remove();
-  const sec=document.createElement('div');
-  sec.id='cmpResultSection';sec.className='cmp-result';
-  sec.innerHTML=`
-    <div class="cmp-result-hd">
-      <div class="cmp-result-title">⚖️ Comparison Result
-        <span class="cmp-label cmp-label-a">A: ${esc(lblA)}</span>
-        <span style="color:var(--muted);font-size:.65rem">vs</span>
-        <span class="cmp-label cmp-label-b">B: ${esc(lblB)}</span>
-      </div>
-      <button class="btn btn-d" style="padding:3px 8px;font-size:.58rem" onclick="document.getElementById('cmpResultSection').remove()">✕ Close</button>
-    </div>
-    <div class="cmp-cols">
-      <div class="cmp-col cmp-col-a">
-        <div class="cmp-col-hd cmp-col-hd-a">A — ${esc(lblA)}</div>
-        <div class="cmp-stat-row"><span class="cmp-stat-label">Total Submits</span><span class="cmp-stat-val" data-anim-num="${sA.total}">${sA.total}</span></div>
-        <div class="cmp-stat-row"><span class="cmp-stat-label">Total Objects</span><span class="cmp-stat-val" data-anim-num="${sA.totalObj}">${sA.totalObj.toLocaleString()}</span></div>
-        <div class="cmp-stat-row"><span class="cmp-stat-label">Top Labeler</span><span class="cmp-stat-val" style="font-size:.62rem;font-family:var(--font)">${esc(sA.topLab)}</span></div>
-        <div class="cmp-stat-row"><span class="cmp-stat-label">Top QTC</span><span class="cmp-stat-val" style="font-size:.62rem;font-family:var(--font)">${esc(sA.topQtc)}</span></div>
-        <div class="cmp-stat-row"><span class="cmp-stat-label">Top Modality</span><span class="cmp-stat-val" style="font-size:.62rem;font-family:var(--font)">${esc(sA.topMod)}</span></div>
-      </div>
-      <div class="cmp-col">
-        <div class="cmp-col-hd cmp-col-hd-b">B — ${esc(lblB)}</div>
-        <div class="cmp-stat-row"><span class="cmp-stat-label">Total Submits</span><span class="cmp-stat-val">${sB.total} ${deltaHtml(sB.total,sA.total)}</span></div>
-        <div class="cmp-stat-row"><span class="cmp-stat-label">Total Objects</span><span class="cmp-stat-val">${sB.totalObj.toLocaleString()} ${deltaHtml(sB.totalObj,sA.totalObj)}</span></div>
-        <div class="cmp-stat-row"><span class="cmp-stat-label">Top Labeler</span><span class="cmp-stat-val" style="font-size:.62rem;font-family:var(--font)">${esc(sB.topLab)}</span></div>
-        <div class="cmp-stat-row"><span class="cmp-stat-label">Top QTC</span><span class="cmp-stat-val" style="font-size:.62rem;font-family:var(--font)">${esc(sB.topQtc)}</span></div>
-        <div class="cmp-stat-row"><span class="cmp-stat-label">Top Modality</span><span class="cmp-stat-val" style="font-size:.62rem;font-family:var(--font)">${esc(sB.topMod)}</span></div>
-      </div>
-    </div>
-    ${Object.keys(sA.labMap).length||Object.keys(sB.labMap).length?`
-    <div style="padding:12px 16px;border-top:1px solid var(--border)">
-      <div style="font-size:.62rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">👤 Labeler Comparison</div>
-      ${barRows(sA.labMap,sB.labMap,'var(--cmp-a)','var(--cmp-b)')}
-      <div style="display:flex;gap:12px;margin-top:6px;font-size:.58rem">
-        <span style="color:var(--cmp-a)">■ A: ${esc(lblA)}</span>
-        <span style="color:var(--cmp-b)">■ B: ${esc(lblB)}</span>
-      </div>
-    </div>`:''}
-    ${Object.keys(sA.modMap).length||Object.keys(sB.modMap).length?`
-    <div style="padding:12px 16px;border-top:1px solid var(--border)">
-      <div style="font-size:.62rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">🔬 Modality Comparison</div>
-      ${barRows(sA.modMap,sB.modMap,'var(--cmp-a)','var(--cmp-b)')}
-    </div>`:''}
-    ${Object.keys(sA.qMap).length||Object.keys(sB.qMap).length?`
-    <div style="padding:12px 16px;border-top:1px solid var(--border)">
-      <div style="font-size:.62rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">📋 Queue Comparison</div>
-      ${barRows(sA.qMap,sB.qMap,'var(--cmp-a)','var(--cmp-b)')}
-    </div>`:''}
-  `;
-
-  const content=document.getElementById('mainContent');
-  content.insertBefore(sec,content.firstChild);
-  setTimeout(animateAllNums,100);
-  sec.scrollIntoView({behavior:'smooth',block:'start'});
-  showToast('✅ Comparison ready!');
-}
-
-// ── STATE ────────────────────────────────────────────
+function toggleCompare(){cmpMode=!cmpMode;const bar=document.getElementById('cmpBar');const btn=document.getElementById('cmpBtn');bar.classList.toggle('visible',cmpMode);btn.classList.toggle('active',cmpMode);btn.textContent=cmpMode?'✕ Close':'⚖️ Compare';if(cmpMode)populateCmpSelects();else{const old=document.getElementById('cmpResultSection');if(old)old.remove();}}
+function populateCmpSelects(){const dates=sOpts._dates||[];const weeks=window._weekList||[];const opts=['<option value="">— Select Period —</option>','<optgroup label="── Today / Yesterday ──">','Today','Yesterday'].map((l,i)=>i<2?l:`<option value="special_${l.toLowerCase()}">${l}</option>`).join('')+'</optgroup><optgroup label="── Weeks ──">'+weeks.slice(0,12).map(w=>`<option value="week_${esc(w)}">${esc(w)}</option>`).join('')+'</optgroup><optgroup label="── Dates ──">'+dates.slice(0,30).map(d=>`<option value="date_${d}">${d}${d===todayStr?' ⭐':''}</option>`).join('')+'</optgroup>';document.getElementById('cmpSelA').innerHTML=opts;document.getElementById('cmpSelB').innerHTML=opts;}
+function getRowsForPeriod(val){if(!val)return[];if(val==='special_today')return rawRows.filter(r=>isRowAllowed(r)&&rDate(r)===todayStr);if(val==='special_yesterday'){const d=new Date(todayStr+'T12:00:00');d.setDate(d.getDate()-1);const yest=d.toISOString().substring(0,10);return rawRows.filter(r=>isRowAllowed(r)&&rDate(r)===yest);}if(val.startsWith('week_')){const wLabel=val.replace('week_','');const dates=(window._weekMap||{})[wLabel]||[];return rawRows.filter(r=>isRowAllowed(r)&&dates.includes(rDate(r)));}if(val.startsWith('date_')){const d=val.replace('date_','');return rawRows.filter(r=>isRowAllowed(r)&&rDate(r)===d);}return[];}
+function getPeriodLabel(val){if(!val)return'—';if(val==='special_today')return'Today';if(val==='special_yesterday')return'Yesterday';if(val.startsWith('week_'))return val.replace('week_','');if(val.startsWith('date_'))return val.replace('date_','');return val;}
+function runCompare(){const valA=document.getElementById('cmpSelA').value;const valB=document.getElementById('cmpSelB').value;if(!valA||!valB){showToast('⚠️ Select both periods first');return;}if(valA===valB){showToast('⚠️ Select two different periods');return;}const rowsA=getRowsForPeriod(valA);const rowsB=getRowsForPeriod(valB);const lblA=getPeriodLabel(valA);const lblB=getPeriodLabel(valB);const mIdx=hdrs.findIndex(h=>h.toLowerCase()==='modality');const qIdx=hdrs.findIndex(h=>h.toLowerCase()==='queue name');const labIdx=hdrs.findIndex(h=>h.toLowerCase()==='labeler name');const qtcIdx=hdrs.findIndex(h=>h.toLowerCase()==='qtc name');const obIdx=hdrs.findIndex(h=>h.toLowerCase()==='object count');function stats(rows){const modMap={},qMap={},labMap={},qtcMap={};let totalObj=0,objCount=0;rows.forEach(r=>{const mv=mIdx>=0?String(r[mIdx]||'').trim():'';const qv=qIdx>=0?String(r[qIdx]||'').trim():'';const lv=labIdx>=0?String(r[labIdx]||'').trim():'';const qc=qtcIdx>=0?String(r[qtcIdx]||'').trim():'';if(mv)modMap[mv]=(modMap[mv]||0)+1;if(qv)qMap[qv]=(qMap[qv]||0)+1;if(lv)labMap[lv]=(labMap[lv]||0)+1;if(qc)qtcMap[qc]=(qtcMap[qc]||0)+1;if(obIdx>=0){const n=parseFloat(String(r[obIdx]||''));if(!isNaN(n)){totalObj+=n;objCount++;}}});const topLab=Object.entries(labMap).sort((a,b)=>b[1]-a[1])[0];const topQtc=Object.entries(qtcMap).sort((a,b)=>b[1]-a[1])[0];const topMod=Object.entries(modMap).sort((a,b)=>b[1]-a[1])[0];return{total:rows.length,modMap,qMap,labMap,qtcMap,totalObj,objCount,topLab:topLab?`${topLab[0]} (${topLab[1]})`:'—',topQtc:topQtc?`${topQtc[0]} (${topQtc[1]})`:'—',topMod:topMod?`${topMod[0]} (${topMod[1]})`:'—'};}
+const sA=stats(rowsA),sB=stats(rowsB);function deltaHtml(a,b){if(!b)return'';const diff=a-b;const pct=b?Math.round((diff/b)*100):0;if(diff===0)return'';const cls=diff>0?'cmp-delta-up':'cmp-delta-dn';return`<span class="cmp-delta ${cls}">${diff>0?'▲':'▼'}${Math.abs(pct)}%</span>`;}
+function barRows(mapA,mapB,cA,cB){const keys=[...new Set([...Object.keys(mapA),...Object.keys(mapB)])].sort((a,b)=>(mapB[b]||0)+(mapA[b]||0)-(mapB[a]||0)-(mapA[a]||0)).slice(0,8);const mx=Math.max(...keys.map(k=>Math.max(mapA[k]||0,mapB[k]||0)),1);return keys.map(k=>{const a=mapA[k]||0,b=mapB[k]||0;return`<div class="cmp-bar-item"><div class="cmp-bar-name" title="${esc(k)}">${esc(k)}</div><div style="flex:1;display:flex;flex-direction:column;gap:2px"><div class="cmp-bar-track"><div class="cmp-bar-fill-a" style="width:${Math.round(a/mx*100)}%;background:${cA}"></div></div><div class="cmp-bar-track"><div class="cmp-bar-fill-b" style="width:${Math.round(b/mx*100)}%;background:${cB}"></div></div></div><div style="display:flex;flex-direction:column;gap:2px;min-width:28px;text-align:right"><span class="cmp-bar-num" style="color:${cA}">${a}</span><span class="cmp-bar-num" style="color:${cB}">${b}</span></div></div>`;}).join('');}
+const old=document.getElementById('cmpResultSection');if(old)old.remove();const sec=document.createElement('div');sec.id='cmpResultSection';sec.className='cmp-result';
+sec.innerHTML=`<div class="cmp-result-hd"><div class="cmp-result-title">⚖️ Comparison Result <span class="cmp-label cmp-label-a">A: ${esc(lblA)}</span><span style="color:var(--muted);font-size:.65rem">vs</span><span class="cmp-label cmp-label-b">B: ${esc(lblB)}</span></div><button class="btn btn-d" style="padding:3px 8px;font-size:.58rem" onclick="document.getElementById('cmpResultSection').remove()">✕ Close</button></div><div class="cmp-cols"><div class="cmp-col cmp-col-a"><div class="cmp-col-hd cmp-col-hd-a">A — ${esc(lblA)}</div><div class="cmp-stat-row"><span class="cmp-stat-label">Total Submits</span><span class="cmp-stat-val" data-anim-num="${sA.total}">${sA.total}</span></div><div class="cmp-stat-row"><span class="cmp-stat-label">Total Objects</span><span class="cmp-stat-val" data-anim-num="${sA.totalObj}">${sA.totalObj.toLocaleString()}</span></div><div class="cmp-stat-row"><span class="cmp-stat-label">Top Labeler</span><span class="cmp-stat-val" style="font-size:.62rem;font-family:var(--font)">${esc(sA.topLab)}</span></div><div class="cmp-stat-row"><span class="cmp-stat-label">Top QTC</span><span class="cmp-stat-val" style="font-size:.62rem;font-family:var(--font)">${esc(sA.topQtc)}</span></div><div class="cmp-stat-row"><span class="cmp-stat-label">Top Modality</span><span class="cmp-stat-val" style="font-size:.62rem;font-family:var(--font)">${esc(sA.topMod)}</span></div></div><div class="cmp-col"><div class="cmp-col-hd cmp-col-hd-b">B — ${esc(lblB)}</div><div class="cmp-stat-row"><span class="cmp-stat-label">Total Submits</span><span class="cmp-stat-val">${sB.total} ${deltaHtml(sB.total,sA.total)}</span></div><div class="cmp-stat-row"><span class="cmp-stat-label">Total Objects</span><span class="cmp-stat-val">${sB.totalObj.toLocaleString()} ${deltaHtml(sB.totalObj,sA.totalObj)}</span></div><div class="cmp-stat-row"><span class="cmp-stat-label">Top Labeler</span><span class="cmp-stat-val" style="font-size:.62rem;font-family:var(--font)">${esc(sB.topLab)}</span></div><div class="cmp-stat-row"><span class="cmp-stat-label">Top QTC</span><span class="cmp-stat-val" style="font-size:.62rem;font-family:var(--font)">${esc(sB.topQtc)}</span></div><div class="cmp-stat-row"><span class="cmp-stat-label">Top Modality</span><span class="cmp-stat-val" style="font-size:.62rem;font-family:var(--font)">${esc(sB.topMod)}</span></div></div></div>${Object.keys(sA.labMap).length||Object.keys(sB.labMap).length?`<div style="padding:12px 16px;border-top:1px solid var(--border)"><div style="font-size:.62rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">👤 Labeler Comparison</div>${barRows(sA.labMap,sB.labMap,'var(--cmp-a)','var(--cmp-b)')}<div style="display:flex;gap:12px;margin-top:6px;font-size:.58rem"><span style="color:var(--cmp-a)">■ A: ${esc(lblA)}</span><span style="color:var(--cmp-b)">■ B: ${esc(lblB)}</span></div></div>`:''}${Object.keys(sA.modMap).length||Object.keys(sB.modMap).length?`<div style="padding:12px 16px;border-top:1px solid var(--border)"><div style="font-size:.62rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">🔬 Modality Comparison</div>${barRows(sA.modMap,sB.modMap,'var(--cmp-a)','var(--cmp-b)')}</div>`:''}${Object.keys(sA.qMap).length||Object.keys(sB.qMap).length?`<div style="padding:12px 16px;border-top:1px solid var(--border)"><div style="font-size:.62rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">📋 Queue Comparison</div>${barRows(sA.qMap,sB.qMap,'var(--cmp-a)','var(--cmp-b)')}</div>`:''}`;
+const content=document.getElementById('mainContent');content.insertBefore(sec,content.firstChild);setTimeout(animateAllNums,100);sec.scrollIntoView({behavior:'smooth',block:'start'});showToast('✅ Comparison ready!');}
 const SHEET_ID='1g9mPKQMactJKC-BP0Ik3Cw72PLUXCb4VTKFbHYLjc5I';
 const SHEET_NAME='Data Base';
 const REFRESH_INTERVAL=60;
 const ALL_SHIFTS=["over night","over night 12 h","morning 12 h","night","morning","over shift (m)","over shift (n)","over shift (on)"];
 const PGSZ=75;
-const SC=[
-  {key:'Qtc Name',lbl:'QTC',ic:'🏷️'},{key:'Yubikey Email',lbl:'Email',ic:'✉️'},
-  {key:'Labeler Name',lbl:'Labeler',ic:'👤'},{key:'Pc No',lbl:'Device',ic:'🖥️'},
-  {key:'Modality',lbl:'Modality',ic:'🔬'},{key:'Queue Name',lbl:'Queue',ic:'📋'},
-  {key:'Shift',lbl:'Shift',ic:'🔄'}
-];
-const shiftState={
-  overnight:{on:false,key:"over night"},overnight12h:{on:false,key:"over night 12 h"},
-  morning12h:{on:false,key:"morning 12 h"},night:{on:false,key:"night"},
-  morning:{on:false,key:"morning"},overmshift:{on:false,key:"over shift (m)"},
-  overnshift:{on:false,key:"over shift (n)"},oversonshift:{on:false,key:"over shift (on)"}
-};
+const SC=[{key:'Qtc Name',lbl:'QTC',ic:'🏷️'},{key:'Yubikey Email',lbl:'Email',ic:'✉️'},{key:'Labeler Name',lbl:'Labeler',ic:'👤'},{key:'Pc No',lbl:'Device',ic:'🖥️'},{key:'Modality',lbl:'Modality',ic:'🔬'},{key:'Queue Name',lbl:'Queue',ic:'📋'},{key:'Shift',lbl:'Shift',ic:'🔄'}];
+const shiftState={overnight:{on:false,key:"over night"},overnight12h:{on:false,key:"over night 12 h"},morning12h:{on:false,key:"morning 12 h"},night:{on:false,key:"night"},morning:{on:false,key:"morning"},overmshift:{on:false,key:"over shift (m)"},overnshift:{on:false,key:"over shift (n)"},oversonshift:{on:false,key:"over shift (on)"}};
 let rawRows=[],hdrs=[],sOpts={},sIdx={},tsIdx=-1,locColIdx=-1,todayStr='';
 let locations=[],activeLoc='__all__';
 let sel={},selD=new Set(),selWeeks=new Set();
 let sortC=-1,sortDr=1,fcache=[],openK=null,locSearch={};
 let autoRefreshTimer=null,_filtersRestored=false;
-
 document.addEventListener('click',e=>{if(!e.target.closest('.fg'))closeAll();});
-
-function toggleShift(id,btn){
-  shiftState[id].on=!shiftState[id].on;
-  btn.classList.toggle('on',shiftState[id].on);
-  btn.querySelector('.dot').textContent=shiftState[id].on?'●':'○';
-  applyAll();
-}
-function isRowAllowed(r){
-  const ci=sIdx['Shift'];if(ci===undefined)return true;
-  const sv=String(r[ci]||'').trim().toLowerCase();
-  const anyOn=Object.values(shiftState).some(c=>c.on);
-  if(!anyOn)return true;
-  return Object.values(shiftState).some(c=>c.on&&sv===c.key);
-}
-
-// ── FETCH ────────────────────────────────────────────
-function loadData(){
-  setSyncActive(true);
-  const b=document.getElementById('refreshBtn');if(b)b.disabled=true;
-  fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(SHEET_NAME)}`)
-    .then(r=>r.text()).then(txt=>{
-      const json=JSON.parse(txt.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\)/)[1]);
-      onGvizData(json);
-    }).catch(e=>{setSyncActive(false);if(b)b.disabled=false;showErr('Failed: '+e.message);});
-}
-
-function onGvizData(json){
-  const b=document.getElementById('refreshBtn');if(b)b.disabled=false;
-  setSyncActive(false);
-  if(!json||!json.table){showErr('No data returned.');return;}
-  const table=json.table,cols=table.cols||[],gRows=table.rows||[];
-  hdrs=cols.map(c=>(c.label||c.id||'').trim());
-  const hLower=hdrs.map(h=>h.toLowerCase());
-  sIdx={};
-  ["Shift","Unit","Qtc Name","Yubikey Email","Labeler Name","Pc No","Modality","Queue Name","Location"].forEach(name=>{
-    const i=hLower.indexOf(name.toLowerCase());if(i>=0)sIdx[name]=i;
-  });
-  tsIdx=hLower.findIndex(h=>h==='timestamp');
-  if(tsIdx<0)tsIdx=hLower.findIndex(h=>h==='created at');
-  if(tsIdx<0)tsIdx=hLower.findIndex(h=>h==='date');
-  if(tsIdx<0)tsIdx=hLower.findIndex(h=>h.includes('date'));
-  locColIdx=hLower.findIndex(h=>h==='location');
-  if(locColIdx<0)locColIdx=hLower.findIndex(h=>h==='unit');
-  if(locColIdx<0)locColIdx=hLower.findIndex(h=>h==='site');
-  rawRows=[];
-  for(const gRow of gRows){
-    if(!gRow||!gRow.c)continue;
-    const cells=gRow.c;
-    const row=hdrs.map((_,ci)=>{
-      const cell=cells[ci];
-      if(!cell||cell.v===null||cell.v===undefined)return'';
-      if(cols[ci]&&cols[ci].type==='date'&&cell.v){
-        const m=String(cell.v).match(/Date\((\d+),(\d+),(\d+)/);
-        if(m)return`${m[1]}-${String(+m[2]+1).padStart(2,'0')}-${String(m[3]).padStart(2,'0')}`;
-        return cell.f||String(cell.v);
-      }
-      if(cols[ci]&&cols[ci].type==='datetime'&&cell.v){
-        const m=String(cell.v).match(/Date\((\d+),(\d+),(\d+),(\d+),(\d+),(\d+)/);
-        if(m)return`${m[1]}-${String(+m[2]+1).padStart(2,'0')}-${String(m[3]).padStart(2,'0')} ${String(m[4]).padStart(2,'0')}:${String(m[5]).padStart(2,'0')}:${String(m[6]).padStart(2,'0')}`;
-        return cell.f||String(cell.v);
-      }
-      return cell.f!==undefined&&cell.f!==null?cell.f:String(cell.v);
-    });
-    const sci=sIdx['Shift'];
-    if(sci!==undefined){const sv=String(row[sci]||'').trim().toLowerCase();if(!ALL_SHIFTS.some(a=>sv===a))continue;}
-    rawRows.push(row);
-  }
-  sOpts={};
-  ["Shift","Unit","Qtc Name","Yubikey Email","Labeler Name","Pc No","Modality","Queue Name","Location"].forEach(name=>{
-    const ci=sIdx[name];if(ci===undefined)return;
-    const set=new Set();rawRows.forEach(r=>{const v=String(r[ci]||'').trim();if(v)set.add(v);});
-    sOpts[name]=[...set].sort();
-  });
-  const dateSet=new Set();
-  rawRows.forEach(r=>{const d=extractDate(r[tsIdx]);if(d)dateSet.add(d);});
-  sOpts['_dates']=[...dateSet].sort().reverse();
-  const locSet=new Set();
-  if(locColIdx>=0)rawRows.forEach(r=>{const v=String(r[locColIdx]||'').trim();if(v)locSet.add(v);});
-  locations=[...locSet].sort();
-  const now=new Date();
-  todayStr=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
-  document.getElementById('todayLabel').textContent=todayStr;
-  document.getElementById('lastUpdated').textContent=_now();
-  document.getElementById('totalBadge').textContent=rawRows.length+' rows';
-  SC.forEach(s=>{if(!sel[s.key])sel[s.key]=new Set();});
-  if(!_filtersRestored){restoreFilters();_filtersRestored=true;}
-  buildStrip();buildTabs();applyAll();
-  if(autoRefreshTimer)clearInterval(autoRefreshTimer);
-  autoRefreshTimer=setInterval(loadData,REFRESH_INTERVAL*1000);
-  if(cmpMode)populateCmpSelects();
-}
-
-function extractDate(v){
-  if(!v)return null;const s=String(v).trim();
-  if(/^\d{4}-\d{2}-\d{2}/.test(s))return s.substring(0,10);
-  const m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-  if(m)return m[3]+'-'+m[1].padStart(2,'0')+'-'+m[2].padStart(2,'0');
-  return null;
-}
-function rDate(r){
-  if(tsIdx<0)return'';const v=String(r[tsIdx]||'').trim();
-  const iso=v.match(/^(\d{4}-\d{2}-\d{2})/);return iso?iso[1]:'';
-}
-function _now(){
-  const n=new Date();
-  return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0')+' '+String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');
-}
+function toggleShift(id,btn){shiftState[id].on=!shiftState[id].on;btn.classList.toggle('on',shiftState[id].on);btn.querySelector('.dot').textContent=shiftState[id].on?'●':'○';applyAll();}
+function isRowAllowed(r){const ci=sIdx['Shift'];if(ci===undefined)return true;const sv=String(r[ci]||'').trim().toLowerCase();const anyOn=Object.values(shiftState).some(c=>c.on);if(!anyOn)return true;return Object.values(shiftState).some(c=>c.on&&sv===c.key);}
+function loadData(){setSyncActive(true);const b=document.getElementById('refreshBtn');if(b)b.disabled=true;fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(SHEET_NAME)}`).then(r=>r.text()).then(txt=>{const json=JSON.parse(txt.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\)/)[1]);onGvizData(json);}).catch(e=>{setSyncActive(false);if(b)b.disabled=false;showErr('Failed: '+e.message);});}
+function onGvizData(json){const b=document.getElementById('refreshBtn');if(b)b.disabled=false;setSyncActive(false);if(!json||!json.table){showErr('No data returned.');return;}const table=json.table,cols=table.cols||[],gRows=table.rows||[];hdrs=cols.map(c=>(c.label||c.id||'').trim());const hLower=hdrs.map(h=>h.toLowerCase());sIdx={};["Shift","Unit","Qtc Name","Yubikey Email","Labeler Name","Pc No","Modality","Queue Name","Location"].forEach(name=>{const i=hLower.indexOf(name.toLowerCase());if(i>=0)sIdx[name]=i;});tsIdx=hLower.findIndex(h=>h==='timestamp');if(tsIdx<0)tsIdx=hLower.findIndex(h=>h==='created at');if(tsIdx<0)tsIdx=hLower.findIndex(h=>h==='date');if(tsIdx<0)tsIdx=hLower.findIndex(h=>h.includes('date'));locColIdx=hLower.findIndex(h=>h==='location');if(locColIdx<0)locColIdx=hLower.findIndex(h=>h==='unit');if(locColIdx<0)locColIdx=hLower.findIndex(h=>h==='site');rawRows=[];for(const gRow of gRows){if(!gRow||!gRow.c)continue;const cells=gRow.c;const row=hdrs.map((_,ci)=>{const cell=cells[ci];if(!cell||cell.v===null||cell.v===undefined)return'';if(cols[ci]&&cols[ci].type==='date'&&cell.v){const m=String(cell.v).match(/Date\((\d+),(\d+),(\d+)/);if(m)return`${m[1]}-${String(+m[2]+1).padStart(2,'0')}-${String(m[3]).padStart(2,'0')}`;return cell.f||String(cell.v);}if(cols[ci]&&cols[ci].type==='datetime'&&cell.v){const m=String(cell.v).match(/Date\((\d+),(\d+),(\d+),(\d+),(\d+),(\d+)/);if(m)return`${m[1]}-${String(+m[2]+1).padStart(2,'0')}-${String(m[3]).padStart(2,'0')} ${String(m[4]).padStart(2,'0')}:${String(m[5]).padStart(2,'0')}:${String(m[6]).padStart(2,'0')}`;return cell.f||String(cell.v);}return cell.f!==undefined&&cell.f!==null?cell.f:String(cell.v);});const sci=sIdx['Shift'];if(sci!==undefined){const sv=String(row[sci]||'').trim().toLowerCase();if(!ALL_SHIFTS.some(a=>sv===a))continue;}rawRows.push(row);}sOpts={};["Shift","Unit","Qtc Name","Yubikey Email","Labeler Name","Pc No","Modality","Queue Name","Location"].forEach(name=>{const ci=sIdx[name];if(ci===undefined)return;const set=new Set();rawRows.forEach(r=>{const v=String(r[ci]||'').trim();if(v)set.add(v);});sOpts[name]=[...set].sort();});const dateSet=new Set();rawRows.forEach(r=>{const d=extractDate(r[tsIdx]);if(d)dateSet.add(d);});sOpts['_dates']=[...dateSet].sort().reverse();const locSet=new Set();if(locColIdx>=0)rawRows.forEach(r=>{const v=String(r[locColIdx]||'').trim();if(v)locSet.add(v);});locations=[...locSet].sort();const now=new Date();todayStr=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');document.getElementById('todayLabel').textContent=todayStr;document.getElementById('lastUpdated').textContent=_now();document.getElementById('totalBadge').textContent=rawRows.length+' rows';SC.forEach(s=>{if(!sel[s.key])sel[s.key]=new Set();});if(!_filtersRestored){restoreFilters();_filtersRestored=true;}buildStrip();buildTabs();applyAll();if(autoRefreshTimer)clearInterval(autoRefreshTimer);autoRefreshTimer=setInterval(loadData,REFRESH_INTERVAL*1000);if(cmpMode)populateCmpSelects();}
+function extractDate(v){if(!v)return null;const s=String(v).trim();if(/^\d{4}-\d{2}-\d{2}/.test(s))return s.substring(0,10);const m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);if(m)return m[3]+'-'+m[1].padStart(2,'0')+'-'+m[2].padStart(2,'0');return null;}
+function rDate(r){if(tsIdx<0)return'';const v=String(r[tsIdx]||'').trim();const iso=v.match(/^(\d{4}-\d{2}-\d{2})/);return iso?iso[1]:'';}
+function _now(){const n=new Date();return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0')+' '+String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');}
 function setSyncActive(v){const b=document.getElementById('syncBar');if(b)b.classList.toggle('active',v);}
-
-// ── WEEK / DATE ──────────────────────────────────────
-function getMondayStr(d){
-  if(!d||!d.match(/^\d{4}-\d{2}-\d{2}$/))return'';
-  const dt=new Date(d+'T12:00:00');const day=dt.getDay();const diff=day===0?-6:1-day;
-  const mon=new Date(dt);mon.setDate(dt.getDate()+diff);return mon.toISOString().substring(0,10);
-}
+function getMondayStr(d){if(!d||!d.match(/^\d{4}-\d{2}-\d{2}$/))return'';const dt=new Date(d+'T12:00:00');const day=dt.getDay();const diff=day===0?-6:1-day;const mon=new Date(dt);mon.setDate(dt.getDate()+diff);return mon.toISOString().substring(0,10);}
 function getWeekLabel(d){const m=getMondayStr(d);return m?'Week of Mon '+m:d;}
-
-// ── FILTER STRIP ─────────────────────────────────────
-function buildStrip(){
-  const s=document.getElementById('fstrip');const dates=sOpts._dates||[];let h='';
-  if(dates.length){
-    window._weekList=[];const weekMap={};
-    dates.forEach(d=>{const lbl=getWeekLabel(d);if(!weekMap[lbl]){weekMap[lbl]=[];window._weekList.push(lbl);}weekMap[lbl].push(d);});
-    window._weekList.sort().reverse();window._weekMap=weekMap;
-    const wCnt=selWeeks.size;
-    h+=`<div class="fg" id="fg___week"><div class="fchip${wCnt?' has-sel':''}" id="fc___week" onclick="tgDrop('__week')">📅 Week${wCnt?` <span class="chk-cnt">${wCnt}</span>`:''} <span class="chk-arr">▾</span></div>
-      <div class="dpanel" id="dp___week">${window._weekList.length>5?`<input class="dp-srch" placeholder="Search week…" oninput="rdropWeek()" id="ds___week"/>`:''}
-        <div class="dp-list" id="dl___week"></div>
-        <div class="dp-foot"><button onclick="clrWeeks();event.stopPropagation()">✕ Clear</button><button onclick="closeDr('__week');event.stopPropagation()">✓ Done</button></div>
-      </div></div>`;
-    const dCnt=selD.size;
-    h+=`<div class="fg" id="fg___date"><div class="fchip${dCnt?' has-sel':''}" id="fc___date" onclick="tgDrop('__date')">📆 Date${dCnt?` <span class="chk-cnt">${dCnt}</span>`:''} <span class="chk-arr">▾</span></div>
-      <div class="dpanel" id="dp___date"><input class="dp-srch" placeholder="Search date…" oninput="rdropDate()" id="ds___date"/>
-        <div class="dp-list" id="dl___date"></div>
-        <div class="dp-foot"><button onclick="clrDates();event.stopPropagation()">✕ Clear</button><button onclick="closeDr('__date');event.stopPropagation()">✓ Done</button></div>
-      </div></div>`;
-    if(SC.some(c=>(sOpts[c.key]||[]).length))h+=`<div class="fsep"></div>`;
-  }
-  SC.forEach(sc=>{
-    const opts=sOpts[sc.key];if(!opts||!opts.length)return;
-    const cnt=(sel[sc.key]||new Set()).size;
-    h+=`<div class="fg" id="fg_${sid(sc.key)}"><div class="fchip${cnt?' has-sel':''}" id="fc_${sid(sc.key)}" onclick="tgDrop('${sc.key}')">
-      ${sc.ic} ${sc.lbl}${cnt?` <span class="chk-cnt">${cnt}</span>`:''} <span class="chk-arr">▾</span></div>
-      <div class="dpanel" id="dp_${sid(sc.key)}">${opts.length>7?`<input class="dp-srch" placeholder="Search ${sc.lbl}…" oninput="rdrop('${sc.key}')" id="ds_${sid(sc.key)}"/>`:''}
-        <div class="dp-list" id="dl_${sid(sc.key)}"></div>
-        <div class="dp-foot"><button onclick="clrSl('${sc.key}');event.stopPropagation()">✕ Clear</button><button onclick="closeDr('${sc.key}');event.stopPropagation()">✓ Done</button></div>
-      </div></div>`;
-  });
-  s.innerHTML=h;rdropWeek();rdropDate();SC.forEach(sc=>rdrop(sc.key));
-}
-function rdropWeek(){
-  const listEl=document.getElementById('dl___week');if(!listEl)return;
-  const q=(document.getElementById('ds___week')||{}).value||'';
-  const weeks=window._weekList||[];const vis=q?weeks.filter(w=>w.toLowerCase().includes(q.toLowerCase())):weeks;
-  listEl.innerHTML=vis.map(w=>{
-    const on=selWeeks.has(w);
-    const cnt=((window._weekMap||{})[w]||[]).reduce((s,d)=>s+rawRows.filter(r=>isRowAllowed(r)&&rDate(r)===d).length,0);
-    return`<div class="dp-item${on?' on':''}" onclick="tgWeek('${esc(w)}');event.stopPropagation()">
-      <div class="dp-cb">${on?'✓':''}</div><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(w)}</span>
-      <span class="dp-cnt">${cnt}</span></div>`;
-  }).join('')||'<div style="padding:8px;font-size:.62rem;color:var(--muted)">No results</div>';
-}
-function rdropDate(){
-  const listEl=document.getElementById('dl___date');if(!listEl)return;
-  const q=(document.getElementById('ds___date')||{}).value||'';
-  const allDates=sOpts._dates||[];
-  const visDates=selWeeks.size?allDates.filter(d=>selWeeks.has(getWeekLabel(d))):allDates;
-  const vis=q?visDates.filter(d=>d.includes(q)):visDates;
-  listEl.innerHTML=vis.map(d=>{
-    const on=selD.has(d);const cnt=rawRows.filter(r=>isRowAllowed(r)&&rDate(r)===d).length;const star=d===todayStr?' ⭐':'';
-    return`<div class="dp-item${on?' on':''}" onclick="tgDate('${d}');event.stopPropagation()">
-      <div class="dp-cb">${on?'✓':''}</div><span style="flex:1;font-family:var(--mono);font-size:.65rem">${d}${star}</span>
-      <span class="dp-cnt">${cnt}</span></div>`;
-  }).join('')||'<div style="padding:8px;font-size:.62rem;color:var(--muted)">No results</div>';
-}
+function buildStrip(){const s=document.getElementById('fstrip');const dates=sOpts._dates||[];let h='';if(dates.length){window._weekList=[];const weekMap={};dates.forEach(d=>{const lbl=getWeekLabel(d);if(!weekMap[lbl]){weekMap[lbl]=[];window._weekList.push(lbl);}weekMap[lbl].push(d);});window._weekList.sort().reverse();window._weekMap=weekMap;const wCnt=selWeeks.size;h+=`<div class="fg" id="fg___week"><div class="fchip${wCnt?' has-sel':''}" id="fc___week" onclick="tgDrop('__week')">📅 Week${wCnt?` <span class="chk-cnt">${wCnt}</span>`:''} <span class="chk-arr">▾</span></div><div class="dpanel" id="dp___week">${window._weekList.length>5?`<input class="dp-srch" placeholder="Search week…" oninput="rdropWeek()" id="ds___week"/>`:''}<div class="dp-list" id="dl___week"></div><div class="dp-foot"><button onclick="clrWeeks();event.stopPropagation()">✕ Clear</button><button onclick="closeDr('__week');event.stopPropagation()">✓ Done</button></div></div></div>`;const dCnt=selD.size;h+=`<div class="fg" id="fg___date"><div class="fchip${dCnt?' has-sel':''}" id="fc___date" onclick="tgDrop('__date')">📆 Date${dCnt?` <span class="chk-cnt">${dCnt}</span>`:''} <span class="chk-arr">▾</span></div><div class="dpanel" id="dp___date"><input class="dp-srch" placeholder="Search date…" oninput="rdropDate()" id="ds___date"/><div class="dp-list" id="dl___date"></div><div class="dp-foot"><button onclick="clrDates();event.stopPropagation()">✕ Clear</button><button onclick="closeDr('__date');event.stopPropagation()">✓ Done</button></div></div></div>`;if(SC.some(c=>(sOpts[c.key]||[]).length))h+=`<div class="fsep"></div>`;}SC.forEach(sc=>{const opts=sOpts[sc.key];if(!opts||!opts.length)return;const cnt=(sel[sc.key]||new Set()).size;h+=`<div class="fg" id="fg_${sid(sc.key)}"><div class="fchip${cnt?' has-sel':''}" id="fc_${sid(sc.key)}" onclick="tgDrop('${sc.key}')">${sc.ic} ${sc.lbl}${cnt?` <span class="chk-cnt">${cnt}</span>`:''} <span class="chk-arr">▾</span></div><div class="dpanel" id="dp_${sid(sc.key)}">${opts.length>7?`<input class="dp-srch" placeholder="Search ${sc.lbl}…" oninput="rdrop('${sc.key}')" id="ds_${sid(sc.key)}"/>`:''}<div class="dp-list" id="dl_${sid(sc.key)}"></div><div class="dp-foot"><button onclick="clrSl('${sc.key}');event.stopPropagation()">✕ Clear</button><button onclick="closeDr('${sc.key}');event.stopPropagation()">✓ Done</button></div></div></div>`;});s.innerHTML=h;rdropWeek();rdropDate();SC.forEach(sc=>rdrop(sc.key));}
+function rdropWeek(){const listEl=document.getElementById('dl___week');if(!listEl)return;const q=(document.getElementById('ds___week')||{}).value||'';const weeks=window._weekList||[];const vis=q?weeks.filter(w=>w.toLowerCase().includes(q.toLowerCase())):weeks;listEl.innerHTML=vis.map(w=>{const on=selWeeks.has(w);const cnt=((window._weekMap||{})[w]||[]).reduce((s,d)=>s+rawRows.filter(r=>isRowAllowed(r)&&rDate(r)===d).length,0);return`<div class="dp-item${on?' on':''}" onclick="tgWeek('${esc(w)}');event.stopPropagation()"><div class="dp-cb">${on?'✓':''}</div><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(w)}</span><span class="dp-cnt">${cnt}</span></div>`;}).join('')||'<div style="padding:8px;font-size:.62rem;color:var(--muted)">No results</div>';}
+function rdropDate(){const listEl=document.getElementById('dl___date');if(!listEl)return;const q=(document.getElementById('ds___date')||{}).value||'';const allDates=sOpts._dates||[];const visDates=selWeeks.size?allDates.filter(d=>selWeeks.has(getWeekLabel(d))):allDates;const vis=q?visDates.filter(d=>d.includes(q)):visDates;listEl.innerHTML=vis.map(d=>{const on=selD.has(d);const cnt=rawRows.filter(r=>isRowAllowed(r)&&rDate(r)===d).length;const star=d===todayStr?' ⭐':'';return`<div class="dp-item${on?' on':''}" onclick="tgDate('${d}');event.stopPropagation()"><div class="dp-cb">${on?'✓':''}</div><span style="flex:1;font-family:var(--mono);font-size:.65rem">${d}${star}</span><span class="dp-cnt">${cnt}</span></div>`;}).join('')||'<div style="padding:8px;font-size:.62rem;color:var(--muted)">No results</div>';}
 function tgWeek(w){if(selWeeks.has(w))selWeeks.delete(w);else selWeeks.add(w);if(selWeeks.size)selD.forEach(d=>{if(!selWeeks.has(getWeekLabel(d)))selD.delete(d);});updWeekChip();rdropWeek();rdropDate();applyAll();}
 function tgDate(d){if(selD.has(d))selD.delete(d);else selD.add(d);updDateChip();rdropDate();applyAll();}
 function clrWeeks(){selWeeks.clear();selD.clear();updWeekChip();updDateChip();rdropWeek();rdropDate();applyAll();}
 function clrDates(){selD.clear();updDateChip();rdropDate();applyAll();}
 function updWeekChip(){const fc=document.getElementById('fc___week');if(!fc)return;const cnt=selWeeks.size;fc.className='fchip'+(cnt?' has-sel':'');fc.innerHTML=`📅 Week${cnt?` <span class="chk-cnt">${cnt}</span>`:''} <span class="chk-arr">▾</span>`;}
 function updDateChip(){const fc=document.getElementById('fc___date');if(!fc)return;const cnt=selD.size;fc.className='fchip'+(cnt?' has-sel':'');fc.innerHTML=`📆 Date${cnt?` <span class="chk-cnt">${cnt}</span>`:''} <span class="chk-arr">▾</span>`;}
-function tgDrop(k){
-  if(openK&&openK!==k)closeDr(openK);
-  const pid=k==='__week'?'dp___week':k==='__date'?'dp___date':'dp_'+sid(k);
-  const cid=k==='__week'?'fc___week':k==='__date'?'fc___date':'fc_'+sid(k);
-  const p=document.getElementById(pid),fc=document.getElementById(cid);if(!p)return;
-  if(p.classList.contains('open'))closeDr(k);
-  else{p.classList.add('open');fc.classList.add('open');openK=k;if(k==='__week')rdropWeek();else if(k==='__date')rdropDate();else rdrop(k);}
-}
-function closeDr(k){
-  const pid=k==='__week'?'dp___week':k==='__date'?'dp___date':'dp_'+sid(k);
-  const cid=k==='__week'?'fc___week':k==='__date'?'fc___date':'fc_'+sid(k);
-  const p=document.getElementById(pid),fc=document.getElementById(cid);
-  if(p)p.classList.remove('open');if(fc)fc.classList.remove('open');if(openK===k)openK=null;
-}
+function tgDrop(k){if(openK&&openK!==k)closeDr(openK);const pid=k==='__week'?'dp___week':k==='__date'?'dp___date':'dp_'+sid(k);const cid=k==='__week'?'fc___week':k==='__date'?'fc___date':'fc_'+sid(k);const p=document.getElementById(pid),fc=document.getElementById(cid);if(!p)return;if(p.classList.contains('open'))closeDr(k);else{p.classList.add('open');fc.classList.add('open');openK=k;if(k==='__week')rdropWeek();else if(k==='__date')rdropDate();else rdrop(k);}}
+function closeDr(k){const pid=k==='__week'?'dp___week':k==='__date'?'dp___date':'dp_'+sid(k);const cid=k==='__week'?'fc___week':k==='__date'?'fc___date':'fc_'+sid(k);const p=document.getElementById(pid),fc=document.getElementById(cid);if(p)p.classList.remove('open');if(fc)fc.classList.remove('open');if(openK===k)openK=null;}
 function closeAll(){if(openK)closeDr(openK);}
-function rdrop(k){
-  const listEl=document.getElementById('dl_'+sid(k));if(!listEl)return;
-  const q=(document.getElementById('ds_'+sid(k))||{}).value||'';
-  const opts=sOpts[k]||[],vis=q?opts.filter(v=>v.toLowerCase().includes(q.toLowerCase())):opts;
-  const ss=sel[k]||new Set(),cm=cntFor(k);
-  listEl.innerHTML=vis.map(v=>{const on=ss.has(v);
-    return`<div class="dp-item${on?' on':''}" onclick="tgVal('${k}','${esc(v)}');event.stopPropagation()">
-      <div class="dp-cb">${on?'✓':''}</div><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">${esc(v)}</span>
-      <span class="dp-cnt">${cm[v]||0}</span></div>`;
-  }).join('')||'<div style="padding:8px;font-size:.62rem;color:var(--muted)">No results</div>';
-}
+function rdrop(k){const listEl=document.getElementById('dl_'+sid(k));if(!listEl)return;const q=(document.getElementById('ds_'+sid(k))||{}).value||'';const opts=sOpts[k]||[],vis=q?opts.filter(v=>v.toLowerCase().includes(q.toLowerCase())):opts;const ss=sel[k]||new Set(),cm=cntFor(k);listEl.innerHTML=vis.map(v=>{const on=ss.has(v);return`<div class="dp-item${on?' on':''}" onclick="tgVal('${k}','${esc(v)}');event.stopPropagation()"><div class="dp-cb">${on?'✓':''}</div><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">${esc(v)}</span><span class="dp-cnt">${cm[v]||0}</span></div>`;}).join('')||'<div style="padding:8px;font-size:.62rem;color:var(--muted)">No results</div>';}
 function updChip(k){const fc=document.getElementById('fc_'+sid(k));if(!fc)return;const ss=sel[k]||new Set(),cnt=ss.size;const sc=SC.find(s=>s.key===k);fc.className='fchip'+(cnt?' has-sel':'');fc.innerHTML=`${sc?sc.ic:''} ${sc?sc.lbl:k}${cnt?` <span class="chk-cnt">${cnt}</span>`:''} <span class="chk-arr">▾</span>`;}
-function cntFor(tk){
-  const f=rawRows.filter(r=>{
-    if(!isRowAllowed(r))return false;
-    if(selWeeks.size){const wl=getWeekLabel(rDate(r));if(!selWeeks.has(wl))return false;}
-    if(tk!=='_dates'&&selD.size&&!selD.has(rDate(r)))return false;
-    for(const[k,ss]of Object.entries(sel)){if(k===tk||!ss.size)continue;const ci=sIdx[k];if(ci===undefined)continue;if(!ss.has(String(r[ci]||'').trim()))return false;}
-    return true;
-  });
-  const m={};
-  f.forEach(r=>{let v;if(tk==='_dates'){v=rDate(r);}else{const ci=sIdx[tk];v=ci!==undefined?String(r[ci]||'').trim():'';}if(v)m[v]=(m[v]||0)+1;});
-  return m;
-}
+function cntFor(tk){const f=rawRows.filter(r=>{if(!isRowAllowed(r))return false;if(selWeeks.size){const wl=getWeekLabel(rDate(r));if(!selWeeks.has(wl))return false;}if(tk!=='_dates'&&selD.size&&!selD.has(rDate(r)))return false;for(const[k,ss]of Object.entries(sel)){if(k===tk||!ss.size)continue;const ci=sIdx[k];if(ci===undefined)continue;if(!ss.has(String(r[ci]||'').trim()))return false;}return true;});const m={};f.forEach(r=>{let v;if(tk==='_dates'){v=rDate(r);}else{const ci=sIdx[tk];v=ci!==undefined?String(r[ci]||'').trim():'';}if(v)m[v]=(m[v]||0)+1;});return m;}
 function tgVal(k,v){if(!sel[k])sel[k]=new Set();if(sel[k].has(v))sel[k].delete(v);else sel[k].add(v);rdrop(k);updChip(k);SC.forEach(sc=>{if(sc.key!==k)rdrop(sc.key);});applyAll();}
 function clrSl(k){if(sel[k])sel[k].clear();rdrop(k);updChip(k);applyAll();}
 function clearAll(){selD.clear();selWeeks.clear();Object.keys(sel).forEach(k=>sel[k].clear());document.querySelectorAll('.dp-srch').forEach(e=>e.value='');locSearch={};saveFilters();buildStrip();applyAll();}
-function applyAll(){
-  fcache=rawRows.filter(r=>{
-    if(!isRowAllowed(r))return false;
-    if(selWeeks.size){const wl=getWeekLabel(rDate(r));if(!selWeeks.has(wl))return false;}
-    if(selD.size&&!selD.has(rDate(r)))return false;
-    for(const[k,ss]of Object.entries(sel)){if(!ss.size)continue;const ci=sIdx[k];if(ci===undefined)continue;if(!ss.has(String(r[ci]||'').trim()))return false;}
-    return true;
-  });
-  saveFilters();updPills();buildTabs();renderAllSections();
-}
-function updPills(){
-  const w=document.getElementById('pillsRow');const ps=[];let any=false;
-  selWeeks.forEach(wk=>{any=true;ps.push(`<span class="pill">📅 ${esc(wk)} <span class="pill-x" onclick="tgWeek('${esc(wk)}')">✕</span></span>`);});
-  selD.forEach(d=>{any=true;ps.push(`<span class="pill">${d===todayStr?'🗓️ '+d+' ⭐':'🗓️ '+d} <span class="pill-x" onclick="tgDate('${d}')">✕</span></span>`);});
-  for(const[k,ss]of Object.entries(sel)){ss.forEach(v=>{any=true;const sc=SC.find(s=>s.key===k);ps.push(`<span class="pill">${sc?sc.ic:''} ${esc(v)} <span class="pill-x" onclick="tgVal('${esc(k)}','${esc(v)}')">✕</span></span>`);});}
-  w.innerHTML=any?ps.join('')+`<button class="clr-btn" onclick="clearAll()">✕ Clear All</button>`:'<span class="pill pill-all">All Data — No Filters Active</span>';
-}
-
-// ── TABS ─────────────────────────────────────────────
-function buildTabs(){
-  const c=document.getElementById('locTabs');
-  let h=`<div class="loc-tab loc-all-tab${activeLoc==='__all__'?' act':''}" onclick="switchTab('__all__')">🌐 All <span class="tab-cnt">${fcache.length}</span></div>`;
-  locations.forEach(loc=>{
-    const cnt=fcache.filter(r=>locColIdx>=0?String(r[locColIdx]||'').trim()===loc:true).length;
-    h+=`<div class="loc-tab${activeLoc===loc?' act':''}" onclick="switchTab('${esc(loc)}')">📍 ${esc(loc)} <span class="tab-cnt">${cnt}</span></div>`;
-  });
-  c.innerHTML=h;
-}
-function switchTab(loc){
-  activeLoc=loc;
-  document.querySelectorAll('.loc-tab').forEach(el=>{
-    const isAll=el.textContent.includes('All');
-    el.classList.toggle('act',(loc==='__all__'&&isAll)||(loc!=='__all__'&&el.textContent.includes(loc)));
-  });
-  renderAllSections();
-}
+function applyAll(){fcache=rawRows.filter(r=>{if(!isRowAllowed(r))return false;if(selWeeks.size){const wl=getWeekLabel(rDate(r));if(!selWeeks.has(wl))return false;}if(selD.size&&!selD.has(rDate(r)))return false;for(const[k,ss]of Object.entries(sel)){if(!ss.size)continue;const ci=sIdx[k];if(ci===undefined)continue;if(!ss.has(String(r[ci]||'').trim()))return false;}return true;});saveFilters();updPills();buildTabs();renderAllSections();}
+function updPills(){const w=document.getElementById('pillsRow');const ps=[];let any=false;selWeeks.forEach(wk=>{any=true;ps.push(`<span class="pill">📅 ${esc(wk)} <span class="pill-x" onclick="tgWeek('${esc(wk)}')">✕</span></span>`);});selD.forEach(d=>{any=true;ps.push(`<span class="pill">${d===todayStr?'🗓️ '+d+' ⭐':'🗓️ '+d} <span class="pill-x" onclick="tgDate('${d}')">✕</span></span>`);});for(const[k,ss]of Object.entries(sel)){ss.forEach(v=>{any=true;const sc=SC.find(s=>s.key===k);ps.push(`<span class="pill">${sc?sc.ic:''} ${esc(v)} <span class="pill-x" onclick="tgVal('${esc(k)}','${esc(v)}')">✕</span></span>`);});}w.innerHTML=any?ps.join('')+`<button class="clr-btn" onclick="clearAll()">✕ Clear All</button>`:'<span class="pill pill-all">All Data — No Filters Active</span>';}
+function buildTabs(){const c=document.getElementById('locTabs');let h=`<div class="loc-tab loc-all-tab${activeLoc==='__all__'?' act':''}" onclick="switchTab('__all__')">🌐 All <span class="tab-cnt">${fcache.length}</span></div>`;locations.forEach(loc=>{const cnt=fcache.filter(r=>locColIdx>=0?String(r[locColIdx]||'').trim()===loc:true).length;h+=`<div class="loc-tab${activeLoc===loc?' act':''}" onclick="switchTab('${esc(loc)}')">📍 ${esc(loc)} <span class="tab-cnt">${cnt}</span></div>`;});c.innerHTML=h;}
+function switchTab(loc){activeLoc=loc;document.querySelectorAll('.loc-tab').forEach(el=>{const isAll=el.textContent.includes('All');el.classList.toggle('act',(loc==='__all__'&&isAll)||(loc!=='__all__'&&el.textContent.includes(loc)));});renderAllSections();}
 function sid(k){return k.replace(/[\s()]/g,'_');}
-
-// ── RENDER ───────────────────────────────────────────
-function renderAllSections(){
-  const mc=document.getElementById('mainContent');
-  const cmpRes=document.getElementById('cmpResultSection');
-  if(fcache.length===0&&rawRows.length===0){
-    mc.innerHTML=`<div style="text-align:center;padding:60px 20px;color:var(--muted)"><div style="font-size:2.5rem;margin-bottom:12px">📭</div><div style="font-size:.85rem;font-weight:700;color:var(--text);margin-bottom:6px">No data found</div></div>`;
-    return;
-  }
-  if(fcache.length===0&&rawRows.length>0){
-    mc.innerHTML=`<div style="text-align:center;padding:60px 20px;color:var(--muted)"><div style="font-size:2.5rem;margin-bottom:12px">🔍</div><div style="font-size:.85rem;font-weight:700;color:var(--text);margin-bottom:6px">No rows match current filters</div><div style="font-size:.7rem">${rawRows.length} total rows loaded.</div></div>`;
-    return;
-  }
-  const locsToRender=activeLoc==='__all__'?locations:[activeLoc];
-  mc.innerHTML='';
-  if(cmpRes)mc.appendChild(cmpRes);
-  if(locations.length===0||locColIdx<0){
-    const wrap=document.createElement('div');wrap.className='loc-section visible';
-    mc.appendChild(wrap);renderLocSection(wrap,null,fcache);return;
-  }
-  locsToRender.forEach(loc=>{
-    const locRows=fcache.filter(r=>String(r[locColIdx]||'').trim()===loc);
-    const wrap=document.createElement('div');wrap.className='loc-section visible';
-    mc.appendChild(wrap);renderLocSection(wrap,loc,locRows);
-  });
-}
-
+function renderAllSections(){const mc=document.getElementById('mainContent');const cmpRes=document.getElementById('cmpResultSection');if(fcache.length===0&&rawRows.length===0){mc.innerHTML=`<div style="text-align:center;padding:60px 20px;color:var(--muted)"><div style="font-size:2.5rem;margin-bottom:12px">📭</div><div style="font-size:.85rem;font-weight:700;color:var(--text);margin-bottom:6px">No data found</div></div>`;return;}if(fcache.length===0&&rawRows.length>0){mc.innerHTML=`<div style="text-align:center;padding:60px 20px;color:var(--muted)"><div style="font-size:2.5rem;margin-bottom:12px">🔍</div><div style="font-size:.85rem;font-weight:700;color:var(--text);margin-bottom:6px">No rows match current filters</div><div style="font-size:.7rem">${rawRows.length} total rows loaded.</div></div>`;return;}const locsToRender=activeLoc==='__all__'?locations:[activeLoc];mc.innerHTML='';if(cmpRes)mc.appendChild(cmpRes);if(locations.length===0||locColIdx<0){const wrap=document.createElement('div');wrap.className='loc-section visible';mc.appendChild(wrap);renderLocSection(wrap,null,fcache);return;}locsToRender.forEach(loc=>{const locRows=fcache.filter(r=>String(r[locColIdx]||'').trim()===loc);const wrap=document.createElement('div');wrap.className='loc-section visible';mc.appendChild(wrap);renderLocSection(wrap,loc,locRows);});}
 function renderLocSection(wrap,locName,rows){
   const pi=sIdx['Pc No'],qi=hdrs.findIndex(h=>h.toLowerCase()==='queue name'),li=hdrs.findIndex(h=>h.toLowerCase()==='labeler name');
   const ds=new Set(),qs=new Set(),ls=new Set();
   rows.forEach(r=>{if(pi!==undefined)ds.add(String(r[pi]||'').trim());if(qi>=0)qs.add(String(r[qi]||'').trim());if(li>=0)ls.add(String(r[li]||'').trim());});
   ds.delete('');qs.delete('');ls.delete('');const locKey=locName||'all';
   const hdrDiv=document.createElement('div');hdrDiv.className='loc-hdr';
-  hdrDiv.innerHTML=`<div class="loc-hdr-name">${locName?'📍 '+esc(locName):'🌐 All Locations'}</div>
-    <div class="loc-stats">
-      <div class="loc-stat"><div class="sv anim-num" data-anim-num="${rows.length}">0</div><div class="sl">Total Rows</div></div>
-      <div class="loc-stat"><div class="sv anim-num" data-anim-num="${ds.size}">0</div><div class="sl">Devices</div></div>
-      <div class="loc-stat"><div class="sv anim-num" data-anim-num="${qs.size}">0</div><div class="sl">Queues</div></div>
-      <div class="loc-stat"><div class="sv anim-num" data-anim-num="${ls.size}">0</div><div class="sl">Labelers</div></div>
-    </div>`;
-  wrap.appendChild(hdrDiv);
-  setTimeout(animateAllNums,50);
-
+  hdrDiv.innerHTML=`<div class="loc-hdr-name">${locName?'📍 '+esc(locName):'🌐 All Locations'}</div><div class="loc-stats"><div class="loc-stat"><div class="sv anim-num" data-anim-num="${rows.length}">0</div><div class="sl">Total Rows</div></div><div class="loc-stat"><div class="sv anim-num" data-anim-num="${ds.size}">0</div><div class="sl">Devices</div></div><div class="loc-stat"><div class="sv anim-num" data-anim-num="${qs.size}">0</div><div class="sl">Queues</div></div><div class="loc-stat"><div class="sv anim-num" data-anim-num="${ls.size}">0</div><div class="sl">Labelers</div></div></div>`;
+  wrap.appendChild(hdrDiv);setTimeout(animateAllNums,50);
   const devSec=document.createElement('div');devSec.className='sec';
-  devSec.innerHTML=`<div class="sec-hd"><span class="sec-t">🖥️ Device Submit Counts</span><span class="sec-m" id="devMeta_${sid(locKey)}">—</span></div>
-    <div id="cgrid_${sid(locKey)}" class="cgrid"></div>`;
+  devSec.innerHTML=`<div class="sec-hd"><span class="sec-t">🖥️ Device Submit Counts</span><span class="sec-m" id="devMeta_${sid(locKey)}">—</span></div><div id="cgrid_${sid(locKey)}" class="cgrid"></div>`;
   wrap.appendChild(devSec);renderCards(locKey,rows);
-
   const tblSec=document.createElement('div');tblSec.className='sec';
-  tblSec.innerHTML=`<div class="sec-hd"><span class="sec-t">📋 Row Detail</span><span class="sec-m" id="tblMeta_${sid(locKey)}">—</span></div>
-    <div class="ttbar"><input class="srch" id="srch_${sid(locKey)}" placeholder="🔍  Search…" oninput="locSrch('${locKey}',this.value)"/><span class="rcnt" id="rc_${sid(locKey)}">0 rows</span></div>
-    <div class="tbl-w" id="tbl_${sid(locKey)}"></div>
-    <div class="pgbar" id="pg_${sid(locKey)}" style="display:none"></div>`;
+  tblSec.innerHTML=`<div class="sec-hd"><span class="sec-t">📋 Row Detail</span><span class="sec-m" id="tblMeta_${sid(locKey)}">—</span></div><div class="ttbar"><input class="srch" id="srch_${sid(locKey)}" placeholder="🔍  Search…" oninput="locSrch('${locKey}',this.value)"/><span class="rcnt" id="rc_${sid(locKey)}">0 rows</span></div><div class="tbl-w" id="tbl_${sid(locKey)}"></div><div class="pgbar" id="pg_${sid(locKey)}" style="display:none"></div>`;
   wrap.appendChild(tblSec);renderLocTable(locKey,rows,0);
-
   const qIdx=hdrs.findIndex(h=>h.toLowerCase()==='queue name');
   const mIdx=hdrs.findIndex(h=>h.toLowerCase()==='modality');
   const passIdx=hdrs.findIndex(h=>h.toLowerCase()==='pass');
@@ -1049,361 +465,131 @@ function renderLocSection(wrap,locName,rows){
   let totalObjects=0,objRowCount=0;
   const MOD_PALETTE=['#e8a000','#16a34a','#7c3aed','#dc2626','#0891b2','#d97706','#f59e0b','#8b5cf6'];
   const _mcc={};let _mci=0;
-  function modColor(m){
-    if(!_mcc[m]){
-      const known={'Lane Line':'#f59e0b','Lidar':'#16a34a'};
-      _mcc[m]=known[m]||MOD_PALETTE[_mci++%MOD_PALETTE.length];
-    }
-    return _mcc[m];
-  }
-  rows.forEach(r=>{
-    const qv=qIdx>=0?String(r[qIdx]||'').trim():'';
-    const mv=mIdx>=0?String(r[mIdx]||'').trim():'';
-    const pv=passIdx>=0?String(r[passIdx]||'').trim():'';
-    if(qv)qMap[qv]=(qMap[qv]||0)+1;
-    if(qv&&mv&&pv){if(!qDetailMap[qv])qDetailMap[qv]={};if(!qDetailMap[qv][mv])qDetailMap[qv][mv]={};qDetailMap[qv][mv][pv]=(qDetailMap[qv][mv][pv]||0)+1;}
-    if(mv&&pv){const k=mv+' — '+pv;modPassMap[k]=(modPassMap[k]||0)+1;}
-    if(obIdx>=0){const n=parseFloat(String(r[obIdx]||''));if(!isNaN(n)){totalObjects+=n;objRowCount++;}}
-  });
+  function modColor(m){if(!_mcc[m]){const known={'Lane Line':'#f59e0b','Lidar':'#16a34a'};_mcc[m]=known[m]||MOD_PALETTE[_mci++%MOD_PALETTE.length];}return _mcc[m];}
+  rows.forEach(r=>{const qv=qIdx>=0?String(r[qIdx]||'').trim():'';const mv=mIdx>=0?String(r[mIdx]||'').trim():'';const pv=passIdx>=0?String(r[passIdx]||'').trim():'';if(qv)qMap[qv]=(qMap[qv]||0)+1;if(qv&&mv&&pv){if(!qDetailMap[qv])qDetailMap[qv]={};if(!qDetailMap[qv][mv])qDetailMap[qv][mv]={};qDetailMap[qv][mv][pv]=(qDetailMap[qv][mv][pv]||0)+1;}if(mv&&pv){const k=mv+' — '+pv;modPassMap[k]=(modPassMap[k]||0)+1;}if(obIdx>=0){const n=parseFloat(String(r[obIdx]||''));if(!isNaN(n)){totalObjects+=n;objRowCount++;}}});
   const allMods=[...new Set(rows.map(r=>mIdx>=0?String(r[mIdx]||'').trim():'').filter(Boolean))].sort();
   const allPasses=[...new Set(rows.map(r=>passIdx>=0?String(r[passIdx]||'').trim():'').filter(Boolean))].sort();
   allMods.forEach(m=>modColor(m));
-
-  function mkGroupedThead(nl){
-    const mh=allMods.map(m=>{const col=modColor(m);const sp=allPasses.length||1;return`<th colspan="${sp}" style="background:var(--elevated);color:${col};font-size:.55rem;padding:5px 8px;text-align:center;border-bottom:1px solid var(--border);border-left:2px solid ${col}30;font-weight:700;white-space:nowrap">${esc(m)}</th>`;}).join('');
-    const ph=allMods.map(m=>{const col=modColor(m);return allPasses.map((pv,pi)=>`<th style="background:var(--elevated);color:${col};font-size:.52rem;padding:4px 6px;text-align:center;border-bottom:1.5px solid var(--border);${pi===0?'border-left:2px solid '+col+'30;':''}font-weight:600;white-space:nowrap;opacity:.85">${esc(pv)}</th>`).join('');}).join('');
-    return`<thead><tr><th rowspan="2" style="background:var(--elevated);color:var(--text-soft);font-size:.55rem;padding:7px 10px;text-align:left;border-bottom:1.5px solid var(--border);font-weight:700;vertical-align:bottom;white-space:nowrap">${nl}</th>${mh}<th rowspan="2" style="background:var(--elevated);color:var(--text-soft);font-size:.55rem;padding:7px 10px;text-align:right;border-bottom:1.5px solid var(--border);font-weight:700;vertical-align:bottom">Total</th></tr><tr>${ph}</tr></thead>`;
-  }
+  function mkGroupedThead(nl){const mh=allMods.map(m=>{const col=modColor(m);const sp=allPasses.length||1;return`<th colspan="${sp}" style="background:var(--elevated);color:${col};font-size:.55rem;padding:5px 8px;text-align:center;border-bottom:1px solid var(--border);border-left:2px solid ${col}30;font-weight:700;white-space:nowrap">${esc(m)}</th>`;}).join('');const ph=allMods.map(m=>{const col=modColor(m);return allPasses.map((pv,pi)=>`<th style="background:var(--elevated);color:${col};font-size:.52rem;padding:4px 6px;text-align:center;border-bottom:1.5px solid var(--border);${pi===0?'border-left:2px solid '+col+'30;':''}font-weight:600;white-space:nowrap;opacity:.85">${esc(pv)}</th>`).join('');}).join('');return`<thead><tr><th rowspan="2" style="background:var(--elevated);color:var(--text-soft);font-size:.55rem;padding:7px 10px;text-align:left;border-bottom:1.5px solid var(--border);font-weight:700;vertical-align:bottom;white-space:nowrap">${nl}</th>${mh}<th rowspan="2" style="background:var(--elevated);color:var(--text-soft);font-size:.55rem;padding:7px 10px;text-align:right;border-bottom:1.5px solid var(--border);font-weight:700;vertical-align:bottom">Total</th></tr><tr>${ph}</tr></thead>`;}
   function mkGroupedCells(d){return allMods.map(m=>{const col=modColor(m);return allPasses.map((pv,pi)=>{const c=(d[m]||{})[pv]||0;return`<td style="padding:4px 6px;text-align:center;font-size:.65rem;font-weight:${c?'700':'400'};color:${c?col:'var(--muted)'};font-family:var(--mono);${pi===0?'border-left:2px solid '+col+'20;':''}">${c||'—'}</td>`;}).join('');}).join('');}
   function mkGroupedFootCells(maps){return allMods.map(m=>{const col=modColor(m);return allPasses.map((pv,pi)=>{const t=maps.reduce((s,d)=>s+((d[m]||{})[pv]||0),0);return`<td style="padding:5px 6px;text-align:center;font-size:.65rem;font-weight:800;color:${t?col:'var(--muted)'};font-family:var(--mono);${pi===0?'border-left:2px solid '+col+'20;':''}">${t||'—'}</td>`;}).join('');}).join('');}
-
-  const mkQueueSummary=()=>{
-    const queues=Object.keys(qMap).sort();if(!queues.length)return null;
-    const grandTotal=Object.values(qMap).reduce((a,b)=>a+b,0);
-    const subRows=queues.map(q=>{const total=qMap[q];const pct=grandTotal?Math.round(total/grandTotal*100):0;const cells=mkGroupedCells(qDetailMap[q]||{});
-      return`<tr style="border-bottom:1px solid var(--border-light)"><td style="padding:6px 10px;color:var(--text);font-size:.68rem;font-weight:600;white-space:nowrap">${esc(q)}</td>${cells}<td style="padding:6px 10px;text-align:right"><div style="display:flex;align-items:center;gap:5px;justify-content:flex-end"><div style="width:50px;height:3px;background:var(--border);border-radius:2px;overflow:hidden"><div style="width:${pct}%;height:100%;background:var(--accent);border-radius:2px"></div></div><span style="font-size:.68rem;font-family:var(--mono);color:var(--accent);font-weight:700;min-width:24px;text-align:right">${total}</span></div></td></tr>`;}).join('');
-    const footCells=mkGroupedFootCells(Object.values(qDetailMap));
-    const sec=document.createElement('div');sec.className='sec';
-    sec.innerHTML=`<div class="sec-hd"><span class="sec-t">📋 Queue — Total Submits</span><span class="sec-m">${queues.length} queues · ${grandTotal} total</span></div>
-      <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.68rem">${mkGroupedThead('Queue')}<tbody>${subRows}</tbody>
-        <tfoot><tr style="border-top:2px solid var(--border)"><td style="padding:6px 10px;font-size:.68rem;font-weight:700;color:var(--text-soft)">Total</td>${footCells}<td style="padding:6px 10px;text-align:right;font-size:.68rem;font-weight:800;color:var(--accent);font-family:var(--mono)">${grandTotal}</td></tr></tfoot></table></div>`;
-    return sec;
-  };
-
-  const mkSummary=(icon,title,dataMap)=>{
-    if(!Object.keys(dataMap).length)return null;
-    const sorted=Object.entries(dataMap).sort((a,b)=>b[1]-a[1]);const total=sorted.reduce((s,[,c])=>s+c,0);
-    const rows2=sorted.map(([k,c])=>{const pct=total?Math.round(c/total*100):0;
-      return`<tr><td style="padding:6px 10px;color:var(--text);font-size:.65rem;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(k)}</td>
-        <td style="padding:6px 10px;text-align:right"><div style="display:flex;align-items:center;gap:5px;justify-content:flex-end">
-        <div style="width:70px;height:4px;background:var(--border);border-radius:2px;overflow:hidden"><div style="width:${pct}%;height:100%;background:var(--primary);border-radius:2px"></div></div>
-        <span style="font-size:.65rem;font-family:var(--mono);color:var(--primary);min-width:26px;text-align:right;font-weight:700">${c}</span><span style="font-size:.55rem;color:var(--muted);min-width:28px;text-align:right">${pct}%</span></div></td></tr>`;}).join('');
-    const sec=document.createElement('div');sec.className='sec';
-    sec.innerHTML=`<div class="sec-hd"><span class="sec-t">${icon} ${title}</span><span class="sec-m">${sorted.length} values · ${total} total</span></div>
-      <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.65rem"><thead><tr>
-        <th style="position:sticky;top:0;background:var(--elevated);color:var(--text-soft);text-transform:uppercase;font-size:.52rem;padding:7px 10px;text-align:left;border-bottom:1.5px solid var(--border);font-weight:700">${title}</th>
-        <th style="position:sticky;top:0;background:var(--elevated);color:var(--text-soft);text-transform:uppercase;font-size:.52rem;padding:7px 10px;text-align:right;border-bottom:1.5px solid var(--border);font-weight:700">Submits</th></tr></thead>
-        <tbody>${rows2}</tbody><tfoot><tr style="border-top:1px solid var(--border-light)"><td style="padding:6px 10px;font-size:.65rem;font-weight:700;color:var(--text-soft)">Total</td>
-        <td style="padding:6px 10px;text-align:right;font-size:.65rem;font-weight:800;color:var(--accent);font-family:var(--mono)">${total}</td></tr></tfoot></table></div>`;
-    return sec;
-  };
-
+  const mkQueueSummary=()=>{const queues=Object.keys(qMap).sort();if(!queues.length)return null;const grandTotal=Object.values(qMap).reduce((a,b)=>a+b,0);const subRows=queues.map(q=>{const total=qMap[q];const pct=grandTotal?Math.round(total/grandTotal*100):0;const cells=mkGroupedCells(qDetailMap[q]||{});return`<tr style="border-bottom:1px solid var(--border-light)"><td style="padding:6px 10px;color:var(--text);font-size:.68rem;font-weight:600;white-space:nowrap">${esc(q)}</td>${cells}<td style="padding:6px 10px;text-align:right"><div style="display:flex;align-items:center;gap:5px;justify-content:flex-end"><div style="width:50px;height:3px;background:var(--border);border-radius:2px;overflow:hidden"><div style="width:${pct}%;height:100%;background:var(--accent);border-radius:2px"></div></div><span style="font-size:.68rem;font-family:var(--mono);color:var(--accent);font-weight:700;min-width:24px;text-align:right">${total}</span></div></td></tr>`;}).join('');const footCells=mkGroupedFootCells(Object.values(qDetailMap));const sec=document.createElement('div');sec.className='sec';sec.innerHTML=`<div class="sec-hd"><span class="sec-t">📋 Queue — Total Submits</span><span class="sec-m">${queues.length} queues · ${grandTotal} total</span></div><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.68rem">${mkGroupedThead('Queue')}<tbody>${subRows}</tbody><tfoot><tr style="border-top:2px solid var(--border)"><td style="padding:6px 10px;font-size:.68rem;font-weight:700;color:var(--text-soft)">Total</td>${footCells}<td style="padding:6px 10px;text-align:right;font-size:.68rem;font-weight:800;color:var(--accent);font-family:var(--mono)">${grandTotal}</td></tr></tfoot></table></div>`;return sec;};
+  const mkSummary=(icon,title,dataMap)=>{if(!Object.keys(dataMap).length)return null;const sorted=Object.entries(dataMap).sort((a,b)=>b[1]-a[1]);const total=sorted.reduce((s,[,c])=>s+c,0);const rows2=sorted.map(([k,c])=>{const pct=total?Math.round(c/total*100):0;return`<tr><td style="padding:6px 10px;color:var(--text);font-size:.65rem;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(k)}</td><td style="padding:6px 10px;text-align:right"><div style="display:flex;align-items:center;gap:5px;justify-content:flex-end"><div style="width:70px;height:4px;background:var(--border);border-radius:2px;overflow:hidden"><div style="width:${pct}%;height:100%;background:var(--primary);border-radius:2px"></div></div><span style="font-size:.65rem;font-family:var(--mono);color:var(--primary);min-width:26px;text-align:right;font-weight:700">${c}</span><span style="font-size:.55rem;color:var(--muted);min-width:28px;text-align:right">${pct}%</span></div></td></tr>`;}).join('');const sec=document.createElement('div');sec.className='sec';sec.innerHTML=`<div class="sec-hd"><span class="sec-t">${icon} ${title}</span><span class="sec-m">${sorted.length} values · ${total} total</span></div><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.65rem"><thead><tr><th style="position:sticky;top:0;background:var(--elevated);color:var(--text-soft);text-transform:uppercase;font-size:.52rem;padding:7px 10px;text-align:left;border-bottom:1.5px solid var(--border);font-weight:700">${title}</th><th style="position:sticky;top:0;background:var(--elevated);color:var(--text-soft);text-transform:uppercase;font-size:.52rem;padding:7px 10px;text-align:right;border-bottom:1.5px solid var(--border);font-weight:700">Submits</th></tr></thead><tbody>${rows2}</tbody><tfoot><tr style="border-top:1px solid var(--border-light)"><td style="padding:6px 10px;font-size:.65rem;font-weight:700;color:var(--text-soft)">Total</td><td style="padding:6px 10px;text-align:right;font-size:.65rem;font-weight:800;color:var(--accent);font-family:var(--mono)">${total}</td></tr></tfoot></table></div>`;return sec;};
   const summaryWrap=document.createElement('div');summaryWrap.style.cssText='display:grid;grid-template-columns:1fr;gap:12px';
   const qSec=mkQueueSummary();const modPassSec=mkSummary('✅','Modality & Pass',modPassMap);
   if(qSec)summaryWrap.appendChild(qSec);if(modPassSec)summaryWrap.appendChild(modPassSec);
-  if(obIdx>=0&&objRowCount>0){
-    const objCard=document.createElement('div');objCard.className='sec';
-    objCard.innerHTML=`<div class="sec-hd"><span class="sec-t">🔢 Object Count</span><span class="sec-m">${objRowCount} tasks</span></div>
-      <div style="padding:16px 14px;display:flex;align-items:center;gap:16px">
-        <div style="flex:1"><div style="font-size:.52rem;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px;font-weight:700">Total Objects</div>
-          <div class="anim-num" data-anim-num="${totalObjects}" style="font-size:1.8rem;font-weight:800;color:var(--accent);font-family:var(--mono);letter-spacing:-1px">0</div>
-          <div style="font-size:.55rem;color:var(--muted);margin-top:2px">Across ${objRowCount} tasks</div></div>
-        <div style="text-align:right"><div style="font-size:.52rem;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px;font-weight:700">Avg / Task</div>
-          <div style="font-size:1.1rem;font-weight:700;color:var(--primary);font-family:var(--mono)">${(totalObjects/objRowCount).toFixed(1)}</div></div>
-      </div>`;
-    summaryWrap.appendChild(objCard);
-    setTimeout(animateAllNums,100);
-  }
+  if(obIdx>=0&&objRowCount>0){const objCard=document.createElement('div');objCard.className='sec';objCard.innerHTML=`<div class="sec-hd"><span class="sec-t">🔢 Object Count</span><span class="sec-m">${objRowCount} tasks</span></div><div style="padding:16px 14px;display:flex;align-items:center;gap:16px"><div style="flex:1"><div style="font-size:.52rem;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px;font-weight:700">Total Objects</div><div class="anim-num" data-anim-num="${totalObjects}" style="font-size:1.8rem;font-weight:800;color:var(--accent);font-family:var(--mono);letter-spacing:-1px">0</div><div style="font-size:.55rem;color:var(--muted);margin-top:2px">Across ${objRowCount} tasks</div></div><div style="text-align:right"><div style="font-size:.52rem;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px;font-weight:700">Avg / Task</div><div style="font-size:1.1rem;font-weight:700;color:var(--primary);font-family:var(--mono)">${(totalObjects/objRowCount).toFixed(1)}</div></div></div>`;summaryWrap.appendChild(objCard);setTimeout(animateAllNums,100);}
   if(summaryWrap.children.length)wrap.appendChild(summaryWrap);
-
   const qtcIdx=hdrs.findIndex(h=>h.toLowerCase()==='qtc name');
   const labIdx=hdrs.findIndex(h=>h.toLowerCase()==='labeler name');
   const qtcMap={},labMap={},qtcDetailMap={},labDetailMap={};
-  rows.forEach(r=>{
-    const mv=mIdx>=0?String(r[mIdx]||'').trim():'';const pv=passIdx>=0?String(r[passIdx]||'').trim():'';
-    if(qtcIdx>=0){const qtc=String(r[qtcIdx]||'').trim();if(qtc){qtcMap[qtc]=(qtcMap[qtc]||0)+1;if(mv&&pv){if(!qtcDetailMap[qtc])qtcDetailMap[qtc]={};if(!qtcDetailMap[qtc][mv])qtcDetailMap[qtc][mv]={};qtcDetailMap[qtc][mv][pv]=(qtcDetailMap[qtc][mv][pv]||0)+1;}}}
-    if(labIdx>=0){const lab=String(r[labIdx]||'').trim();if(lab){labMap[lab]=(labMap[lab]||0)+1;if(mv&&pv){if(!labDetailMap[lab])labDetailMap[lab]={};if(!labDetailMap[lab][mv])labDetailMap[lab][mv]={};labDetailMap[lab][mv][pv]=(labDetailMap[lab][mv][pv]||0)+1;}}}
-  });
-
-  const FIXED_FILTERS=[
-    {label:'All',mod:'All',pass:'All'},
-    {label:'Lane Line — FP',mod:'Lane Line',pass:'FP'},
-    {label:'Lane Line — QA',mod:'Lane Line',pass:'QA'},
-    {label:'Lidar — FP',mod:'Lidar',pass:'FP'},
-    {label:'Lidar — QA',mod:'Lidar',pass:'QA'},
-  ];
+  rows.forEach(r=>{const mv=mIdx>=0?String(r[mIdx]||'').trim():'';const pv=passIdx>=0?String(r[passIdx]||'').trim():'';if(qtcIdx>=0){const qtc=String(r[qtcIdx]||'').trim();if(qtc){qtcMap[qtc]=(qtcMap[qtc]||0)+1;if(mv&&pv){if(!qtcDetailMap[qtc])qtcDetailMap[qtc]={};if(!qtcDetailMap[qtc][mv])qtcDetailMap[qtc][mv]={};qtcDetailMap[qtc][mv][pv]=(qtcDetailMap[qtc][mv][pv]||0)+1;}}}if(labIdx>=0){const lab=String(r[labIdx]||'').trim();if(lab){labMap[lab]=(labMap[lab]||0)+1;if(mv&&pv){if(!labDetailMap[lab])labDetailMap[lab]={};if(!labDetailMap[lab][mv])labDetailMap[lab][mv]={};labDetailMap[lab][mv][pv]=(labDetailMap[lab][mv][pv]||0)+1;}}}});
+  const FIXED_FILTERS=[{label:'All',mod:'All',pass:'All'},{label:'Lane Line — FP',mod:'Lane Line',pass:'FP'},{label:'Lane Line — QA',mod:'Lane Line',pass:'QA'},{label:'Lidar — FP',mod:'Lidar',pass:'FP'},{label:'Lidar — QA',mod:'Lidar',pass:'QA'}];
   const FILTER_COLORS={'Lane Line':'#f59e0b','Lidar':'#16a34a','All':'var(--info)'};
-
   function mkPersonTable(icon,title,nameLabel,dataMap,detailMap,tableId){
     const sorted=Object.entries(dataMap).sort((a,b)=>b[1]-a[1]);if(!sorted.length)return null;
     const sec=document.createElement('div');sec.className='sec';
     const filterBar=document.createElement('div');filterBar.className='sec-hd';filterBar.style.cssText='flex-direction:column;align-items:flex-start;gap:8px;';
     const chips=FIXED_FILTERS.map((f,fi)=>{
-      const col=FILTER_COLORS[f.mod]||'var(--info)';
-      const isAll=f.mod==='All';
-      const baseStyle=isAll
-        ?`border-color:rgba(37,99,235,.3);color:var(--info);background:rgba(37,99,235,.08);`
-        :`border-color:${col}44;color:${col};background:${col}11;`;
-      const onStyle=isAll
-        ?`border-color:rgba(37,99,235,.7);background:rgba(37,99,235,.18);font-weight:800;`
-        :`border-color:${col};background:${col}22;font-weight:800;`;
-      return`<button
-        class="mod-chip"
-        data-fi="${fi}"
-        style="${baseStyle}"
-        data-base="${baseStyle}"
-        data-on="${onStyle}"
-        onclick="filterPersonTable('${tableId}',${fi});event.stopPropagation();"
-      >${esc(f.label)}</button>`;
+      const col=FILTER_COLORS[f.mod]||'var(--info)';const isAll=f.mod==='All';
+      const baseStyle=isAll?`border-color:rgba(37,99,235,.3);color:var(--info);background:rgba(37,99,235,.08);`:`border-color:${col}44;color:${col};background:${col}11;`;
+      const onStyle=isAll?`border-color:rgba(37,99,235,.7);background:rgba(37,99,235,.18);font-weight:800;`:`border-color:${col};background:${col}22;font-weight:800;`;
+      return`<button class="mod-chip" data-fi="${fi}" style="${baseStyle}" data-base="${baseStyle}" data-on="${onStyle}" onclick="filterPersonTable('${tableId}',${fi});event.stopPropagation();">${esc(f.label)}</button>`;
     }).join('');
-    filterBar.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;width:100%;flex-wrap:wrap;gap:4px">
-      <span class="sec-t">${icon} ${title}</span>
-      <span class="sec-m" id="meta_${tableId}">${sorted.length} ${nameLabel} · ${Object.values(dataMap).reduce((a,b)=>a+b,0)} total</span>
-    </div>
-    <div class="mod-filter-bar" style="padding:0;border:none;background:transparent;gap:5px;">${chips}</div>`;
+    filterBar.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;width:100%;flex-wrap:wrap;gap:4px"><span class="sec-t">${icon} ${title}</span><span class="sec-m" id="meta_${tableId}">${sorted.length} ${nameLabel} · ${Object.values(dataMap).reduce((a,b)=>a+b,0)} total</span></div><div class="mod-filter-bar" style="padding:0;border:none;background:transparent;gap:5px;">${chips}</div>`;
     sec.appendChild(filterBar);
     const tableWrap=document.createElement('div');tableWrap.id='wrap_'+tableId;tableWrap.style.cssText='overflow-x:auto;max-height:360px;overflow-y:auto;-webkit-overflow-scrolling:touch;';
     sec.appendChild(tableWrap);
     window['_ptData_'+tableId]={sorted,dataMap,detailMap,nameLabel,allMods,allPasses,modColor,mkGroupedThead,mkGroupedCells,mkGroupedFootCells};
-    // Read saved filter index — persists across auto-refresh via localStorage
-    let savedIdx=0;
-    try{savedIdx=parseInt(localStorage.getItem('meeg_ptf_'+tableId))||0;}catch(e){}
-    // Render with saved filter (chips updated synchronously inside renderPersonTable)
+    let savedIdx=0;try{savedIdx=parseInt(localStorage.getItem('meeg_ptf_'+tableId))||0;}catch(e){}
     renderPersonTable(tableId,savedIdx);
     return sec;
   }
-
   function renderPersonTable(tableId,filterIdx){
     const d=window['_ptData_'+tableId];if(!d)return;
     const{sorted,detailMap,nameLabel}=d;
     const wrap=document.getElementById('wrap_'+tableId);if(!wrap)return;
     const f=FIXED_FILTERS[filterIdx]||FIXED_FILTERS[0];
     const isAll=f.mod==='All';
-
-    // Persist filter choice
     window['_ptFilter_'+tableId]=filterIdx;
     try{localStorage.setItem('meeg_ptf_'+tableId,filterIdx);}catch(e){}
-
-    // ── FIX 2: sync chip update — no setTimeout, happens before DOM write ──
+    // ── FIX 2: sync chip update — no setTimeout ──
     const _chipSec=wrap.closest('.sec');
-    if(_chipSec){
-      _chipSec.querySelectorAll('[data-fi]').forEach(b=>{
-        const isOn=parseInt(b.dataset.fi)===filterIdx;
-        b.classList.toggle('on',isOn);
-        b.style.cssText=b.dataset.base+(isOn?b.dataset.on:'');
-      });
-    }
-
+    if(_chipSec){_chipSec.querySelectorAll('[data-fi]').forEach(b=>{const isOn=parseInt(b.dataset.fi)===filterIdx;b.classList.toggle('on',isOn);b.style.cssText=b.dataset.base+(isOn?b.dataset.on:'');});}
     let filteredSorted;
-    if(isAll){
-      filteredSorted=sorted.map(([name,total])=>[name,total,null]);
-    } else {
-      filteredSorted=sorted.map(([name])=>{
-        const passMap=(detailMap[name]||{})[f.mod]||{};
-        const val=passMap[f.pass]||0;
-        return[name,val,passMap];
-      }).filter(([,t])=>t>0).sort((a,b)=>b[1]-a[1]);
-    }
-
+    if(isAll){filteredSorted=sorted.map(([name,total])=>[name,total,null]);}
+    else{filteredSorted=sorted.map(([name])=>{const passMap=(detailMap[name]||{})[f.mod]||{};const val=passMap[f.pass]||0;return[name,val,passMap];}).filter(([,t])=>t>0).sort((a,b)=>b[1]-a[1]);}
     const grandTotal=filteredSorted.reduce((s,[,c])=>s+c,0);
     const max=filteredSorted.length?filteredSorted[0][1]:0;
     const metaEl=document.getElementById('meta_'+tableId);
     if(metaEl)metaEl.textContent=`${filteredSorted.length} ${nameLabel} · ${grandTotal} total`;
-    if(!filteredSorted.length){
-      wrap.innerHTML='<div class="empty"><span>🔍</span>No data for this filter.</div>';return;
-    }
-
+    if(!filteredSorted.length){wrap.innerHTML='<div class="empty"><span>🔍</span>No data for this filter.</div>';return;}
     const col=isAll?'var(--primary)':FILTER_COLORS[f.mod]||'var(--primary)';
-
     let thead;
-    if(isAll){
-      thead=d.mkGroupedThead(nameLabel);
-    } else {
-      const selectedPass=f.pass;
-      thead=`<thead><tr>
-        <th style="background:var(--elevated);color:var(--text-soft);font-size:.52rem;padding:6px 8px;text-align:left;border-bottom:1.5px solid var(--border);font-weight:700;white-space:nowrap">${nameLabel}</th>
-        <th style="background:var(--elevated);color:${col};font-size:.55rem;padding:5px 8px;text-align:center;border-bottom:1.5px solid var(--border);border-left:2px solid ${col}40;font-weight:800;white-space:nowrap">${esc(f.mod)} — ${esc(selectedPass)}</th>
-        <th style="background:var(--elevated);color:var(--text-soft);font-size:.52rem;padding:6px 8px;text-align:right;border-bottom:1.5px solid var(--border);font-weight:700">Total</th>
-      </tr></thead>`;
-    }
-
+    if(isAll){thead=d.mkGroupedThead(nameLabel);}
+    else{const selectedPass=f.pass;thead=`<thead><tr><th style="background:var(--elevated);color:var(--text-soft);font-size:.52rem;padding:6px 8px;text-align:left;border-bottom:1.5px solid var(--border);font-weight:700;white-space:nowrap">${nameLabel}</th><th style="background:var(--elevated);color:${col};font-size:.55rem;padding:5px 8px;text-align:center;border-bottom:1.5px solid var(--border);border-left:2px solid ${col}40;font-weight:800;white-space:nowrap">${esc(f.mod)} — ${esc(selectedPass)}</th><th style="background:var(--elevated);color:var(--text-soft);font-size:.52rem;padding:6px 8px;text-align:right;border-bottom:1.5px solid var(--border);font-weight:700">Total</th></tr></thead>`;}
     const bodyRows=filteredSorted.map(([name,total,passMap],i)=>{
       const pct=max?Math.round(total/max*100):0;
-      const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':
-        `<span style='color:var(--muted);font-family:var(--mono);font-size:.52rem'>#${i+1}</span>`;
-
+      const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':`<span style='color:var(--muted);font-family:var(--mono);font-size:.52rem'>#${i+1}</span>`;
       let subCells='';
-      if(isAll){
-        subCells=d.mkGroupedCells(detailMap[name]||{});
-      } else {
-        const c=(passMap||{})[f.pass]||0;
-        subCells=`<td style="padding:4px 8px;text-align:center;font-size:.7rem;font-weight:${c?'800':'400'};color:${c?col:'var(--muted)'};font-family:var(--mono);border-left:2px solid ${col}20;background:${c?col+'10':'transparent'}">${c||'—'}</td>`;
-      }
-
-      return`<tr style="border-bottom:1px solid var(--border-light)">
-        <td style="padding:5px 8px;font-size:.6rem;color:var(--text);white-space:nowrap">
-          <div style="display:flex;align-items:center;gap:4px">
-            <span style="min-width:16px">${medal}</span>
-            <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:130px">${esc(name)}</span>
-          </div></td>
-        ${subCells}
-        <td style="padding:5px 8px;text-align:right">
-          <div style="display:flex;align-items:center;gap:4px;justify-content:flex-end">
-            <div style="width:44px;height:3px;background:var(--border);border-radius:2px;overflow:hidden">
-              <div style="width:${pct}%;height:100%;background:${col};border-radius:2px"></div></div>
-            <span style="font-size:.65rem;font-family:var(--mono);color:${col};font-weight:700;min-width:22px;text-align:right">${total}</span>
-          </div></td></tr>`;
+      if(isAll){subCells=d.mkGroupedCells(detailMap[name]||{});}
+      else{const c=(passMap||{})[f.pass]||0;subCells=`<td style="padding:4px 8px;text-align:center;font-size:.7rem;font-weight:${c?'800':'400'};color:${c?col:'var(--muted)'};font-family:var(--mono);border-left:2px solid ${col}20;background:${c?col+'10':'transparent'}">${c||'—'}</td>`;}
+      return`<tr style="border-bottom:1px solid var(--border-light)"><td style="padding:5px 8px;font-size:.6rem;color:var(--text);white-space:nowrap"><div style="display:flex;align-items:center;gap:4px"><span style="min-width:16px">${medal}</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:130px">${esc(name)}</span></div></td>${subCells}<td style="padding:5px 8px;text-align:right"><div style="display:flex;align-items:center;gap:4px;justify-content:flex-end"><div style="width:44px;height:3px;background:var(--border);border-radius:2px;overflow:hidden"><div style="width:${pct}%;height:100%;background:${col};border-radius:2px"></div></div><span style="font-size:.65rem;font-family:var(--mono);color:${col};font-weight:700;min-width:22px;text-align:right">${total}</span></div></td></tr>`;
     }).join('');
-
     let footCells='';
-    if(isAll){
-      footCells=d.mkGroupedFootCells(Object.values(detailMap));
-    } else {
-      const t=filteredSorted.reduce((s,[,v])=>s+v,0);
-      footCells=`<td style="padding:5px 8px;text-align:center;font-size:.65rem;font-weight:800;color:${t?col:'var(--muted)'};font-family:var(--mono);border-left:2px solid ${col}20">${t||'—'}</td>`;
-    }
-
-    wrap.innerHTML=`<table style="width:100%;border-collapse:collapse;font-size:.65rem">
-      ${thead}<tbody>${bodyRows}</tbody>
-      <tfoot><tr style="border-top:2px solid var(--border)">
-        <td style="padding:5px 8px;font-size:.62rem;font-weight:700;color:var(--text-soft)">Total</td>
-        ${footCells}
-        <td style="padding:5px 8px;text-align:right;font-size:.65rem;font-weight:800;color:${col};font-family:var(--mono)">${grandTotal}</td>
-      </tr></tfoot></table>`;
+    if(isAll){footCells=d.mkGroupedFootCells(Object.values(detailMap));}
+    else{const t=filteredSorted.reduce((s,[,v])=>s+v,0);footCells=`<td style="padding:5px 8px;text-align:center;font-size:.65rem;font-weight:800;color:${t?col:'var(--muted)'};font-family:var(--mono);border-left:2px solid ${col}20">${t||'—'}</td>`;}
+    wrap.innerHTML=`<table style="width:100%;border-collapse:collapse;font-size:.65rem">${thead}<tbody>${bodyRows}</tbody><tfoot><tr style="border-top:2px solid var(--border)"><td style="padding:5px 8px;font-size:.62rem;font-weight:700;color:var(--text-soft)">Total</td>${footCells}<td style="padding:5px 8px;text-align:right;font-size:.65rem;font-weight:800;color:${col};font-family:var(--mono)">${grandTotal}</td></tr></tfoot></table>`;
   }
-
-  window.filterPersonTable=function(tableId,filterIdx){
-    renderPersonTable(tableId,filterIdx);
-  };
-
+  window.filterPersonTable=function(tableId,filterIdx){renderPersonTable(tableId,filterIdx);};
   const qtcSec=mkPersonTable('🏷️','Top QTC — Most Submits','QTCs',qtcMap,qtcDetailMap,'qtc_'+sid(locKey));
   const labSec=mkPersonTable('👤','Top Labeler — Most Submits','Labelers',labMap,labDetailMap,'lab_'+sid(locKey));
-  if(qtcSec)wrap.appendChild(qtcSec);
-  if(labSec)wrap.appendChild(labSec);
+  if(qtcSec)wrap.appendChild(qtcSec);if(labSec)wrap.appendChild(labSec);
 }
-
-// ── FIX 1: renderCards — skip rows where Pc No === "QTC" ──
+// ── FIX 1: renderCards — QTC و SL يظهروا كـ cards عادية بدون بادئة C- ──
 function renderCards(locKey,rows){
   const g=document.getElementById('cgrid_'+sid(locKey));const metaEl=document.getElementById('devMeta_'+sid(locKey));
   const pi=sIdx['Pc No'],qi=hdrs.findIndex(h=>h.toLowerCase()==='queue name');
   const ei=hdrs.findIndex(h=>h.toLowerCase()==='yubikey email'),ni=hdrs.findIndex(h=>h.toLowerCase()==='labeler name');
   if(!g)return;
   if(pi===undefined){g.innerHTML='<div class="empty"><span>🖥️</span>"Pc No" column not found.</div>';return;}
+  const NON_DEVICE=new Set(['QTC','SL']);
   const map={};
   rows.forEach(r=>{
-    const _pcRaw=String(r[pi]||'').trim();
-    // ← FIX 1: skip rows where Pc No is "QTC" or empty (not a real device number)
-    if(!_pcRaw||_pcRaw.toUpperCase()==='QTC')return;
-    const pc=_pcRaw;
-    const q=qi>=0?String(r[qi]||''):'—';
+    const pcRaw=String(r[pi]||'').trim();if(!pcRaw)return;
+    const pc=pcRaw;const q=qi>=0?String(r[qi]||''):'—';
     const em=ei>=0?String(r[ei]||''):'';const nm=ni>=0?String(r[ni]||''):'';
-    if(!map[pc])map[pc]={pc,em,nm,total:0,queues:{}};map[pc].total++;map[pc].queues[q]=(map[pc].queues[q]||0)+1;
+    if(!map[pc])map[pc]={pc,em,nm,total:0,queues:{},isLabel:NON_DEVICE.has(pc.toUpperCase())};
+    map[pc].total++;map[pc].queues[q]=(map[pc].queues[q]||0)+1;
   });
-  const sorted=Object.values(map).sort((a,b)=>{const na=parseFloat(a.pc),nb=parseFloat(b.pc);if(!isNaN(na)&&!isNaN(nb))return na-nb;return String(a.pc).localeCompare(String(b.pc),undefined,{numeric:true});});
+  const sorted=Object.values(map).sort((a,b)=>{
+    if(a.isLabel!==b.isLabel)return a.isLabel?1:-1;
+    const na=parseFloat(a.pc),nb=parseFloat(b.pc);if(!isNaN(na)&&!isNaN(nb))return na-nb;
+    return String(a.pc).localeCompare(String(b.pc),undefined,{numeric:true});
+  });
   if(metaEl)metaEl.textContent=`${sorted.length} device${sorted.length!==1?'s':''}`;
   if(!sorted.length){g.innerHTML='<div class="empty"><span>🌙</span>No data.</div>';return;}
   const pcs=sel['Pc No']||new Set();
   g.innerHTML=sorted.map((d,i)=>{
     const tags=Object.entries(d.queues).sort((a,b)=>b[1]-a[1]).map(([q,c])=>`<span class="qtag">${esc(q)}: ${c}</span>`).join('');
+    const label=d.isLabel?esc(d.pc):'C-'+esc(d.pc);
     return`<div class="dcard${pcs.has(d.pc)?' sel':''}" style="animation-delay:${Math.min(i*.03,.4)}s" onclick="tgVal('Pc No','${esc(d.pc)}')">
-      <div class="dc-top"><span class="dc-pc">C-${esc(d.pc)}</span><span class="dc-cnt">${d.total}</span></div>
+      <div class="dc-top"><span class="dc-pc">${label}</span><span class="dc-cnt">${d.total}</span></div>
       <div class="dc-meta"><span class="dc-mi">👤</span><span class="dc-mt">${esc(d.nm)||'—'}</span></div>
       <div class="dc-meta"><span class="dc-mi">✉</span><span class="dc-mt">${esc(d.em)||'—'}</span></div>
       <div class="dc-qs">${tags||'<span class="qtag">—</span>'}</div>
     </div>`;
   }).join('');
 }
-
 function locSrch(locKey,val){if(!locSearch)locSearch={};locSearch[locKey]=val;renderLocTable(locKey,getLocRows(locKey),0);}
 function getLocRows(locKey){if(locKey==='all'||locColIdx<0)return fcache;return fcache.filter(r=>String(r[locColIdx]||'').trim()===locKey);}
-
-function renderLocTable(locKey,baseRows,pg){
-  const tblEl=document.getElementById('tbl_'+sid(locKey)),pgEl=document.getElementById('pg_'+sid(locKey));
-  const rcEl=document.getElementById('rc_'+sid(locKey)),metaEl=document.getElementById('tblMeta_'+sid(locKey));
-  if(!tblEl)return;
-  const q=(locSearch[locKey]||'').toLowerCase().trim();
-  let rows=q?baseRows.filter(r=>r.some(c=>String(c??'').toLowerCase().includes(q))):baseRows;
-  if(sortC>=0)rows=[...rows].sort((a,b)=>String(a[sortC]??'').localeCompare(String(b[sortC]??''),undefined,{numeric:true})*sortDr);
-  if(rcEl)rcEl.textContent=`${rows.length} row${rows.length!==1?'s':''}`;
-  if(metaEl)metaEl.textContent=`${rows.length} rows shown`;
-  const tp=Math.max(1,Math.ceil(rows.length/PGSZ));const cp=Math.min(pg,tp-1);
-  const st=cp*PGSZ,en=Math.min(st+PGSZ,rows.length),pr=rows.slice(st,en);
-  const hl=hdrs.map(h=>h.toLowerCase());
-  const linkIdx=hl.findIndex(h=>h==='task link'||h==='link');
-  const objIdx=hl.findIndex(h=>h==='object count');
-  const hiddenCols=new Set(linkIdx>=0&&objIdx>=0?[objIdx]:[]);
-  const thArr=[];
-  hdrs.forEach((h,i)=>{
-    if(hiddenCols.has(i))return;if(!h||h==='—')return;
-    const cls=i===sortC?(sortDr===1?'sa':'sd'):'';
-    thArr.push(`<th class="${cls}" data-ci="${i}">${esc(h)}</th>`);
-    if(i===linkIdx&&objIdx>=0)thArr.push(`<th style="background:var(--elevated);color:var(--text-soft);text-transform:uppercase;font-size:.52rem;padding:6px 8px;border-bottom:1.5px solid var(--border);font-weight:700;white-space:nowrap">Objects</th>`);
-  });
-  const trs=pr.map(r=>{
-    const cells=[];
-    r.forEach((c,ci)=>{
-      if(hiddenCols.has(ci))return;if(!hdrs[ci]||hdrs[ci]==='—')return;
-      const h=hl[ci]||'';let v=c===null||c===undefined?'':String(c);
-      if((h==='task link'||h==='link')&&v.startsWith('http'))v=`<a href="${esc(v)}" target="_blank" rel="noopener">🔗</a>`;
-      else if(h==='queue name'&&v)v=`<span class="tdq">${esc(v)}</span>`;
-      else if(h==='shift'&&v)v=`<span class="tds">${esc(v)}</span>`;
-      else v=esc(v);
-      cells.push(`<td title="${esc(String(c??''))}">${v}</td>`);
-      if(ci===linkIdx&&objIdx>=0){const objVal=String(r[objIdx]??'').trim();const num=parseFloat(objVal);const disp=!isNaN(num)?`<span style="font-family:var(--mono);font-weight:700;color:var(--accent);font-size:.65rem">${num.toLocaleString()}</span>`:`<span style="color:var(--muted);font-size:.62rem">—</span>`;cells.push(`<td style="white-space:nowrap;text-align:right">${disp}</td>`);}
-    });
-    return`<tr>${cells.join('')}</tr>`;
-  }).join('')||`<tr><td colspan="${thArr.length}" style="text-align:center;padding:22px;color:var(--muted)">No rows match.</td></tr>`;
-  window['baseRows_'+sid(locKey)]=baseRows;
-  tblEl.innerHTML=`<table><thead><tr>${thArr.join('')}</tr></thead><tbody>${trs}</tbody></table>`;
-  tblEl.querySelectorAll('thead th[data-ci]').forEach(th=>{const ci=parseInt(th.dataset.ci);th.onclick=()=>srtBy(ci,locKey,baseRows);});
-  if(!pgEl)return;
-  if(tp<=1){pgEl.style.display='none';return;}
-  pgEl.style.display='flex';
-  let pgH=`<button class="pg-btn" onclick="renderLocTable('${locKey}',window['baseRows_${sid(locKey)}'],${cp-1})" ${cp===0?'disabled':''}>‹</button>`;
-  const lo=Math.max(0,cp-2),hi=Math.min(tp-1,cp+2);
-  if(lo>0)pgH+=`<button class="pg-btn" onclick="renderLocTable('${locKey}',window['baseRows_${sid(locKey)}'],0)">1</button>${lo>1?'<span style="color:var(--muted);padding:0 2px;font-size:.58rem">…</span>':''}`;
-  for(let p=lo;p<=hi;p++)pgH+=`<button class="pg-btn${p===cp?' act':''}" onclick="renderLocTable('${locKey}',window['baseRows_${sid(locKey)}'],${p})">${p+1}</button>`;
-  if(hi<tp-1)pgH+=`${hi<tp-2?'<span style="color:var(--muted);padding:0 2px;font-size:.58rem">…</span>':''}<button class="pg-btn" onclick="renderLocTable('${locKey}',window['baseRows_${sid(locKey)}'],${tp-1})">${tp}</button>`;
-  pgH+=`<button class="pg-btn" onclick="renderLocTable('${locKey}',window['baseRows_${sid(locKey)}'],${cp+1})" ${cp===tp-1?'disabled':''}>›</button>`;
-  pgH+=`<span class="pg-inf">${st+1}–${en} / ${rows.length}</span>`;
-  pgEl.innerHTML=pgH;
-}
+function renderLocTable(locKey,baseRows,pg){const tblEl=document.getElementById('tbl_'+sid(locKey)),pgEl=document.getElementById('pg_'+sid(locKey));const rcEl=document.getElementById('rc_'+sid(locKey)),metaEl=document.getElementById('tblMeta_'+sid(locKey));if(!tblEl)return;const q=(locSearch[locKey]||'').toLowerCase().trim();let rows=q?baseRows.filter(r=>r.some(c=>String(c??'').toLowerCase().includes(q))):baseRows;if(sortC>=0)rows=[...rows].sort((a,b)=>String(a[sortC]??'').localeCompare(String(b[sortC]??''),undefined,{numeric:true})*sortDr);if(rcEl)rcEl.textContent=`${rows.length} row${rows.length!==1?'s':''}`;if(metaEl)metaEl.textContent=`${rows.length} rows shown`;const tp=Math.max(1,Math.ceil(rows.length/PGSZ));const cp=Math.min(pg,tp-1);const st=cp*PGSZ,en=Math.min(st+PGSZ,rows.length),pr=rows.slice(st,en);const hl=hdrs.map(h=>h.toLowerCase());const linkIdx=hl.findIndex(h=>h==='task link'||h==='link');const objIdx=hl.findIndex(h=>h==='object count');const hiddenCols=new Set(linkIdx>=0&&objIdx>=0?[objIdx]:[]);const thArr=[];hdrs.forEach((h,i)=>{if(hiddenCols.has(i))return;if(!h||h==='—')return;const cls=i===sortC?(sortDr===1?'sa':'sd'):'';thArr.push(`<th class="${cls}" data-ci="${i}">${esc(h)}</th>`);if(i===linkIdx&&objIdx>=0)thArr.push(`<th style="background:var(--elevated);color:var(--text-soft);text-transform:uppercase;font-size:.52rem;padding:6px 8px;border-bottom:1.5px solid var(--border);font-weight:700;white-space:nowrap">Objects</th>`);});const trs=pr.map(r=>{const cells=[];r.forEach((c,ci)=>{if(hiddenCols.has(ci))return;if(!hdrs[ci]||hdrs[ci]==='—')return;const h=hl[ci]||'';let v=c===null||c===undefined?'':String(c);if((h==='task link'||h==='link')&&v.startsWith('http'))v=`<a href="${esc(v)}" target="_blank" rel="noopener">🔗</a>`;else if(h==='queue name'&&v)v=`<span class="tdq">${esc(v)}</span>`;else if(h==='shift'&&v)v=`<span class="tds">${esc(v)}</span>`;else v=esc(v);cells.push(`<td title="${esc(String(c??''))}">${v}</td>`);if(ci===linkIdx&&objIdx>=0){const objVal=String(r[objIdx]??'').trim();const num=parseFloat(objVal);const disp=!isNaN(num)?`<span style="font-family:var(--mono);font-weight:700;color:var(--accent);font-size:.65rem">${num.toLocaleString()}</span>`:`<span style="color:var(--muted);font-size:.62rem">—</span>`;cells.push(`<td style="white-space:nowrap;text-align:right">${disp}</td>`);}});return`<tr>${cells.join('')}</tr>`;}).join('')||`<tr><td colspan="${thArr.length}" style="text-align:center;padding:22px;color:var(--muted)">No rows match.</td></tr>`;window['baseRows_'+sid(locKey)]=baseRows;tblEl.innerHTML=`<table><thead><tr>${thArr.join('')}</tr></thead><tbody>${trs}</tbody></table>`;tblEl.querySelectorAll('thead th[data-ci]').forEach(th=>{const ci=parseInt(th.dataset.ci);th.onclick=()=>srtBy(ci,locKey,baseRows);});if(!pgEl)return;if(tp<=1){pgEl.style.display='none';return;}pgEl.style.display='flex';let pgH=`<button class="pg-btn" onclick="renderLocTable('${locKey}',window['baseRows_${sid(locKey)}'],${cp-1})" ${cp===0?'disabled':''}>‹</button>`;const lo=Math.max(0,cp-2),hi=Math.min(tp-1,cp+2);if(lo>0)pgH+=`<button class="pg-btn" onclick="renderLocTable('${locKey}',window['baseRows_${sid(locKey)}'],0)">1</button>${lo>1?'<span style="color:var(--muted);padding:0 2px;font-size:.58rem">…</span>':''}`;for(let p=lo;p<=hi;p++)pgH+=`<button class="pg-btn${p===cp?' act':''}" onclick="renderLocTable('${locKey}',window['baseRows_${sid(locKey)}'],${p})">${p+1}</button>`;if(hi<tp-1)pgH+=`${hi<tp-2?'<span style="color:var(--muted);padding:0 2px;font-size:.58rem">…</span>':''}<button class="pg-btn" onclick="renderLocTable('${locKey}',window['baseRows_${sid(locKey)}'],${tp-1})">${tp}</button>`;pgH+=`<button class="pg-btn" onclick="renderLocTable('${locKey}',window['baseRows_${sid(locKey)}'],${cp+1})" ${cp===tp-1?'disabled':''}>›</button>`;pgH+=`<span class="pg-inf">${st+1}–${en} / ${rows.length}</span>`;pgEl.innerHTML=pgH;}
 function srtBy(ci,locKey,baseRows){if(sortC===ci)sortDr*=-1;else{sortC=ci;sortDr=1;}renderLocTable(locKey,baseRows,0);}
-
-// ── TOAST & ERROR ────────────────────────────────────
 let _toastTimer=null;
-function showToast(msg){
-  const ex=document.querySelector('.toast');if(ex)ex.remove();
-  if(_toastTimer)clearTimeout(_toastTimer);
-  const t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.appendChild(t);
-  _toastTimer=setTimeout(()=>{t.style.opacity='0';t.style.transform='translateY(10px)';t.style.transition='all .3s';setTimeout(()=>t.remove(),300);},3000);
-}
-function showErr(msg){
-  document.getElementById('mainContent').innerHTML=`<div class="errbox">⚠️ ${esc(msg)}</div>`;
-  document.getElementById('fstrip').innerHTML=`<div style="padding:10px 16px;font-size:.68rem;color:var(--danger)">${esc(msg)}</div>`;
-  document.getElementById('locTabs').innerHTML='';
-}
+function showToast(msg){const ex=document.querySelector('.toast');if(ex)ex.remove();if(_toastTimer)clearTimeout(_toastTimer);const t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.appendChild(t);_toastTimer=setTimeout(()=>{t.style.opacity='0';t.style.transform='translateY(10px)';t.style.transition='all .3s';setTimeout(()=>t.remove(),300);},3000);}
+function showErr(msg){document.getElementById('mainContent').innerHTML=`<div class="errbox">⚠️ ${esc(msg)}</div>`;document.getElementById('fstrip').innerHTML=`<div style="padding:10px 16px;font-size:.68rem;color:var(--danger)">${esc(msg)}</div>`;document.getElementById('locTabs').innerHTML='';}
 function esc(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
-
-// ── INIT ─────────────────────────────────────────────
-window.addEventListener('load',()=>{
-  const savedTheme=localStorage.getItem('meeg_theme')||'light';
-  document.documentElement.setAttribute('data-theme',savedTheme);
-  document.getElementById('dmIcon').textContent=savedTheme==='dark'?'☀️':'🌙';
-  document.getElementById('dmLabel').textContent=savedTheme==='dark'?'Light':'Dark';
-  hideSplash();
-  loadData();
-});
+window.addEventListener('load',()=>{const savedTheme=localStorage.getItem('meeg_theme')||'light';document.documentElement.setAttribute('data-theme',savedTheme);document.getElementById('dmIcon').textContent=savedTheme==='dark'?'☀️':'🌙';document.getElementById('dmLabel').textContent=savedTheme==='dark'?'Light':'Dark';hideSplash();loadData();});
 </script>
 </body>
 </html>
