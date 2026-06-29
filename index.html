@@ -225,11 +225,21 @@ html[data-theme="dark"] .loc-hdr-name{color:var(--dk-accent);}
 .dc-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px}
 .dc-pc{font-size:.78rem;font-weight:800;color:var(--primary)}
 html[data-theme="dark"] .dc-pc{color:var(--dk-accent);}
-.dcard.lbl-card{border-color:rgba(245,158,11,.5);background:rgba(245,158,11,.10);}
-.dcard.lbl-card::before{background:#f59e0b}
-.dcard.lbl-card .dc-pc{color:#b45309}
-html[data-theme="dark"] .dcard.lbl-card{border-color:rgba(245,158,11,.4);background:rgba(245,158,11,.08);}
-html[data-theme="dark"] .dcard.lbl-card .dc-pc{color:#fbbf24;}
+.dcard.qtc-card{border-color:rgba(124,58,237,.5);background:rgba(124,58,237,.10);}
+.dcard.qtc-card::before{background:#7c3aed}
+.dcard.qtc-card .dc-pc{color:#6d28d9}
+.dcard.qtc-card .dc-badge{background:rgba(124,58,237,.15);color:#6d28d9;border:1px solid rgba(124,58,237,.35);}
+html[data-theme="dark"] .dcard.qtc-card{border-color:rgba(124,58,237,.4);background:rgba(124,58,237,.08);}
+html[data-theme="dark"] .dcard.qtc-card .dc-pc{color:#c4b5fd;}
+html[data-theme="dark"] .dcard.qtc-card .dc-badge{color:#c4b5fd;background:rgba(124,58,237,.15);}
+.dcard.sl-card{border-color:rgba(245,158,11,.5);background:rgba(245,158,11,.10);}
+.dcard.sl-card::before{background:#f59e0b}
+.dcard.sl-card .dc-pc{color:#b45309}
+.dcard.sl-card .dc-badge{background:rgba(245,158,11,.15);color:#b45309;border:1px solid rgba(245,158,11,.35);}
+html[data-theme="dark"] .dcard.sl-card{border-color:rgba(245,158,11,.4);background:rgba(245,158,11,.08);}
+html[data-theme="dark"] .dcard.sl-card .dc-pc{color:#fbbf24;}
+html[data-theme="dark"] .dcard.sl-card .dc-badge{color:#fbbf24;background:rgba(245,158,11,.15);}
+.dc-badge{font-size:.5rem;font-weight:700;padding:1px 6px;border-radius:8px;text-transform:uppercase;letter-spacing:.4px;margin-left:6px;vertical-align:middle;}
 .dc-cnt{background:var(--accent);color:#fff;font-size:.58rem;font-weight:700;padding:2px 6px;border-radius:10px}
 .dc-meta{font-size:.6rem;color:var(--text-soft);margin-bottom:2px;display:flex;align-items:center;gap:3px;overflow:hidden}
 .dc-mi{opacity:.5;font-size:.58rem;flex-shrink:0}
@@ -561,24 +571,24 @@ function renderLocSection(wrap,locName,rows){
   const labSec=mkPersonTable('👤','Top Labeler — Most Submits','Labelers',labMap,labDetailMap,'lab_'+sid(locKey));
   if(qtcSec)wrap.appendChild(qtcSec);if(labSec)wrap.appendChild(labSec);
 }
-// ── FIX 1: renderCards — QTC و SL يظهروا كـ cards عادية بدون بادئة C- ──
 function renderCards(locKey,rows){
   const g=document.getElementById('cgrid_'+sid(locKey));const metaEl=document.getElementById('devMeta_'+sid(locKey));
   const pi=sIdx['Pc No'],qi=hdrs.findIndex(h=>h.toLowerCase()==='queue name');
   const ei=hdrs.findIndex(h=>h.toLowerCase()==='yubikey email'),ni=hdrs.findIndex(h=>h.toLowerCase()==='labeler name');
   if(!g)return;
   if(pi===undefined){g.innerHTML='<div class="empty"><span>🖥️</span>"Pc No" column not found.</div>';return;}
-  const NON_DEVICE=new Set(['QTC','SL']);
   const map={};
   rows.forEach(r=>{
     const pcRaw=String(r[pi]||'').trim();if(!pcRaw)return;
     const pc=pcRaw;const q=qi>=0?String(r[qi]||''):'—';
     const em=ei>=0?String(r[ei]||''):'';const nm=ni>=0?String(r[ni]||''):'';
-    if(!map[pc])map[pc]={pc,em,nm,total:0,queues:{},isLabel:NON_DEVICE.has(pc.toUpperCase())};
+    const pcU=pc.toUpperCase();
+    const cardType=pcU==='QTC'?'qtc':pcU==='SL'?'sl':'device';
+    if(!map[pc])map[pc]={pc,em,nm,total:0,queues:{},cardType};
     map[pc].total++;map[pc].queues[q]=(map[pc].queues[q]||0)+1;
   });
   const sorted=Object.values(map).sort((a,b)=>{
-    if(a.isLabel!==b.isLabel)return a.isLabel?1:-1;
+    if((a.cardType!=='device')!==(b.cardType!=='device'))return a.cardType!=='device'?1:-1;
     const na=parseFloat(a.pc),nb=parseFloat(b.pc);if(!isNaN(na)&&!isNaN(nb))return na-nb;
     return String(a.pc).localeCompare(String(b.pc),undefined,{numeric:true});
   });
@@ -587,9 +597,12 @@ function renderCards(locKey,rows){
   const pcs=sel['Pc No']||new Set();
   g.innerHTML=sorted.map((d,i)=>{
     const tags=Object.entries(d.queues).sort((a,b)=>b[1]-a[1]).map(([q,c])=>`<span class="qtag">${esc(q)}: ${c}</span>`).join('');
-    const label='C-'+esc(d.pc);
-    return`<div class="dcard${pcs.has(d.pc)?' sel':''}${d.isLabel?' lbl-card':''}" style="animation-delay:${Math.min(i*.03,.4)}s" onclick="tgVal('Pc No','${esc(d.pc)}')">
-      <div class="dc-top"><span class="dc-pc">${label}</span><span class="dc-cnt">${d.total}</span></div>
+    const cardCls=d.cardType==='qtc'?' qtc-card':d.cardType==='sl'?' sl-card':'';
+    const badgeIcon=d.cardType==='qtc'?'🏷️':d.cardType==='sl'?'🛡️':'';
+    const label=d.cardType==='device'?'C-'+esc(d.pc):esc(d.pc);
+    const badge=d.cardType!=='device'?`<span class="dc-badge">${badgeIcon} ${d.cardType.toUpperCase()}</span>`:'';
+    return`<div class="dcard${pcs.has(d.pc)?' sel':''}${cardCls}" style="animation-delay:${Math.min(i*.03,.4)}s" onclick="tgVal('Pc No','${esc(d.pc)}')">
+      <div class="dc-top"><span class="dc-pc">${label}${badge}</span><span class="dc-cnt">${d.total}</span></div>
       <div class="dc-meta"><span class="dc-mi">👤</span><span class="dc-mt">${esc(d.nm)||'—'}</span></div>
       <div class="dc-meta"><span class="dc-mi">✉</span><span class="dc-mt">${esc(d.em)||'—'}</span></div>
       <div class="dc-qs">${tags||'<span class="qtag">—</span>'}</div>
