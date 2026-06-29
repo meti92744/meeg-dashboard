@@ -582,8 +582,8 @@ function renderCards(locKey,rows){
     const pcRaw=String(r[pi]||'').trim();if(!pcRaw)return;
     const pc=pcRaw;const q=qi>=0?String(r[qi]||''):'—';
     const em=ei>=0?String(r[ei]||''):'';const nm=ni>=0?String(r[ni]||''):'';
-    const pcU=pc.toUpperCase();
-    const cardType=pcU==='QTC'?'qtc':pcU==='SL'?'sl':'device';
+    const pcNorm=pc.toUpperCase().replace(/[\s\-_.]/g,'');
+    const cardType=pcNorm.startsWith('QTC')?'qtc':pcNorm.startsWith('SL')?'sl':'device';
     if(!map[pc])map[pc]={pc,em,nm,total:0,queues:{},cardType};
     map[pc].total++;map[pc].queues[q]=(map[pc].queues[q]||0)+1;
   });
