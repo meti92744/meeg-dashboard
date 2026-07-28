@@ -254,6 +254,12 @@ html[data-theme="dark"] .dcard.qtc-card .dc-badge{color:#d8c8ef;}
 .dcard.sl-card .dc-badge{background:rgba(255,178,56,.15);color:#a8611f;border:1.5px solid rgba(255,178,56,.4);}
 html[data-theme="dark"] .dcard.sl-card .dc-pc{color:#f0b06d;}
 html[data-theme="dark"] .dcard.sl-card .dc-badge{color:#f0b06d;}
+.dcard.sv-card{border-color:rgba(15,143,255,.5);background:rgba(15,143,255,.08);}
+.dcard.sv-card::before{background:linear-gradient(90deg,#0f8fff,#00e5d4)}
+.dcard.sv-card .dc-pc{color:#0b6fd1}
+.dcard.sv-card .dc-badge{background:rgba(15,143,255,.15);color:#0b6fd1;border:1.5px solid rgba(15,143,255,.4);}
+html[data-theme="dark"] .dcard.sv-card .dc-pc{color:#7fc4ff;}
+html[data-theme="dark"] .dcard.sv-card .dc-badge{color:#7fc4ff;}
 .dc-badge{font-size:.5rem;font-weight:800;padding:2px 7px;border-radius:10px;text-transform:uppercase;letter-spacing:.4px;margin-left:6px;vertical-align:middle;}
 .dc-cnt{background:linear-gradient(135deg,var(--teal),var(--blue));color:#fff;font-size:.6rem;font-weight:800;padding:3px 8px;border-radius:12px}
 .dc-meta{font-size:.6rem;color:var(--text-soft);margin-bottom:3px;display:flex;align-items:center;gap:4px;overflow:hidden}
@@ -612,9 +618,11 @@ function renderCards(locKey,rows){
     const pc=pcRaw;const q=qi>=0?String(r[qi]||''):'—';
     const em=ei>=0?String(r[ei]||''):'';const nm=ni>=0?String(r[ni]||''):'';
     const pcNorm=pc.toUpperCase().replace(/[\s\-_.]/g,'');
-    const cardType=pcNorm.startsWith('QTC')?'qtc':pcNorm.startsWith('SL')?'sl':'device';
-    if(!map[pc])map[pc]={pc,em,nm,total:0,queues:{},cardType};
-    map[pc].total++;map[pc].queues[q]=(map[pc].queues[q]||0)+1;
+    const cardType=pcNorm.startsWith('QTC')?'qtc':pcNorm.startsWith('SL')?'sl':pcNorm.startsWith('SV')?'sv':'device';
+    // For shared/generic labels (QTC, SL, SV with no unique number), split cards per person using email/name so submissions don't collapse into one card
+    const mapKey=cardType!=='device'?pc+'|'+(em||nm||'—'):pc;
+    if(!map[mapKey])map[mapKey]={pc,em,nm,total:0,queues:{},cardType};
+    map[mapKey].total++;map[mapKey].queues[q]=(map[mapKey].queues[q]||0)+1;
   });
   const sorted=Object.values(map).sort((a,b)=>{
     if((a.cardType!=='device')!==(b.cardType!=='device'))return a.cardType!=='device'?1:-1;
@@ -626,8 +634,8 @@ function renderCards(locKey,rows){
   const pcs=sel['Pc No']||new Set();
   g.innerHTML=sorted.map((d,i)=>{
     const tags=Object.entries(d.queues).sort((a,b)=>b[1]-a[1]).map(([q,c])=>`<span class="qtag">${esc(q)}: ${c}</span>`).join('');
-    const cardCls=d.cardType==='qtc'?' qtc-card':d.cardType==='sl'?' sl-card':'';
-    const badgeIcon=d.cardType==='qtc'?'🏷️':d.cardType==='sl'?'🛡️':'';
+    const cardCls=d.cardType==='qtc'?' qtc-card':d.cardType==='sl'?' sl-card':d.cardType==='sv'?' sv-card':'';
+    const badgeIcon=d.cardType==='qtc'?'🏷️':d.cardType==='sl'?'🛡️':d.cardType==='sv'?'🧭':'';
     const label=d.cardType==='device'?'C-'+esc(d.pc):esc(d.pc);
     const badge=d.cardType!=='device'?`<span class="dc-badge">${badgeIcon} ${d.cardType.toUpperCase()}</span>`:'';
     return`<div class="dcard${pcs.has(d.pc)?' sel':''}${cardCls}" style="animation-delay:${Math.min(i*.03,.4)}s" onclick="tgVal('Pc No','${esc(d.pc)}')">
