@@ -112,6 +112,17 @@ html[data-theme="dark"] .orb-2{background:radial-gradient(circle,rgba(15,143,255
 .btn-cmp.active{background:#04202b;color:#5cf3e2;border-color:#04202b;}
 .dm-toggle{display:inline-flex;align-items:center;gap:6px;padding:7px 13px;border-radius:14px;border:2px solid rgba(4,32,43,.3);background:rgba(255,255,255,.4);color:#04202b;font-size:.6rem;font-weight:800;font-family:var(--font);cursor:pointer;transition:all .15s;box-shadow:0 3px 0 rgba(4,32,43,.25);}
 .dm-toggle:hover{transform:translateY(-2px);box-shadow:0 5px 0 rgba(4,32,43,.25);}
+.dm-toggle.off{background:rgba(4,32,43,.14);color:rgba(4,32,43,.5);opacity:.75;}
+.car-switch{display:inline-flex;align-items:center;gap:9px;padding:6px 12px 6px 10px;border-radius:11px;border:2px solid rgba(0,0,0,.5);background:linear-gradient(180deg,#3a3f47,#16181c);cursor:pointer;box-shadow:inset 0 1px 0 rgba(255,255,255,.1),inset 0 -2px 3px rgba(0,0,0,.5),0 3px 0 rgba(0,0,0,.35);transition:transform .12s,box-shadow .12s;user-select:none;}
+.car-switch:hover{transform:translateY(-2px);box-shadow:inset 0 1px 0 rgba(255,255,255,.1),inset 0 -2px 3px rgba(0,0,0,.5),0 5px 0 rgba(0,0,0,.35);}
+.car-switch:active{transform:translateY(1px);box-shadow:inset 0 1px 0 rgba(255,255,255,.1),inset 0 -2px 3px rgba(0,0,0,.5),0 1px 0 rgba(0,0,0,.35);}
+.car-switch-led{width:7px;height:7px;border-radius:50%;background:#450d0d;box-shadow:inset 0 1px 1px rgba(0,0,0,.6);flex-shrink:0;transition:all .2s;}
+.car-switch.on .car-switch-led{background:#ff4d4d;box-shadow:0 0 7px #ff4d4d,0 0 2px #fff inset;}
+.car-switch-track{width:36px;height:17px;border-radius:9px;background:#050607;border:1px solid rgba(255,255,255,.07);position:relative;box-shadow:inset 0 2px 5px rgba(0,0,0,.75);flex-shrink:0;}
+.car-switch-knob{position:absolute;top:1.5px;left:1.5px;width:14px;height:14px;border-radius:50%;background:linear-gradient(180deg,#eef1f3,#9aa3ab);box-shadow:0 1px 2px rgba(0,0,0,.6),inset 0 1px 1px rgba(255,255,255,.6);transition:left .18s cubic-bezier(.34,1.4,.64,1),background .18s;}
+.car-switch.on .car-switch-knob{left:19.5px;background:linear-gradient(180deg,#8dffb8,#1fae5c);}
+.car-switch-label{font-family:var(--mono);font-size:.55rem;font-weight:800;letter-spacing:1.2px;color:#8b96a0;transition:color .18s;}
+.car-switch.on .car-switch-label{color:#8dffb8;}
 .dm-icon{font-size:.9rem;transition:transform .5s;}
 html[data-theme="dark"] .dm-icon{transform:rotate(360deg);}
 
@@ -327,6 +338,11 @@ td a{color:var(--info);text-decoration:none;font-weight:700;}
   .hdr-right{gap:5px;}
   .btn{padding:6px 10px;font-size:.58rem;}
   .dm-toggle{padding:6px 10px;}
+  .car-switch{padding:5px 9px 5px 8px;gap:6px;}
+  .car-switch-track{width:30px;height:15px;}
+  .car-switch-knob{width:12px;height:12px;}
+  .car-switch.on .car-switch-knob{left:16.5px;}
+  .car-switch-label{font-size:.5rem;}
   .fstrip{padding:8px 12px;top:58px;}
   .shift-banner{padding:7px 12px;}
   .opt-shift-btn{padding:4px 9px;font-size:.56rem;}
@@ -402,6 +418,7 @@ td a{color:var(--info);text-decoration:none;font-weight:700;}
     </div>
     <button class="btn btn-cmp" id="cmpBtn" onclick="toggleCompare()">⚖️ Compare</button>
     <button class="dm-toggle" onclick="toggleDark()"><span class="dm-icon" id="dmIcon">🌙</span><span id="dmLabel">Dark</span></button>
+    <button class="car-switch" id="arToggle" onclick="toggleAutoRefresh()" title="Auto Refresh"><span class="car-switch-led" id="arLed"></span><span class="car-switch-track"><span class="car-switch-knob" id="arKnob"></span></span><span class="car-switch-label" id="arLabel">AUTO</span></button>
     <button class="btn btn-c" id="refreshBtn" onclick="loadData()">⟳ Refresh</button>
     <button class="btn btn-d" onclick="clearAll()">✕ Clear</button>
   </div>
@@ -433,6 +450,9 @@ td a{color:var(--info);text-decoration:none;font-weight:700;}
 <script>
 function hideSplash(){const s=document.getElementById('splash');if(s){setTimeout(()=>{s.classList.add('fade-out');setTimeout(()=>s.remove(),650);},2200);}}
 function toggleDark(){const html=document.documentElement;const isDark=html.getAttribute('data-theme')==='dark';const t=isDark?'light':'dark';html.setAttribute('data-theme',t);document.getElementById('dmIcon').textContent=isDark?'🌙':'☀️';document.getElementById('dmLabel').textContent=isDark?'Dark':'Light';localStorage.setItem('meeg_theme',t);}
+let autoRefreshEnabled=(function(){try{const v=localStorage.getItem('meeg_autorefresh');return v===null?true:v==='1';}catch(e){return true;}})();
+function applyAutoRefreshUI(){const btn=document.getElementById('arToggle');const lb=document.getElementById('arLabel');if(!btn)return;btn.classList.toggle('on',autoRefreshEnabled);if(lb)lb.textContent=autoRefreshEnabled?'AUTO':'OFF';}
+function toggleAutoRefresh(){autoRefreshEnabled=!autoRefreshEnabled;try{localStorage.setItem('meeg_autorefresh',autoRefreshEnabled?'1':'0');}catch(e){}applyAutoRefreshUI();if(autoRefreshEnabled){if(autoRefreshTimer)clearInterval(autoRefreshTimer);autoRefreshTimer=setInterval(loadData,REFRESH_INTERVAL*1000);showToast('⏱️ Auto-refresh ON');}else{if(autoRefreshTimer)clearInterval(autoRefreshTimer);autoRefreshTimer=null;showToast('⏸️ Auto-refresh OFF');}}
 function saveFilters(){try{const state={sel:Object.fromEntries(Object.entries(sel).map(([k,v])=>[k,[...v]])),selD:[...selD],selWeeks:[...selWeeks],idFilter,shifts:Object.fromEntries(Object.entries(shiftState).map(([k,v])=>[k,v.on])),activeLoc};localStorage.setItem('meeg_filters',JSON.stringify(state));}catch(e){}}
 function restoreFilters(){try{const raw=localStorage.getItem('meeg_filters');if(!raw)return;const state=JSON.parse(raw);if(state.sel)Object.entries(state.sel).forEach(([k,arr])=>{sel[k]=new Set(arr);});if(state.selD)state.selD.forEach(d=>selD.add(d));if(state.selWeeks)state.selWeeks.forEach(w=>selWeeks.add(w));if(state.idFilter)idFilter=state.idFilter;if(state.shifts)Object.entries(state.shifts).forEach(([k,on])=>{if(shiftState[k]){shiftState[k].on=on;const btn=document.getElementById('btn_'+k);if(btn){btn.classList.toggle('on',on);btn.querySelector('.dot').textContent=on?'●':'○';}}});if(state.activeLoc)activeLoc=state.activeLoc;}catch(e){}}
 function animateNum(el,target,duration=900){const start=performance.now();function step(now){const p=Math.min((now-start)/duration,1);const ease=1-Math.pow(1-p,3);el.textContent=Math.round(ease*(target)).toLocaleString();if(p<1)requestAnimationFrame(step);else el.textContent=target.toLocaleString();}requestAnimationFrame(step);}
@@ -499,7 +519,7 @@ function parseCSV(text){
 }
 const SHEET_GID='0'; // gid of the "Data Base" tab — change this if you add/reorder sheet tabs
 function loadData(){setSyncActive(true);const b=document.getElementById('refreshBtn');if(b)b.disabled=true;fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${SHEET_GID}`).then(r=>r.text()).then(txt=>{onCsvData(txt);}).catch(e=>{setSyncActive(false);if(b)b.disabled=false;showErr('Failed: '+e.message);});}
-function onCsvData(text){const b=document.getElementById('refreshBtn');if(b)b.disabled=false;setSyncActive(false);const table=parseCSV(text).filter(r=>r&&r.length&&!(r.length===1&&String(r[0]||'').trim()===''));if(!table.length){showErr('No data returned.');return;}hdrs=table[0].map(h=>String(h||'').trim());const hLower=hdrs.map(h=>h.toLowerCase());sIdx={};["Shift","Unit","Qtc Name","Yubikey Email","Labeler Name","Pc No","Modality","Queue Name","Location"].forEach(name=>{const i=hLower.indexOf(name.toLowerCase());if(i>=0)sIdx[name]=i;});tsIdx=hLower.findIndex(h=>h==='timestamp');if(tsIdx<0)tsIdx=hLower.findIndex(h=>h==='created at');if(tsIdx<0)tsIdx=hLower.findIndex(h=>h==='date');if(tsIdx<0)tsIdx=hLower.findIndex(h=>h.includes('date'));locColIdx=hLower.findIndex(h=>h==='location');if(locColIdx<0)locColIdx=hLower.findIndex(h=>h==='unit');if(locColIdx<0)locColIdx=hLower.findIndex(h=>h==='site');rawRows=[];for(let ri=1;ri<table.length;ri++){const rowRaw=table[ri];if(!rowRaw||!rowRaw.length)continue;const row=hdrs.map((_,ci)=>rowRaw[ci]!==undefined?String(rowRaw[ci]).trim():'');if(row.every(c=>c===''))continue;const sci=sIdx['Shift'];if(sci!==undefined){const sv=String(row[sci]||'').trim().toLowerCase();if(!ALL_SHIFTS.some(a=>sv===a))continue;}rawRows.push(row);}sOpts={};["Shift","Unit","Qtc Name","Yubikey Email","Labeler Name","Pc No","Modality","Queue Name","Location"].forEach(name=>{const ci=sIdx[name];if(ci===undefined)return;const set=new Set();rawRows.forEach(r=>{const v=String(r[ci]||'').trim();if(v)set.add(v);});sOpts[name]=[...set].sort();});const dateSet=new Set();rawRows.forEach(r=>{const d=extractDate(r[tsIdx]);if(d)dateSet.add(d);});sOpts['_dates']=[...dateSet].sort().reverse();const locSet=new Set();if(locColIdx>=0)rawRows.forEach(r=>{const v=String(r[locColIdx]||'').trim();if(v)locSet.add(v);});locations=[...locSet].sort();const now=new Date();todayStr=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');document.getElementById('todayLabel').textContent=todayStr;document.getElementById('lastUpdated').textContent=_now();document.getElementById('totalBadge').textContent=rawRows.length+' rows';SC.forEach(s=>{if(!sel[s.key])sel[s.key]=new Set();});if(!_filtersRestored){restoreFilters();_filtersRestored=true;}buildStrip();buildTabs();applyAll();if(autoRefreshTimer)clearInterval(autoRefreshTimer);autoRefreshTimer=setInterval(loadData,REFRESH_INTERVAL*1000);if(cmpMode)populateCmpSelects();}
+function onCsvData(text){const b=document.getElementById('refreshBtn');if(b)b.disabled=false;setSyncActive(false);const table=parseCSV(text).filter(r=>r&&r.length&&!(r.length===1&&String(r[0]||'').trim()===''));if(!table.length){showErr('No data returned.');return;}hdrs=table[0].map(h=>String(h||'').trim());const hLower=hdrs.map(h=>h.toLowerCase());sIdx={};["Shift","Unit","Qtc Name","Yubikey Email","Labeler Name","Pc No","Modality","Queue Name","Location"].forEach(name=>{const i=hLower.indexOf(name.toLowerCase());if(i>=0)sIdx[name]=i;});tsIdx=hLower.findIndex(h=>h==='timestamp');if(tsIdx<0)tsIdx=hLower.findIndex(h=>h==='created at');if(tsIdx<0)tsIdx=hLower.findIndex(h=>h==='date');if(tsIdx<0)tsIdx=hLower.findIndex(h=>h.includes('date'));locColIdx=hLower.findIndex(h=>h==='location');if(locColIdx<0)locColIdx=hLower.findIndex(h=>h==='unit');if(locColIdx<0)locColIdx=hLower.findIndex(h=>h==='site');rawRows=[];for(let ri=1;ri<table.length;ri++){const rowRaw=table[ri];if(!rowRaw||!rowRaw.length)continue;const row=hdrs.map((_,ci)=>rowRaw[ci]!==undefined?String(rowRaw[ci]).trim():'');if(row.every(c=>c===''))continue;const sci=sIdx['Shift'];if(sci!==undefined){const sv=String(row[sci]||'').trim().toLowerCase();if(!ALL_SHIFTS.some(a=>sv===a))continue;}rawRows.push(row);}sOpts={};["Shift","Unit","Qtc Name","Yubikey Email","Labeler Name","Pc No","Modality","Queue Name","Location"].forEach(name=>{const ci=sIdx[name];if(ci===undefined)return;const set=new Set();rawRows.forEach(r=>{const v=String(r[ci]||'').trim();if(v)set.add(v);});sOpts[name]=[...set].sort();});const dateSet=new Set();rawRows.forEach(r=>{const d=extractDate(r[tsIdx]);if(d)dateSet.add(d);});sOpts['_dates']=[...dateSet].sort().reverse();const locSet=new Set();if(locColIdx>=0)rawRows.forEach(r=>{const v=String(r[locColIdx]||'').trim();if(v)locSet.add(v);});locations=[...locSet].sort();const now=new Date();todayStr=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');document.getElementById('todayLabel').textContent=todayStr;document.getElementById('lastUpdated').textContent=_now();document.getElementById('totalBadge').textContent=rawRows.length+' rows';SC.forEach(s=>{if(!sel[s.key])sel[s.key]=new Set();});if(!_filtersRestored){restoreFilters();_filtersRestored=true;}buildStrip();buildTabs();applyAll();if(autoRefreshTimer)clearInterval(autoRefreshTimer);autoRefreshTimer=null;if(autoRefreshEnabled)autoRefreshTimer=setInterval(loadData,REFRESH_INTERVAL*1000);applyAutoRefreshUI();if(cmpMode)populateCmpSelects();}
 function extractDate(v){if(!v)return null;const s=String(v).trim();if(/^\d{4}-\d{2}-\d{2}/.test(s))return s.substring(0,10);const m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);if(m)return m[3]+'-'+m[1].padStart(2,'0')+'-'+m[2].padStart(2,'0');return null;}
 function rDate(r){if(tsIdx<0)return'';const v=String(r[tsIdx]||'').trim();return extractDate(v)||'';}
 function _now(){const n=new Date();return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0')+' '+String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');}
@@ -545,7 +565,7 @@ function renderTotalSubmitSection(mc){
   const mIdx=hdrs.findIndex(h=>h.toLowerCase()==='modality');
   const passIdx=hdrs.findIndex(h=>h.toLowerCase()==='pass');
   const pcIdx=sIdx['Pc No'];
-  const qMap={},qDetailMap={},qRoomSet={};
+  const qMap={},qDetailMap={};
   rows.forEach(r=>{
     const qv=qIdx>=0?String(r[qIdx]||'').trim():'';
     const mv=mIdx>=0?String(r[mIdx]||'').trim():'';
@@ -557,16 +577,7 @@ function renderTotalSubmitSection(mc){
       if(!qDetailMap[qv][mv])qDetailMap[qv][mv]={};
       qDetailMap[qv][mv][pv]=(qDetailMap[qv][mv][pv]||0)+1;
     }
-    if(pcIdx!==undefined){
-      const pcv=String(r[pcIdx]||'').trim();
-      if(pcv){
-        if(!qRoomSet[qv])qRoomSet[qv]=new Set();
-        qRoomSet[qv].add(pcv);
-      }
-    }
   });
-  const allRoomsSet=new Set();
-  if(pcIdx!==undefined)rows.forEach(r=>{const v=String(r[pcIdx]||'').trim();if(v)allRoomsSet.add(v);});
   const allMods=[...new Set(rows.map(r=>mIdx>=0?String(r[mIdx]||'').trim():'').filter(Boolean))].sort();
   const allPasses=[...new Set(rows.map(r=>passIdx>=0?String(r[passIdx]||'').trim():'').filter(Boolean))].sort();
   const MOD_PALETTE=['#e8a000','#16a34a','#7c3aed','#dc2626','#0891b2','#d97706','#f59e0b','#8b5cf6'];
@@ -577,14 +588,14 @@ function renderTotalSubmitSection(mc){
   const grandTotal=Object.values(qMap).reduce((a,b)=>a+b,0);
   const header=document.createElement('div');
   header.className='loc-hdr';
-  header.innerHTML=`<div class="loc-hdr-name">📊 Total Submit — All Queues</div><div class="loc-stats"><div class="loc-stat"><div class="sv anim-num" data-anim-num="${grandTotal}">0</div><div class="sl">Total Submits</div></div><div class="loc-stat"><div class="sv anim-num" data-anim-num="${Object.keys(qMap).length}">0</div><div class="sl">Queues</div></div><div class="loc-stat"><div class="sv anim-num" data-anim-num="${allRoomsSet.size}">0</div><div class="sl">Rooms</div></div></div>`;
+  header.innerHTML=`<div class="loc-hdr-name">📊 Total Submit — All Queues</div><div class="loc-stats"><div class="loc-stat"><div class="sv anim-num" data-anim-num="${grandTotal}">0</div><div class="sl">Total Submits</div></div><div class="loc-stat"><div class="sv anim-num" data-anim-num="${Object.keys(qMap).length}">0</div><div class="sl">Queues</div></div></div>`;
   mc.appendChild(header);
   setTimeout(animateAllNums,50);
 
   function mkGroupedThead(nl){
     const mh=allMods.map(m=>{const col=modColor(m);const sp=allPasses.length||1;return `<th colspan="${sp}" style="background:var(--elevated);color:${col};font-size:.55rem;padding:5px 8px;text-align:center;border-bottom:1px solid var(--border);border-left:2px solid ${col}30;font-weight:700;white-space:nowrap">${esc(m)}</th>`;}).join('');
     const ph=allMods.map(m=>{const col=modColor(m);return allPasses.map((pv,pi)=>`<th style="background:var(--elevated);color:${col};font-size:.52rem;padding:4px 6px;text-align:center;border-bottom:1.5px solid var(--border);${pi===0?'border-left:2px solid '+col+'30;':''}font-weight:600;white-space:nowrap;opacity:.85">${esc(pv)}</th>`).join('');}).join('');
-    return `<thead><tr><th rowspan="2" style="background:var(--elevated);color:var(--text-soft);font-size:.55rem;padding:7px 10px;text-align:left;border-bottom:1.5px solid var(--border);font-weight:700;vertical-align:bottom;white-space:nowrap">${nl}</th>${mh}<th rowspan="2" style="background:var(--elevated);color:var(--info);font-size:.55rem;padding:7px 10px;text-align:center;border-bottom:1.5px solid var(--border);border-left:2px solid rgba(15,143,255,.3);font-weight:700;vertical-align:bottom;white-space:nowrap">🖥️ Rooms</th><th rowspan="2" style="background:var(--elevated);color:var(--text-soft);font-size:.55rem;padding:7px 10px;text-align:right;border-bottom:1.5px solid var(--border);font-weight:700;vertical-align:bottom">Total</th></tr><tr>${ph}</tr></thead>`;
+    return `<thead><tr><th rowspan="2" style="background:var(--elevated);color:var(--text-soft);font-size:.55rem;padding:7px 10px;text-align:left;border-bottom:1.5px solid var(--border);font-weight:700;vertical-align:bottom;white-space:nowrap">${nl}</th>${mh}<th rowspan="2" style="background:var(--elevated);color:var(--text-soft);font-size:.55rem;padding:7px 10px;text-align:right;border-bottom:1.5px solid var(--border);font-weight:700;vertical-align:bottom">Total</th></tr><tr>${ph}</tr></thead>`;
   }
   function mkGroupedCells(d){
     return allMods.map(m=>{const col=modColor(m);return allPasses.map((pv,pi)=>{const c=(d[m]||{})[pv]||0;return `<td style="padding:4px 6px;text-align:center;font-size:.65rem;font-weight:${c?'700':'400'};color:${c?col:'var(--muted)'};font-family:var(--mono);${pi===0?'border-left:2px solid '+col+'20;':''}">${c||'—'}</td>`;}).join('');}).join('');
@@ -598,15 +609,13 @@ function renderTotalSubmitSection(mc){
     const total=qMap[q];
     const pct=grandTotal?Math.round(total/grandTotal*100):0;
     const cells=mkGroupedCells(qDetailMap[q]||{});
-    const roomCnt=qRoomSet[q]?qRoomSet[q].size:0;
-    return `<tr style="border-bottom:1px solid var(--border-light)"><td style="padding:6px 10px;color:var(--text);font-size:.68rem;font-weight:600;white-space:nowrap">${esc(q)}</td>${cells}<td style="padding:4px 6px;text-align:center;font-size:.68rem;font-weight:700;color:var(--info);font-family:var(--mono);border-left:2px solid rgba(15,143,255,.15)">${roomCnt||'—'}</td><td style="padding:6px 10px;text-align:right"><div style="display:flex;align-items:center;gap:5px;justify-content:flex-end"><div style="width:60px;height:4px;background:var(--border);border-radius:2px;overflow:hidden"><div style="width:${pct}%;height:100%;background:var(--accent);border-radius:2px"></div></div><span style="font-size:.7rem;font-family:var(--mono);color:var(--accent);font-weight:800;min-width:28px;text-align:right">${total}</span></div></td></tr>`;
+    return `<tr style="border-bottom:1px solid var(--border-light)"><td style="padding:6px 10px;color:var(--text);font-size:.68rem;font-weight:600;white-space:nowrap">${esc(q)}</td>${cells}<td style="padding:6px 10px;text-align:right"><div style="display:flex;align-items:center;gap:5px;justify-content:flex-end"><div style="width:60px;height:4px;background:var(--border);border-radius:2px;overflow:hidden"><div style="width:${pct}%;height:100%;background:var(--accent);border-radius:2px"></div></div><span style="font-size:.7rem;font-family:var(--mono);color:var(--accent);font-weight:800;min-width:28px;text-align:right">${total}</span></div></td></tr>`;
   }).join('');
   const footCells=mkGroupedFootCells(Object.values(qDetailMap));
-  const footRoomsCell=`<td style="padding:5px 6px;text-align:center;font-size:.65rem;font-weight:800;color:var(--info);font-family:var(--mono);border-left:2px solid rgba(15,143,255,.15)">${allRoomsSet.size||'—'}</td>`;
 
   const sec=document.createElement('div');
   sec.className='sec';
-  sec.innerHTML=`<div class="sec-hd"><span class="sec-t">📊 Total Submit — Queue Breakdown (Modality × Pass)</span><span class="sec-m">${queues.length} queues · ${grandTotal} total · ${allRoomsSet.size} rooms</span></div><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.68rem">${mkGroupedThead('Queue')}<tbody>${bodyRows||`<tr><td colspan="99" style="text-align:center;padding:22px;color:var(--muted)">No queue data.</td></tr>`}</tbody><tfoot><tr style="border-top:2px solid var(--border);background:var(--elevated)"><td style="padding:8px 10px;font-size:.72rem;font-weight:800;color:var(--text)">🏆 Grand Total (All Rooms)</td>${footCells}${footRoomsCell}<td style="padding:8px 10px;text-align:right;font-size:.75rem;font-weight:900;color:var(--accent);font-family:var(--mono)">${grandTotal}</td></tr></tfoot></table></div>`;
+  sec.innerHTML=`<div class="sec-hd"><span class="sec-t">📊 Total Submit — Queue Breakdown (Modality × Pass)</span><span class="sec-m">${queues.length} queues · ${grandTotal} total</span></div><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.68rem">${mkGroupedThead('Queue')}<tbody>${bodyRows||`<tr><td colspan="99" style="text-align:center;padding:22px;color:var(--muted)">No queue data.</td></tr>`}</tbody><tfoot><tr style="border-top:2px solid var(--border);background:var(--elevated)"><td style="padding:8px 10px;font-size:.72rem;font-weight:800;color:var(--text)">🏆 Grand Total (All Rooms)</td>${footCells}<td style="padding:8px 10px;text-align:right;font-size:.75rem;font-weight:900;color:var(--accent);font-family:var(--mono)">${grandTotal}</td></tr></tfoot></table></div>`;
   mc.appendChild(sec);
 }
 function renderTopPerformersSection(mc){
@@ -803,7 +812,7 @@ let _toastTimer=null;
 function showToast(msg){const ex=document.querySelector('.toast');if(ex)ex.remove();if(_toastTimer)clearTimeout(_toastTimer);const t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.appendChild(t);_toastTimer=setTimeout(()=>{t.style.opacity='0';t.style.transform='translateY(10px)';t.style.transition='all .3s';setTimeout(()=>t.remove(),300);},3000);}
 function showErr(msg){document.getElementById('mainContent').innerHTML=`<div class="errbox">⚠️ ${esc(msg)}</div>`;document.getElementById('fstrip').innerHTML=`<div style="padding:10px 16px;font-size:.68rem;color:var(--danger)">${esc(msg)}</div>`;document.getElementById('locTabs').innerHTML='';}
 function esc(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
-window.addEventListener('load',()=>{const savedTheme=localStorage.getItem('meeg_theme')||'light';document.documentElement.setAttribute('data-theme',savedTheme);document.getElementById('dmIcon').textContent=savedTheme==='dark'?'☀️':'🌙';document.getElementById('dmLabel').textContent=savedTheme==='dark'?'Light':'Dark';hideSplash();loadData();});
+window.addEventListener('load',()=>{const savedTheme=localStorage.getItem('meeg_theme')||'light';document.documentElement.setAttribute('data-theme',savedTheme);document.getElementById('dmIcon').textContent=savedTheme==='dark'?'☀️':'🌙';document.getElementById('dmLabel').textContent=savedTheme==='dark'?'Light':'Dark';applyAutoRefreshUI();hideSplash();loadData();});
 </script>
 </body>
 </html>
