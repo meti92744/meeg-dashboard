@@ -269,14 +269,20 @@ html[data-theme="dark"] .dcard.sv-card .dc-badge{color:#7fc4ff;}
 .qtag{font-size:.55rem;font-weight:700;padding:2px 7px;border-radius:8px;background:var(--accent-light);color:var(--info);border:1.5px solid rgba(15,143,255,.25)}
 
 /* ===== TOP CATEGORY LEADERBOARD CARDS ===== */
-.catgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;padding:14px;}
-.catcard{border-radius:var(--radius-lg);overflow:hidden;border:2px solid var(--border);box-shadow:var(--shadow);}
-.catcard-hd{padding:10px 16px;font-family:var(--display);font-weight:800;font-size:.8rem;color:#04202b;letter-spacing:.2px;}
-.catrow{display:flex;align-items:center;justify-content:space-between;padding:9px 16px;border-bottom:1px solid var(--border-light);font-size:.72rem;font-weight:700;color:var(--text);background:var(--card);}
+.catgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;padding:14px;}
+.catcard{background:var(--card);border:2px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:0 3px 0 var(--border);transition:box-shadow .18s,transform .18s;}
+.catcard:hover{transform:translateY(-2px);box-shadow:0 5px 0 var(--border);}
+.catcard-hd{padding:9px 14px;display:flex;align-items:center;gap:7px;border-bottom:2px solid var(--border);background:var(--elevated);}
+.catcard-hd .cc-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;box-shadow:0 0 0 3px currentColor22;}
+.catcard-hd .cc-lbl{font-family:var(--display);font-weight:800;font-size:.7rem;color:var(--text);letter-spacing:.2px;}
+.catcard-hd .cc-cnt{margin-left:auto;font-size:.55rem;font-family:var(--mono);color:var(--muted);font-weight:700;}
+.catrow{display:flex;align-items:center;gap:8px;padding:7px 14px;border-bottom:1px dashed var(--border-light);font-size:.66rem;}
 .catrow:last-child{border-bottom:none;}
-.catrow .catname{display:flex;align-items:center;gap:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.catrow .catval{font-family:var(--mono);font-weight:800;flex-shrink:0;padding-left:8px;}
-.catempty{padding:14px 16px;color:var(--muted);font-size:.68rem;text-align:center;background:var(--card);}
+.catrow .catname{display:flex;align-items:center;gap:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text);font-weight:700;min-width:0;flex-shrink:1;max-width:44%;}
+.catrow .catbar{flex:1;height:4px;background:var(--border-light);border-radius:2px;overflow:hidden;min-width:20px;}
+.catrow .catbar-fill{height:100%;border-radius:2px;transition:width .5s cubic-bezier(.34,1.2,.64,1);}
+.catrow .catval{font-family:var(--mono);font-weight:800;flex-shrink:0;min-width:24px;text-align:right;}
+.catempty{padding:14px;color:var(--muted);font-size:.62rem;text-align:center;}
 
 /* table */
 .ttbar{padding:9px 14px;border-bottom:2px solid var(--border);display:flex;align-items:center;gap:9px;flex-wrap:wrap;background:var(--elevated);}
@@ -529,10 +535,10 @@ function clearAll(){selD.clear();selWeeks.clear();idFilter='';Object.keys(sel).f
 function setIdFilter(v){idFilter=v.trim();saveFilters();applyAll();}
 function applyAll(){const idIdx=hdrs.findIndex(h=>h.toLowerCase()==='id');const idQ=idFilter.toLowerCase();fcache=rawRows.filter(r=>{if(!isRowAllowed(r))return false;if(selWeeks.size){const wl=getWeekLabel(rDate(r));if(!selWeeks.has(wl))return false;}if(selD.size&&!selD.has(rDate(r)))return false;if(idQ&&idIdx>=0&&!String(r[idIdx]||'').toLowerCase().includes(idQ))return false;for(const[k,ss]of Object.entries(sel)){if(!ss.size)continue;const ci=sIdx[k];if(ci===undefined)continue;if(!ss.has(String(r[ci]||'').trim()))return false;}return true;});saveFilters();updPills();buildTabs();renderAllSections();}
 function updPills(){const w=document.getElementById('pillsRow');const ps=[];let any=false;if(idFilter){any=true;ps.push(`<span class="pill">🔎 ID: ${esc(idFilter)} <span class="pill-x" onclick="setIdFilter('');const i=document.getElementById('idFilterInput');if(i)i.value='';">✕</span></span>`);}selWeeks.forEach(wk=>{any=true;ps.push(`<span class="pill">📅 ${esc(wk)} <span class="pill-x" onclick="tgWeek('${esc(wk)}')">✕</span></span>`);});selD.forEach(d=>{any=true;ps.push(`<span class="pill">${d===todayStr?'🗓️ '+d+' ⭐':'🗓️ '+d} <span class="pill-x" onclick="tgDate('${d}')">✕</span></span>`);});for(const[k,ss]of Object.entries(sel)){ss.forEach(v=>{any=true;const sc=SC.find(s=>s.key===k);ps.push(`<span class="pill">${sc?sc.ic:''} ${esc(v)} <span class="pill-x" onclick="tgVal('${esc(k)}','${esc(v)}')">✕</span></span>`);});}w.innerHTML=any?ps.join('')+`<button class="clr-btn" onclick="clearAll()">✕ Clear All</button>`:'<span class="pill pill-all">All Data — No Filters Active</span>';}
-function buildTabs(){const c=document.getElementById('locTabs');let h=`<div class="loc-tab loc-all-tab${activeLoc==='__all__'?' act':''}" data-loc="__all__" onclick="switchTab('__all__')">🌐 All <span class="tab-cnt">${fcache.length}</span></div>`;h+=`<div class="loc-tab loc-all-tab${activeLoc==='__totalsubmit__'?' act':''}" data-loc="__totalsubmit__" onclick="switchTab('__totalsubmit__')">📊 Total Submit</div>`;locations.forEach(loc=>{const cnt=fcache.filter(r=>locColIdx>=0?String(r[locColIdx]||'').trim()===loc:true).length;h+=`<div class="loc-tab${activeLoc===loc?' act':''}" data-loc="${esc(loc)}" onclick="switchTab('${esc(loc)}')">📍 ${esc(loc)} <span class="tab-cnt">${cnt}</span></div>`;});c.innerHTML=h;}
+function buildTabs(){const c=document.getElementById('locTabs');let h=`<div class="loc-tab loc-all-tab${activeLoc==='__all__'?' act':''}" data-loc="__all__" onclick="switchTab('__all__')">🌐 All <span class="tab-cnt">${fcache.length}</span></div>`;h+=`<div class="loc-tab loc-all-tab${activeLoc==='__totalsubmit__'?' act':''}" data-loc="__totalsubmit__" onclick="switchTab('__totalsubmit__')">📊 Total Submit</div>`;h+=`<div class="loc-tab loc-all-tab${activeLoc==='__topperf__'?' act':''}" data-loc="__topperf__" onclick="switchTab('__topperf__')">🏆 Top Performers</div>`;locations.forEach(loc=>{const cnt=fcache.filter(r=>locColIdx>=0?String(r[locColIdx]||'').trim()===loc:true).length;h+=`<div class="loc-tab${activeLoc===loc?' act':''}" data-loc="${esc(loc)}" onclick="switchTab('${esc(loc)}')">📍 ${esc(loc)} <span class="tab-cnt">${cnt}</span></div>`;});c.innerHTML=h;}
 function switchTab(loc){activeLoc=loc;document.querySelectorAll('.loc-tab').forEach(el=>{el.classList.toggle('act',el.dataset.loc===loc);});renderAllSections();}
 function sid(k){return k.replace(/[\s()]/g,'_');}
-function renderAllSections(){const mc=document.getElementById('mainContent');const cmpRes=document.getElementById('cmpResultSection');if(fcache.length===0&&rawRows.length===0){mc.innerHTML=`<div style="text-align:center;padding:60px 20px;color:var(--muted)"><div style="font-size:2.5rem;margin-bottom:12px">📭</div><div style="font-size:.85rem;font-weight:700;color:var(--text);margin-bottom:6px">No data found</div></div>`;return;}if(fcache.length===0&&rawRows.length>0){mc.innerHTML=`<div style="text-align:center;padding:60px 20px;color:var(--muted)"><div style="font-size:2.5rem;margin-bottom:12px">🔍</div><div style="font-size:.85rem;font-weight:700;color:var(--text);margin-bottom:6px">No rows match current filters</div><div style="font-size:.7rem">${rawRows.length} total rows loaded.</div></div>`;return;}if(activeLoc==='__totalsubmit__'){mc.innerHTML='';if(cmpRes)mc.appendChild(cmpRes);renderTotalSubmitSection(mc);return;}const locsToRender=activeLoc==='__all__'?locations:[activeLoc];mc.innerHTML='';if(cmpRes)mc.appendChild(cmpRes);if(locations.length===0||locColIdx<0){const wrap=document.createElement('div');wrap.className='loc-section visible';mc.appendChild(wrap);renderLocSection(wrap,null,fcache);return;}locsToRender.forEach(loc=>{const locRows=fcache.filter(r=>String(r[locColIdx]||'').trim()===loc);const wrap=document.createElement('div');wrap.className='loc-section visible';mc.appendChild(wrap);renderLocSection(wrap,loc,locRows);});}
+function renderAllSections(){const mc=document.getElementById('mainContent');const cmpRes=document.getElementById('cmpResultSection');if(fcache.length===0&&rawRows.length===0){mc.innerHTML=`<div style="text-align:center;padding:60px 20px;color:var(--muted)"><div style="font-size:2.5rem;margin-bottom:12px">📭</div><div style="font-size:.85rem;font-weight:700;color:var(--text);margin-bottom:6px">No data found</div></div>`;return;}if(fcache.length===0&&rawRows.length>0){mc.innerHTML=`<div style="text-align:center;padding:60px 20px;color:var(--muted)"><div style="font-size:2.5rem;margin-bottom:12px">🔍</div><div style="font-size:.85rem;font-weight:700;color:var(--text);margin-bottom:6px">No rows match current filters</div><div style="font-size:.7rem">${rawRows.length} total rows loaded.</div></div>`;return;}if(activeLoc==='__totalsubmit__'){mc.innerHTML='';if(cmpRes)mc.appendChild(cmpRes);renderTotalSubmitSection(mc);return;}if(activeLoc==='__topperf__'){mc.innerHTML='';if(cmpRes)mc.appendChild(cmpRes);renderTopPerformersSection(mc);return;}const locsToRender=activeLoc==='__all__'?locations:[activeLoc];mc.innerHTML='';if(cmpRes)mc.appendChild(cmpRes);if(locations.length===0||locColIdx<0){const wrap=document.createElement('div');wrap.className='loc-section visible';mc.appendChild(wrap);renderLocSection(wrap,null,fcache);return;}locsToRender.forEach(loc=>{const locRows=fcache.filter(r=>String(r[locColIdx]||'').trim()===loc);const wrap=document.createElement('div');wrap.className='loc-section visible';mc.appendChild(wrap);renderLocSection(wrap,loc,locRows);});}
 function renderTotalSubmitSection(mc){
   const rows=fcache;
   const qIdx=hdrs.findIndex(h=>h.toLowerCase()==='queue name');
@@ -602,21 +608,28 @@ function renderTotalSubmitSection(mc){
   sec.className='sec';
   sec.innerHTML=`<div class="sec-hd"><span class="sec-t">📊 Total Submit — Queue Breakdown (Modality × Pass)</span><span class="sec-m">${queues.length} queues · ${grandTotal} total · ${allRoomsSet.size} rooms</span></div><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.68rem">${mkGroupedThead('Queue')}<tbody>${bodyRows||`<tr><td colspan="99" style="text-align:center;padding:22px;color:var(--muted)">No queue data.</td></tr>`}</tbody><tfoot><tr style="border-top:2px solid var(--border);background:var(--elevated)"><td style="padding:8px 10px;font-size:.72rem;font-weight:800;color:var(--text)">🏆 Grand Total (All Rooms)</td>${footCells}${footRoomsCell}<td style="padding:8px 10px;text-align:right;font-size:.75rem;font-weight:900;color:var(--accent);font-family:var(--mono)">${grandTotal}</td></tr></tfoot></table></div>`;
   mc.appendChild(sec);
-
+}
+function renderTopPerformersSection(mc){
+  const rows=fcache;
   const qtcIdx=hdrs.findIndex(h=>h.toLowerCase()==='qtc name');
   const labIdx=hdrs.findIndex(h=>h.toLowerCase()==='labeler name');
-  renderTopCategoryCards(mc,'🏷️','Top QTC — By Category',rows,qtcIdx);
-  renderTopCategoryCards(mc,'👤','Top Labeler — By Category',rows,labIdx);
+  const header=document.createElement('div');
+  header.className='loc-hdr';
+  header.innerHTML=`<div class="loc-hdr-name">🏆 Top Performers — QTC &amp; Labeler</div><div class="loc-stats"><div class="loc-stat"><div class="sv anim-num" data-anim-num="${rows.length}">0</div><div class="sl">Rows Counted</div></div></div>`;
+  mc.appendChild(header);
+  setTimeout(animateAllNums,50);
+  renderTopCategoryCards(mc,'🏷️','Top QTC',rows,qtcIdx);
+  renderTopCategoryCards(mc,'👤','Top Labeler',rows,labIdx);
 }
 function renderTopCategoryCards(mc,icon,title,rows,nameIdx){
   if(nameIdx<0)return;
   const mIdx=hdrs.findIndex(h=>h.toLowerCase()==='modality');
   const passIdx=hdrs.findIndex(h=>h.toLowerCase()==='pass');
   const CATS=[
-    {mod:'Lane Line',pass:'FP',label:'Lane FP',bg:'#6fcf7d'},
-    {mod:'Lane Line',pass:'QA',label:'Lane QA',bg:'#f5a94e'},
-    {mod:'Lidar',pass:'FP',label:'Lidar FP',bg:'#57cfe0'},
-    {mod:'Lidar',pass:'QA',label:'Lidar QA',bg:'#c99be0'}
+    {mod:'Lane Line',pass:'FP',label:'Lane · FP',ic:'🟢',col:'var(--success)'},
+    {mod:'Lane Line',pass:'QA',label:'Lane · QA',ic:'🟠',col:'var(--warning)'},
+    {mod:'Lidar',pass:'FP',label:'Lidar · FP',ic:'🔵',col:'var(--accent)'},
+    {mod:'Lidar',pass:'QA',label:'Lidar · QA',ic:'🟣',col:'#8b5cf6'}
   ];
   const catMaps=CATS.map(c=>({...c,map:{}}));
   rows.forEach(r=>{
@@ -630,8 +643,10 @@ function renderTopCategoryCards(mc,icon,title,rows,nameIdx){
   const medals=['🥇','🥈','🥉','🏅'];
   const cardsHtml=catMaps.map(c=>{
     const sorted=Object.entries(c.map).sort((a,b)=>b[1]-a[1]).slice(0,4);
-    const rowsHtml=sorted.length?sorted.map(([n,v],i)=>`<div class="catrow"><span class="catname"><span>${medals[i]||'🏅'}</span>${esc(n)}</span><span class="catval" style="color:${c.bg}">${v}</span></div>`).join(''):`<div class="catempty">No data</div>`;
-    return `<div class="catcard"><div class="catcard-hd" style="background:${c.bg}">${esc(c.label)}</div>${rowsHtml}</div>`;
+    const total=sorted.reduce((s,[,v])=>s+v,0);
+    const max=sorted.length?sorted[0][1]:0;
+    const rowsHtml=sorted.length?sorted.map(([n,v],i)=>`<div class="catrow"><span class="catname">${medals[i]||'🏅'} ${esc(n)}</span><div class="catbar"><div class="catbar-fill" style="width:${max?Math.round(v/max*100):0}%;background:${c.col}"></div></div><span class="catval" style="color:${c.col}">${v}</span></div>`).join(''):`<div class="catempty">No data</div>`;
+    return `<div class="catcard"><div class="catcard-hd"><span class="cc-dot" style="background:${c.col};color:${c.col}"></span><span class="cc-lbl">${c.ic} ${esc(c.label)}</span><span class="cc-cnt">${total} total</span></div>${rowsHtml}</div>`;
   }).join('');
   const sec=document.createElement('div');
   sec.className='sec';
