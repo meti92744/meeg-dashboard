@@ -268,6 +268,16 @@ html[data-theme="dark"] .dcard.sv-card .dc-badge{color:#7fc4ff;}
 .dc-qs{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
 .qtag{font-size:.55rem;font-weight:700;padding:2px 7px;border-radius:8px;background:var(--accent-light);color:var(--info);border:1.5px solid rgba(15,143,255,.25)}
 
+/* ===== TOP CATEGORY LEADERBOARD CARDS ===== */
+.catgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;padding:14px;}
+.catcard{border-radius:var(--radius-lg);overflow:hidden;border:2px solid var(--border);box-shadow:var(--shadow);}
+.catcard-hd{padding:10px 16px;font-family:var(--display);font-weight:800;font-size:.8rem;color:#04202b;letter-spacing:.2px;}
+.catrow{display:flex;align-items:center;justify-content:space-between;padding:9px 16px;border-bottom:1px solid var(--border-light);font-size:.72rem;font-weight:700;color:var(--text);background:var(--card);}
+.catrow:last-child{border-bottom:none;}
+.catrow .catname{display:flex;align-items:center;gap:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.catrow .catval{font-family:var(--mono);font-weight:800;flex-shrink:0;padding-left:8px;}
+.catempty{padding:14px 16px;color:var(--muted);font-size:.68rem;text-align:center;background:var(--card);}
+
 /* table */
 .ttbar{padding:9px 14px;border-bottom:2px solid var(--border);display:flex;align-items:center;gap:9px;flex-wrap:wrap;background:var(--elevated);}
 .srch{flex:1;min-width:140px;background:var(--card);border:2px solid var(--border);border-radius:14px;color:var(--text);font-size:.68rem;font-family:var(--font);padding:7px 12px;outline:none;transition:all .2s;}
@@ -528,7 +538,8 @@ function renderTotalSubmitSection(mc){
   const qIdx=hdrs.findIndex(h=>h.toLowerCase()==='queue name');
   const mIdx=hdrs.findIndex(h=>h.toLowerCase()==='modality');
   const passIdx=hdrs.findIndex(h=>h.toLowerCase()==='pass');
-  const qMap={},qDetailMap={};
+  const pcIdx=sIdx['Pc No'];
+  const qMap={},qDetailMap={},qRoomSet={};
   rows.forEach(r=>{
     const qv=qIdx>=0?String(r[qIdx]||'').trim():'';
     const mv=mIdx>=0?String(r[mIdx]||'').trim():'';
@@ -540,7 +551,16 @@ function renderTotalSubmitSection(mc){
       if(!qDetailMap[qv][mv])qDetailMap[qv][mv]={};
       qDetailMap[qv][mv][pv]=(qDetailMap[qv][mv][pv]||0)+1;
     }
+    if(pcIdx!==undefined){
+      const pcv=String(r[pcIdx]||'').trim();
+      if(pcv){
+        if(!qRoomSet[qv])qRoomSet[qv]=new Set();
+        qRoomSet[qv].add(pcv);
+      }
+    }
   });
+  const allRoomsSet=new Set();
+  if(pcIdx!==undefined)rows.forEach(r=>{const v=String(r[pcIdx]||'').trim();if(v)allRoomsSet.add(v);});
   const allMods=[...new Set(rows.map(r=>mIdx>=0?String(r[mIdx]||'').trim():'').filter(Boolean))].sort();
   const allPasses=[...new Set(rows.map(r=>passIdx>=0?String(r[passIdx]||'').trim():'').filter(Boolean))].sort();
   const MOD_PALETTE=['#e8a000','#16a34a','#7c3aed','#dc2626','#0891b2','#d97706','#f59e0b','#8b5cf6'];
@@ -551,14 +571,14 @@ function renderTotalSubmitSection(mc){
   const grandTotal=Object.values(qMap).reduce((a,b)=>a+b,0);
   const header=document.createElement('div');
   header.className='loc-hdr';
-  header.innerHTML=`<div class="loc-hdr-name">📊 Total Submit — All Queues</div><div class="loc-stats"><div class="loc-stat"><div class="sv anim-num" data-anim-num="${grandTotal}">0</div><div class="sl">Total Submits</div></div><div class="loc-stat"><div class="sv anim-num" data-anim-num="${Object.keys(qMap).length}">0</div><div class="sl">Queues</div></div></div>`;
+  header.innerHTML=`<div class="loc-hdr-name">📊 Total Submit — All Queues</div><div class="loc-stats"><div class="loc-stat"><div class="sv anim-num" data-anim-num="${grandTotal}">0</div><div class="sl">Total Submits</div></div><div class="loc-stat"><div class="sv anim-num" data-anim-num="${Object.keys(qMap).length}">0</div><div class="sl">Queues</div></div><div class="loc-stat"><div class="sv anim-num" data-anim-num="${allRoomsSet.size}">0</div><div class="sl">Rooms</div></div></div>`;
   mc.appendChild(header);
   setTimeout(animateAllNums,50);
 
   function mkGroupedThead(nl){
     const mh=allMods.map(m=>{const col=modColor(m);const sp=allPasses.length||1;return `<th colspan="${sp}" style="background:var(--elevated);color:${col};font-size:.55rem;padding:5px 8px;text-align:center;border-bottom:1px solid var(--border);border-left:2px solid ${col}30;font-weight:700;white-space:nowrap">${esc(m)}</th>`;}).join('');
     const ph=allMods.map(m=>{const col=modColor(m);return allPasses.map((pv,pi)=>`<th style="background:var(--elevated);color:${col};font-size:.52rem;padding:4px 6px;text-align:center;border-bottom:1.5px solid var(--border);${pi===0?'border-left:2px solid '+col+'30;':''}font-weight:600;white-space:nowrap;opacity:.85">${esc(pv)}</th>`).join('');}).join('');
-    return `<thead><tr><th rowspan="2" style="background:var(--elevated);color:var(--text-soft);font-size:.55rem;padding:7px 10px;text-align:left;border-bottom:1.5px solid var(--border);font-weight:700;vertical-align:bottom;white-space:nowrap">${nl}</th>${mh}<th rowspan="2" style="background:var(--elevated);color:var(--text-soft);font-size:.55rem;padding:7px 10px;text-align:right;border-bottom:1.5px solid var(--border);font-weight:700;vertical-align:bottom">Total</th></tr><tr>${ph}</tr></thead>`;
+    return `<thead><tr><th rowspan="2" style="background:var(--elevated);color:var(--text-soft);font-size:.55rem;padding:7px 10px;text-align:left;border-bottom:1.5px solid var(--border);font-weight:700;vertical-align:bottom;white-space:nowrap">${nl}</th>${mh}<th rowspan="2" style="background:var(--elevated);color:var(--info);font-size:.55rem;padding:7px 10px;text-align:center;border-bottom:1.5px solid var(--border);border-left:2px solid rgba(15,143,255,.3);font-weight:700;vertical-align:bottom;white-space:nowrap">🖥️ Rooms</th><th rowspan="2" style="background:var(--elevated);color:var(--text-soft);font-size:.55rem;padding:7px 10px;text-align:right;border-bottom:1.5px solid var(--border);font-weight:700;vertical-align:bottom">Total</th></tr><tr>${ph}</tr></thead>`;
   }
   function mkGroupedCells(d){
     return allMods.map(m=>{const col=modColor(m);return allPasses.map((pv,pi)=>{const c=(d[m]||{})[pv]||0;return `<td style="padding:4px 6px;text-align:center;font-size:.65rem;font-weight:${c?'700':'400'};color:${c?col:'var(--muted)'};font-family:var(--mono);${pi===0?'border-left:2px solid '+col+'20;':''}">${c||'—'}</td>`;}).join('');}).join('');
@@ -572,13 +592,50 @@ function renderTotalSubmitSection(mc){
     const total=qMap[q];
     const pct=grandTotal?Math.round(total/grandTotal*100):0;
     const cells=mkGroupedCells(qDetailMap[q]||{});
-    return `<tr style="border-bottom:1px solid var(--border-light)"><td style="padding:6px 10px;color:var(--text);font-size:.68rem;font-weight:600;white-space:nowrap">${esc(q)}</td>${cells}<td style="padding:6px 10px;text-align:right"><div style="display:flex;align-items:center;gap:5px;justify-content:flex-end"><div style="width:60px;height:4px;background:var(--border);border-radius:2px;overflow:hidden"><div style="width:${pct}%;height:100%;background:var(--accent);border-radius:2px"></div></div><span style="font-size:.7rem;font-family:var(--mono);color:var(--accent);font-weight:800;min-width:28px;text-align:right">${total}</span></div></td></tr>`;
+    const roomCnt=qRoomSet[q]?qRoomSet[q].size:0;
+    return `<tr style="border-bottom:1px solid var(--border-light)"><td style="padding:6px 10px;color:var(--text);font-size:.68rem;font-weight:600;white-space:nowrap">${esc(q)}</td>${cells}<td style="padding:4px 6px;text-align:center;font-size:.68rem;font-weight:700;color:var(--info);font-family:var(--mono);border-left:2px solid rgba(15,143,255,.15)">${roomCnt||'—'}</td><td style="padding:6px 10px;text-align:right"><div style="display:flex;align-items:center;gap:5px;justify-content:flex-end"><div style="width:60px;height:4px;background:var(--border);border-radius:2px;overflow:hidden"><div style="width:${pct}%;height:100%;background:var(--accent);border-radius:2px"></div></div><span style="font-size:.7rem;font-family:var(--mono);color:var(--accent);font-weight:800;min-width:28px;text-align:right">${total}</span></div></td></tr>`;
   }).join('');
   const footCells=mkGroupedFootCells(Object.values(qDetailMap));
+  const footRoomsCell=`<td style="padding:5px 6px;text-align:center;font-size:.65rem;font-weight:800;color:var(--info);font-family:var(--mono);border-left:2px solid rgba(15,143,255,.15)">${allRoomsSet.size||'—'}</td>`;
 
   const sec=document.createElement('div');
   sec.className='sec';
-  sec.innerHTML=`<div class="sec-hd"><span class="sec-t">📊 Total Submit — Queue Breakdown (Modality × Pass)</span><span class="sec-m">${queues.length} queues · ${grandTotal} total</span></div><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.68rem">${mkGroupedThead('Queue')}<tbody>${bodyRows||`<tr><td colspan="99" style="text-align:center;padding:22px;color:var(--muted)">No queue data.</td></tr>`}</tbody><tfoot><tr style="border-top:2px solid var(--border);background:var(--elevated)"><td style="padding:8px 10px;font-size:.72rem;font-weight:800;color:var(--text)">🏆 Grand Total (All Rooms)</td>${footCells}<td style="padding:8px 10px;text-align:right;font-size:.75rem;font-weight:900;color:var(--accent);font-family:var(--mono)">${grandTotal}</td></tr></tfoot></table></div>`;
+  sec.innerHTML=`<div class="sec-hd"><span class="sec-t">📊 Total Submit — Queue Breakdown (Modality × Pass)</span><span class="sec-m">${queues.length} queues · ${grandTotal} total · ${allRoomsSet.size} rooms</span></div><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.68rem">${mkGroupedThead('Queue')}<tbody>${bodyRows||`<tr><td colspan="99" style="text-align:center;padding:22px;color:var(--muted)">No queue data.</td></tr>`}</tbody><tfoot><tr style="border-top:2px solid var(--border);background:var(--elevated)"><td style="padding:8px 10px;font-size:.72rem;font-weight:800;color:var(--text)">🏆 Grand Total (All Rooms)</td>${footCells}${footRoomsCell}<td style="padding:8px 10px;text-align:right;font-size:.75rem;font-weight:900;color:var(--accent);font-family:var(--mono)">${grandTotal}</td></tr></tfoot></table></div>`;
+  mc.appendChild(sec);
+
+  const qtcIdx=hdrs.findIndex(h=>h.toLowerCase()==='qtc name');
+  const labIdx=hdrs.findIndex(h=>h.toLowerCase()==='labeler name');
+  renderTopCategoryCards(mc,'🏷️','Top QTC — By Category',rows,qtcIdx);
+  renderTopCategoryCards(mc,'👤','Top Labeler — By Category',rows,labIdx);
+}
+function renderTopCategoryCards(mc,icon,title,rows,nameIdx){
+  if(nameIdx<0)return;
+  const mIdx=hdrs.findIndex(h=>h.toLowerCase()==='modality');
+  const passIdx=hdrs.findIndex(h=>h.toLowerCase()==='pass');
+  const CATS=[
+    {mod:'Lane Line',pass:'FP',label:'Lane FP',bg:'#6fcf7d'},
+    {mod:'Lane Line',pass:'QA',label:'Lane QA',bg:'#f5a94e'},
+    {mod:'Lidar',pass:'FP',label:'Lidar FP',bg:'#57cfe0'},
+    {mod:'Lidar',pass:'QA',label:'Lidar QA',bg:'#c99be0'}
+  ];
+  const catMaps=CATS.map(c=>({...c,map:{}}));
+  rows.forEach(r=>{
+    const name=String(r[nameIdx]||'').trim();
+    const mv=mIdx>=0?String(r[mIdx]||'').trim():'';
+    const pv=passIdx>=0?String(r[passIdx]||'').trim():'';
+    if(!name||!mv||!pv)return;
+    const cm=catMaps.find(c=>c.mod===mv&&c.pass===pv);
+    if(cm)cm.map[name]=(cm.map[name]||0)+1;
+  });
+  const medals=['🥇','🥈','🥉','🏅'];
+  const cardsHtml=catMaps.map(c=>{
+    const sorted=Object.entries(c.map).sort((a,b)=>b[1]-a[1]).slice(0,4);
+    const rowsHtml=sorted.length?sorted.map(([n,v],i)=>`<div class="catrow"><span class="catname"><span>${medals[i]||'🏅'}</span>${esc(n)}</span><span class="catval" style="color:${c.bg}">${v}</span></div>`).join(''):`<div class="catempty">No data</div>`;
+    return `<div class="catcard"><div class="catcard-hd" style="background:${c.bg}">${esc(c.label)}</div>${rowsHtml}</div>`;
+  }).join('');
+  const sec=document.createElement('div');
+  sec.className='sec';
+  sec.innerHTML=`<div class="sec-hd"><span class="sec-t">${icon} ${title}</span><span class="sec-m">Top 4 per category</span></div><div class="catgrid">${cardsHtml}</div>`;
   mc.appendChild(sec);
 }
 function renderLocSection(wrap,locName,rows){
