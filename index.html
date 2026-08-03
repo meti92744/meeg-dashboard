@@ -72,6 +72,11 @@ html[data-theme="dark"] .orb-2{background:radial-gradient(circle,rgba(15,143,255
 @keyframes splashFade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 .splash-bar-wrap{width:200px;height:6px;background:rgba(255,255,255,.1);border-radius:8px;overflow:hidden;animation:splashFade .4s ease .7s both;border:1px solid rgba(0,229,212,.3);}
 .splash-bar{height:100%;background:linear-gradient(90deg,#00e5d4,#0f8fff);border-radius:8px;animation:splashLoad 1.8s ease .8s both;}
+.splash-road{position:relative;width:200px;height:22px;animation:splashFade .4s ease .7s both;}
+.splash-road-line{position:absolute;bottom:5px;left:0;right:0;height:6px;background:rgba(255,255,255,.1);border-radius:8px;overflow:hidden;border:1px solid rgba(0,229,212,.3);}
+.splash-road-fill{height:100%;background:linear-gradient(90deg,#00e5d4,#0f8fff);border-radius:8px;animation:splashLoad 1.8s ease .8s both;}
+.splash-car{position:absolute;bottom:6px;left:-22px;width:24px;height:24px;animation:splashDrive 1.8s ease .8s both;filter:drop-shadow(0 2px 3px rgba(0,0,0,.4));}
+@keyframes splashDrive{from{left:-22px}to{left:calc(100% - 4px)}}
 @keyframes splashLoad{from{width:0%}to{width:100%}}
 .splash-dots{display:flex;gap:8px;animation:splashFade .4s ease .9s both;}
 .splash-dot{width:7px;height:7px;border-radius:50%;background:rgba(0,229,212,.3);}
@@ -397,7 +402,18 @@ td a{color:var(--info);text-decoration:none;font-weight:700;}
     <div class="splash-brand">MEEG</div>
     <div class="splash-sub">METI Company · Productivity</div>
   </div>
-  <div class="splash-bar-wrap"><div class="splash-bar"></div></div>
+  <div class="splash-road">
+    <div class="splash-road-line"><div class="splash-road-fill"></div></div>
+    <svg class="splash-car" viewBox="0 0 64 40" xmlns="http://www.w3.org/2000/svg">
+      <defs><linearGradient id="carG" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#e8f9ff"/><stop offset="100%" stop-color="#9fd8ff"/></linearGradient></defs>
+      <path d="M6 26 Q4 26 4 22 L6 18 Q10 12 20 11 L26 6 Q30 3 38 3 L46 6 Q52 8 56 14 L60 18 Q62 20 62 22 L62 26 Z" fill="url(#carG)" stroke="#0b6fd1" stroke-width="1.5"/>
+      <path d="M22 11 L28 6 Q31 4 37 4 L44 6 Q48 8 51 12 L52 14 L22 14 Z" fill="#0a2c3d" opacity=".85"/>
+      <circle cx="16" cy="27" r="6" fill="#161616" stroke="#9aa0a6" stroke-width="1.5"/>
+      <circle cx="50" cy="27" r="6" fill="#161616" stroke="#9aa0a6" stroke-width="1.5"/>
+      <circle cx="16" cy="27" r="2.4" fill="#c9ccd1"/>
+      <circle cx="50" cy="27" r="2.4" fill="#c9ccd1"/>
+    </svg>
+  </div>
   <div class="splash-dots"><div class="splash-dot"></div><div class="splash-dot"></div><div class="splash-dot"></div></div>
 </div>
 <div class="hdr">
