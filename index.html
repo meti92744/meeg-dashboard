@@ -688,9 +688,9 @@ function renderTopQtcTotalSection(mc,rows,qtcIdx){
   const grandTotal=sorted.reduce((s,[,c])=>s+c,0);
   if(!sorted.length)return;
   function mkThead(){
-    const mh=allMods.map(m=>{const col=modColor(m);const sp=allPasses.length||1;return `<th colspan="${sp}" style="background:var(--elevated);color:${col};font-size:.55rem;padding:5px 8px;text-align:center;border-bottom:1px solid var(--border);border-left:2px solid ${col}30;font-weight:700;white-space:nowrap">${esc(m)}</th>`;}).join('');
-    const ph=allMods.map(m=>{const col=modColor(m);return allPasses.map((pv,pi)=>`<th style="background:var(--elevated);color:${col};font-size:.52rem;padding:4px 6px;text-align:center;border-bottom:1.5px solid var(--border);${pi===0?'border-left:2px solid '+col+'30;':''}font-weight:600;white-space:nowrap;opacity:.85">${esc(pv)}</th>`).join('');}).join('');
-    return `<thead><tr><th rowspan="2" style="background:var(--elevated);color:var(--text-soft);font-size:.55rem;padding:7px 10px;text-align:left;border-bottom:1.5px solid var(--border);font-weight:700;vertical-align:bottom;white-space:nowrap">QTC</th>${mh}<th rowspan="2" style="background:var(--elevated);color:var(--text-soft);font-size:.55rem;padding:7px 10px;text-align:right;border-bottom:1.5px solid var(--border);font-weight:700;vertical-align:bottom">Total</th></tr><tr>${ph}</tr></thead>`;
+    const mh=allMods.map(m=>{const col=modColor(m);const sp=allPasses.length||1;return `<th colspan="${sp}" style="position:sticky;top:0;z-index:3;background:var(--elevated);color:${col};font-size:.55rem;padding:5px 8px;text-align:center;border-bottom:1px solid var(--border);border-left:2px solid ${col}30;font-weight:700;white-space:nowrap">${esc(m)}</th>`;}).join('');
+    const ph=allMods.map(m=>{const col=modColor(m);return allPasses.map((pv,pi)=>`<th style="position:sticky;top:24px;z-index:3;background:var(--elevated);color:${col};font-size:.52rem;padding:4px 6px;text-align:center;border-bottom:1.5px solid var(--border);${pi===0?'border-left:2px solid '+col+'30;':''}font-weight:600;white-space:nowrap;opacity:.85">${esc(pv)}</th>`).join('');}).join('');
+    return `<thead><tr><th rowspan="2" style="position:sticky;top:0;z-index:4;background:var(--elevated);color:var(--text-soft);font-size:.55rem;padding:7px 10px;text-align:left;border-bottom:1.5px solid var(--border);font-weight:700;vertical-align:bottom;white-space:nowrap">QTC</th>${mh}<th rowspan="2" style="position:sticky;top:0;z-index:4;background:var(--elevated);color:var(--text-soft);font-size:.55rem;padding:7px 10px;text-align:right;border-bottom:1.5px solid var(--border);font-weight:700;vertical-align:bottom">Total</th></tr><tr>${ph}</tr></thead>`;
   }
   function mkCells(d){
     return allMods.map(m=>{const col=modColor(m);return allPasses.map((pv,pi)=>{const c=(d[m]||{})[pv]||0;return `<td style="padding:4px 6px;text-align:center;font-size:.65rem;font-weight:${c?'700':'400'};color:${c?col:'var(--muted)'};font-family:var(--mono);${pi===0?'border-left:2px solid '+col+'20;':''}">${c||'—'}</td>`;}).join('');}).join('');
@@ -698,16 +698,27 @@ function renderTopQtcTotalSection(mc,rows,qtcIdx){
   function mkFoot(){
     return allMods.map(m=>{const col=modColor(m);return allPasses.map((pv,pi)=>{const t=Object.values(qtcDetailMap).reduce((s,d)=>s+((d[m]||{})[pv]||0),0);return `<td style="padding:5px 6px;text-align:center;font-size:.65rem;font-weight:800;color:${t?col:'var(--muted)'};font-family:var(--mono);${pi===0?'border-left:2px solid '+col+'20;':''}">${t||'—'}</td>`;}).join('');}).join('');
   }
+
+  // --- Podium for top 3 QTCs ---
+  const top3=sorted.slice(0,3);
+  const podiumHtml=buildPodium(top3,'var(--accent)');
+
+  // --- Ranked table for #4 onward, sticky Modality/Pass header while scrolling ---
+  const rest=sorted.slice(3);
   const max=sorted.length?sorted[0][1]:0;
-  const bodyRows=sorted.map(([name,total],i)=>{
+  const bodyRows=rest.map(([name,total],i)=>{
+    const rank=i+4;
     const pct=max?Math.round(total/max*100):0;
-    const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':`<span style="color:var(--muted);font-family:var(--mono);font-size:.52rem">#${i+1}</span>`;
     const cells=mkCells(qtcDetailMap[name]||{});
-    return `<tr style="border-bottom:1px solid var(--border-light)"><td style="padding:6px 10px;color:var(--text);font-size:.68rem;font-weight:600;white-space:nowrap"><div style="display:flex;align-items:center;gap:5px"><span style="min-width:16px">${medal}</span>${esc(name)}</div></td>${cells}<td style="padding:6px 10px;text-align:right"><div style="display:flex;align-items:center;gap:5px;justify-content:flex-end"><div style="width:60px;height:4px;background:var(--border);border-radius:2px;overflow:hidden"><div style="width:${pct}%;height:100%;background:var(--accent);border-radius:2px"></div></div><span style="font-size:.7rem;font-family:var(--mono);color:var(--accent);font-weight:800;min-width:28px;text-align:right">${total}</span></div></td></tr>`;
+    return `<tr style="border-bottom:1px solid var(--border-light)"><td style="padding:6px 10px;color:var(--text);font-size:.68rem;font-weight:600;white-space:nowrap"><div style="display:flex;align-items:center;gap:5px"><span style="color:var(--muted);font-family:var(--mono);font-size:.52rem;min-width:20px">#${rank}</span>${esc(name)}</div></td>${cells}<td style="padding:6px 10px;text-align:right"><div style="display:flex;align-items:center;gap:5px;justify-content:flex-end"><div style="width:60px;height:4px;background:var(--border);border-radius:2px;overflow:hidden"><div style="width:${pct}%;height:100%;background:var(--accent);border-radius:2px"></div></div><span style="font-size:.7rem;font-family:var(--mono);color:var(--accent);font-weight:800;min-width:28px;text-align:right">${total}</span></div></td></tr>`;
   }).join('');
+  const footCells=mkFoot();
+
   const sec=document.createElement('div');
   sec.className='sec';
-  sec.innerHTML=`<div class="sec-hd"><span class="sec-t">🏷️ Top QTC — Total Submit (All Modality × Pass)</span><span class="sec-m">${sorted.length} QTC · ${grandTotal} total</span></div><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.68rem">${mkThead()}<tbody>${bodyRows}</tbody><tfoot><tr style="border-top:2px solid var(--border);background:var(--elevated)"><td style="padding:8px 10px;font-size:.72rem;font-weight:800;color:var(--text)">🏆 Grand Total</td>${mkFoot()}<td style="padding:8px 10px;text-align:right;font-size:.75rem;font-weight:900;color:var(--accent);font-family:var(--mono)">${grandTotal}</td></tr></tfoot></table></div>`;
+  sec.innerHTML=`<div class="sec-hd"><span class="sec-t">🏷️ Top QTC — Total Submit (All Modality × Pass)</span><span class="sec-m">${sorted.length} QTC · ${grandTotal} total</span></div>
+  ${podiumHtml}
+  ${rest.length?`<div style="overflow-x:auto;max-height:360px;overflow-y:auto"><table style="width:100%;border-collapse:collapse;font-size:.68rem">${mkThead()}<tbody>${bodyRows}</tbody><tfoot><tr style="border-top:2px solid var(--border);background:var(--elevated)"><td style="padding:8px 10px;font-size:.72rem;font-weight:800;color:var(--text)">🏆 Grand Total</td>${footCells}<td style="padding:8px 10px;text-align:right;font-size:.75rem;font-weight:900;color:var(--accent);font-family:var(--mono)">${grandTotal}</td></tr></tfoot></table></div>`:''}`;
   mc.appendChild(sec);
 }
 function buildPodium(sorted,col){
