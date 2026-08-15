@@ -659,8 +659,64 @@ function renderTopPerformersSection(mc){
   mc.appendChild(header);
   setTimeout(animateAllNums,50);
   renderTopQtcTotalSection(mc,rows,qtcIdx);
-  renderTopCategoryCards(mc,'🏷️','Top QTC',rows,qtcIdx);
-  renderTopCategoryCards(mc,'👤','Top Labeler',rows,labIdx);
+  renderTopLabelerTotalSection(mc,rows,labIdx);
+}
+function renderTopLabelerTotalSection(mc,rows,labIdx){
+  if(labIdx<0)return;
+  const mIdx=hdrs.findIndex(h=>h.toLowerCase()==='modality');
+  const passIdx=hdrs.findIndex(h=>h.toLowerCase()==='pass');
+  const labMap={},labDetailMap={};
+  rows.forEach(r=>{
+    const name=String(r[labIdx]||'').trim();if(!name)return;
+    const mv=mIdx>=0?String(r[mIdx]||'').trim():'';
+    const pv=passIdx>=0?String(r[passIdx]||'').trim():'';
+    labMap[name]=(labMap[name]||0)+1;
+    if(mv&&pv){
+      if(!labDetailMap[name])labDetailMap[name]={};
+      if(!labDetailMap[name][mv])labDetailMap[name][mv]={};
+      labDetailMap[name][mv][pv]=(labDetailMap[name][mv][pv]||0)+1;
+    }
+  });
+  const allMods=[...new Set(rows.map(r=>mIdx>=0?String(r[mIdx]||'').trim():'').filter(Boolean))].sort();
+  const allPasses=[...new Set(rows.map(r=>passIdx>=0?String(r[passIdx]||'').trim():'').filter(Boolean))].sort();
+  const MOD_PALETTE=['#e8a000','#16a34a','#7c3aed','#dc2626','#0891b2','#d97706','#f59e0b','#8b5cf6'];
+  const _mcc={};let _mci=0;
+  function modColor(m){if(!_mcc[m]){const known={'Lane Line':'#f59e0b','Lidar':'#16a34a'};_mcc[m]=known[m]||MOD_PALETTE[_mci++%MOD_PALETTE.length];}return _mcc[m];}
+  allMods.forEach(m=>modColor(m));
+  const sorted=Object.entries(labMap).sort((a,b)=>b[1]-a[1]);
+  const grandTotal=sorted.reduce((s,[,c])=>s+c,0);
+  if(!sorted.length)return;
+  function mkThead(){
+    const mh=allMods.map(m=>{const col=modColor(m);const sp=allPasses.length||1;return `<th colspan="${sp}" style="position:sticky;top:0;z-index:3;background:var(--elevated);color:${col};font-size:.55rem;padding:5px 8px;text-align:center;border-bottom:1px solid var(--border);border-left:2px solid ${col}30;font-weight:700;white-space:nowrap">${esc(m)}</th>`;}).join('');
+    const ph=allMods.map(m=>{const col=modColor(m);return allPasses.map((pv,pi)=>`<th style="position:sticky;top:24px;z-index:3;background:var(--elevated);color:${col};font-size:.52rem;padding:4px 6px;text-align:center;border-bottom:1.5px solid var(--border);${pi===0?'border-left:2px solid '+col+'30;':''}font-weight:600;white-space:nowrap;opacity:.85">${esc(pv)}</th>`).join('');}).join('');
+    return `<thead><tr><th rowspan="2" style="position:sticky;top:0;z-index:4;background:var(--elevated);color:var(--text-soft);font-size:.55rem;padding:7px 10px;text-align:left;border-bottom:1.5px solid var(--border);font-weight:700;vertical-align:bottom;white-space:nowrap">Labeler</th>${mh}<th rowspan="2" style="position:sticky;top:0;z-index:4;background:var(--elevated);color:var(--text-soft);font-size:.55rem;padding:7px 10px;text-align:right;border-bottom:1.5px solid var(--border);font-weight:700;vertical-align:bottom">Total</th></tr><tr>${ph}</tr></thead>`;
+  }
+  function mkCells(d){
+    return allMods.map(m=>{const col=modColor(m);return allPasses.map((pv,pi)=>{const c=(d[m]||{})[pv]||0;return `<td style="padding:4px 6px;text-align:center;font-size:.65rem;font-weight:${c?'700':'400'};color:${c?col:'var(--muted)'};font-family:var(--mono);${pi===0?'border-left:2px solid '+col+'20;':''}">${c||'—'}</td>`;}).join('');}).join('');
+  }
+  function mkFoot(){
+    return allMods.map(m=>{const col=modColor(m);return allPasses.map((pv,pi)=>{const t=Object.values(labDetailMap).reduce((s,d)=>s+((d[m]||{})[pv]||0),0);return `<td style="padding:5px 6px;text-align:center;font-size:.65rem;font-weight:800;color:${t?col:'var(--muted)'};font-family:var(--mono);${pi===0?'border-left:2px solid '+col+'20;':''}">${t||'—'}</td>`;}).join('');}).join('');
+  }
+
+  const top3=sorted.slice(0,3);
+  const podiumHtml=buildPodium(top3,'var(--accent)');
+
+  const rest=sorted.slice(3);
+  const max=sorted.length?sorted[0][1]:0;
+  const bodyRows=rest.map(([name,total],i)=>{
+    const rank=i+4;
+    const pct=max?Math.round(total/max*100):0;
+    const cells=mkCells(labDetailMap[name]||{});
+    return `<tr style="border-bottom:1px solid var(--border-light)"><td style="padding:6px 10px;color:var(--text);font-size:.68rem;font-weight:600;white-space:nowrap"><div style="display:flex;align-items:center;gap:5px"><span style="color:var(--muted);font-family:var(--mono);font-size:.52rem;min-width:20px">#${rank}</span>${esc(name)}</div></td>${cells}<td style="padding:6px 10px;text-align:right"><div style="display:flex;align-items:center;gap:5px;justify-content:flex-end"><div style="width:60px;height:4px;background:var(--border);border-radius:2px;overflow:hidden"><div style="width:${pct}%;height:100%;background:var(--accent);border-radius:2px"></div></div><span style="font-size:.7rem;font-family:var(--mono);color:var(--accent);font-weight:800;min-width:28px;text-align:right">${total}</span></div></td></tr>`;
+  }).join('');
+  const footCells=mkFoot();
+
+  const sec=document.createElement('div');
+  sec.className='sec';
+  sec.innerHTML=`<div class="sec-hd"><span class="sec-t">👤 Top Labeler — Total Submit (All Modality × Pass)</span><span class="sec-m">${sorted.length} Labelers · ${grandTotal} total</span></div>
+  ${podiumHtml}
+  ${rest.length?`<div style="overflow-x:auto;max-height:360px;overflow-y:auto"><table style="width:100%;border-collapse:collapse;font-size:.68rem">${mkThead()}<tbody>${bodyRows}</tbody><tfoot><tr style="border-top:2px solid var(--border);background:var(--elevated)"><td style="padding:8px 10px;font-size:.72rem;font-weight:800;color:var(--text)">🏆 Grand Total</td>${footCells}<td style="padding:8px 10px;text-align:right;font-size:.75rem;font-weight:900;color:var(--accent);font-family:var(--mono)">${grandTotal}</td></tr></tfoot></table></div>`:''}`;
+  mc.appendChild(sec);
 }
 function renderTopQtcTotalSection(mc,rows,qtcIdx){
   if(qtcIdx<0)return;
