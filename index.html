@@ -648,6 +648,36 @@ function renderTotalSubmitSection(mc){
   sec.className='sec';
   sec.innerHTML=`<div class="sec-hd"><span class="sec-t">📊 Total Submit — Queue Breakdown (Modality × Pass)</span><span class="sec-m">${queues.length} queues · ${grandTotal} total</span></div><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.68rem">${mkGroupedThead('Queue')}<tbody>${bodyRows||`<tr><td colspan="99" style="text-align:center;padding:22px;color:var(--muted)">No queue data.</td></tr>`}</tbody><tfoot><tr style="border-top:2px solid var(--border);background:var(--elevated)"><td style="padding:8px 10px;font-size:.72rem;font-weight:800;color:var(--text)">🏆 Grand Total (All Rooms)</td>${footCells}<td style="padding:8px 10px;text-align:right;font-size:.75rem;font-weight:900;color:var(--accent);font-family:var(--mono)">${grandTotal}</td></tr></tfoot></table></div>`;
   mc.appendChild(sec);
+
+  // === Unit Breakdown (Modality × Pass) ===
+  if(locColIdx>=0){
+    const uMap={},uDetailMap={};
+    rows.forEach(r=>{
+      const uv=String(r[locColIdx]||'').trim();
+      const mv=mIdx>=0?String(r[mIdx]||'').trim():'';
+      const pv=passIdx>=0?String(r[passIdx]||'').trim():'';
+      if(!uv)return;
+      uMap[uv]=(uMap[uv]||0)+1;
+      if(mv&&pv){
+        if(!uDetailMap[uv])uDetailMap[uv]={};
+        if(!uDetailMap[uv][mv])uDetailMap[uv][mv]={};
+        uDetailMap[uv][mv][pv]=(uDetailMap[uv][mv][pv]||0)+1;
+      }
+    });
+    const units=Object.keys(uMap).sort((a,b)=>uMap[b]-uMap[a]);
+    const uGrandTotal=Object.values(uMap).reduce((a,b)=>a+b,0);
+    const uBodyRows=units.map(u=>{
+      const total=uMap[u];
+      const pct=uGrandTotal?Math.round(total/uGrandTotal*100):0;
+      const cells=mkGroupedCells(uDetailMap[u]||{});
+      return `<tr style="border-bottom:1px solid var(--border-light)"><td style="padding:6px 10px;color:var(--text);font-size:.68rem;font-weight:600;white-space:nowrap">📍 ${esc(u)}</td>${cells}<td style="padding:6px 10px;text-align:right"><div style="display:flex;align-items:center;gap:5px;justify-content:flex-end"><div style="width:60px;height:4px;background:var(--border);border-radius:2px;overflow:hidden"><div style="width:${pct}%;height:100%;background:var(--accent);border-radius:2px"></div></div><span style="font-size:.7rem;font-family:var(--mono);color:var(--accent);font-weight:800;min-width:28px;text-align:right">${total}</span></div></td></tr>`;
+    }).join('');
+    const uFootCells=mkGroupedFootCells(Object.values(uDetailMap));
+    const uSec=document.createElement('div');
+    uSec.className='sec';
+    uSec.innerHTML=`<div class="sec-hd"><span class="sec-t">🏭 Total Submit — Unit Breakdown (Modality × Pass)</span><span class="sec-m">${units.length} units · ${uGrandTotal} total</span></div><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.68rem">${mkGroupedThead('Unit')}<tbody>${uBodyRows||`<tr><td colspan="99" style="text-align:center;padding:22px;color:var(--muted)">No unit data.</td></tr>`}</tbody><tfoot><tr style="border-top:2px solid var(--border);background:var(--elevated)"><td style="padding:8px 10px;font-size:.72rem;font-weight:800;color:var(--text)">🏆 Grand Total (All Units)</td>${uFootCells}<td style="padding:8px 10px;text-align:right;font-size:.75rem;font-weight:900;color:var(--accent);font-family:var(--mono)">${uGrandTotal}</td></tr></tfoot></table></div>`;
+    mc.appendChild(uSec);
+  }
 }
 function renderTopPerformersSection(mc){
   const rows=fcache;
@@ -755,11 +785,9 @@ function renderTopQtcTotalSection(mc,rows,qtcIdx){
     return allMods.map(m=>{const col=modColor(m);return allPasses.map((pv,pi)=>{const t=Object.values(qtcDetailMap).reduce((s,d)=>s+((d[m]||{})[pv]||0),0);return `<td style="padding:5px 6px;text-align:center;font-size:.65rem;font-weight:800;color:${t?col:'var(--muted)'};font-family:var(--mono);${pi===0?'border-left:2px solid '+col+'20;':''}">${t||'—'}</td>`;}).join('');}).join('');
   }
 
-  // --- Podium for top 3 QTCs ---
   const top3=sorted.slice(0,3);
   const podiumHtml=buildPodium(top3,'var(--accent)');
 
-  // --- Ranked table for #4 onward, sticky Modality/Pass header while scrolling ---
   const rest=sorted.slice(3);
   const max=sorted.length?sorted[0][1]:0;
   const bodyRows=rest.map(([name,total],i)=>{
