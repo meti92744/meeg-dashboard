@@ -512,7 +512,7 @@ function attemptLogin(){
   input.classList.remove('err');
   if(!raw){errEl.textContent='من فضلك اكتب الإيميل';input.classList.add('err');input.focus();return;}
   if(!isValidEmailFormat(raw)){errEl.textContent='صيغة الإيميل غير صحيحة';input.classList.add('err');input.focus();return;}
-  if(!ALLOWED_EMAILS.includes(raw)){errEl.textContent='🚫 الإيميل غير مصرح له بالدخول';input.classList.add('err');input.focus();return;}
+  if(!ALLOWED_EMAILS.includes(raw)){errEl.textContent='You Are Not Allowed 🚫';input.classList.add('err');input.focus();return;}
   try{localStorage.setItem(AUTH_KEY,raw);}catch(e){}
   errEl.textContent='';
   document.getElementById('loginScreen').classList.add('hidden');
