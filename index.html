@@ -366,9 +366,41 @@ td a{color:var(--info);text-decoration:none;font-weight:700;}
   .cgrid{grid-template-columns:1fr 1fr;}
   .cmp-side{flex-direction:column;align-items:flex-start;}
 }
+#loginScreen{position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 20%,#0a3247 0%,#040a13 70%);padding:20px;}
+#loginScreen.hidden{display:none;}
+.login-card{width:100%;max-width:380px;background:rgba(10,26,38,.55);border:2px solid rgba(0,229,212,.28);border-radius:28px;padding:34px 28px;backdrop-filter:blur(18px);box-shadow:0 12px 40px rgba(0,0,0,.5);text-align:center;}
+.login-logo{width:64px;height:64px;margin:0 auto 14px;border-radius:50%;background:radial-gradient(circle at 32% 28%,#fff 0%,#bdfcf4 18%,#00e5d4 46%,#0f8fff 100%);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 0 rgba(0,0,0,.25),0 8px 18px rgba(0,0,0,.3);}
+.login-title{font-family:var(--display);font-size:1.5rem;font-weight:800;color:#fff;letter-spacing:.5px;margin-bottom:2px;}
+.login-sub{font-family:var(--mono);font-size:.62rem;color:#7fd8f0;letter-spacing:2px;text-transform:uppercase;margin-bottom:22px;}
+.login-input{width:100%;padding:12px 16px;border-radius:16px;border:2px solid rgba(0,229,212,.3);background:rgba(255,255,255,.06);color:#eafcfb;font-size:.85rem;font-family:var(--font);outline:none;transition:all .2s;text-align:center;}
+.login-input::placeholder{color:rgba(223,248,251,.4);}
+.login-input:focus{border-color:#00e5d4;background:rgba(255,255,255,.1);}
+.login-input.err{border-color:#ff5f7e;animation:shakeIn .35s;}
+@keyframes shakeIn{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+.login-btn{width:100%;margin-top:14px;padding:12px 16px;border-radius:16px;border:none;background:linear-gradient(135deg,#00e5d4,#0f8fff);color:#04202b;font-family:var(--display);font-size:.85rem;font-weight:800;cursor:pointer;transition:all .15s;box-shadow:0 4px 0 rgba(0,0,0,.25);}
+.login-btn:hover{transform:translateY(-2px);}
+.login-btn:active{transform:translateY(1px);box-shadow:0 1px 0 rgba(0,0,0,.25);}
+.login-err-msg{color:#ff8fa3;font-size:.66rem;font-weight:700;margin-top:10px;min-height:14px;font-family:var(--font);}
+.logout-btn{background:rgba(255,95,126,.25);border-color:rgba(255,95,126,.5);color:#7a0d24}
 </style>
 </head>
 <body>
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo">
+      <svg width="30" height="26" viewBox="0 0 54 46">
+        <polygon points="0,4 30,4 21,16 0,16" fill="#04202b"/>
+        <polygon points="5,19 35,19 26,31 5,31" fill="#04202b" opacity=".7"/>
+        <polygon points="10,34 40,34 31,46 10,46" fill="#04202b" opacity=".45"/>
+      </svg>
+    </div>
+    <div class="login-title">MEEG</div>
+    <div class="login-sub">Productivity · Sign In</div>
+    <input type="email" id="loginEmailInput" class="login-input" placeholder="you@example.com" autocomplete="email" onkeydown="if(event.key==='Enter')attemptLogin()"/>
+    <button class="login-btn" onclick="attemptLogin()">Login →</button>
+    <div class="login-err-msg" id="loginErrMsg"></div>
+  </div>
+</div>
 <div class="orb orb-1"></div><div class="orb orb-2"></div>
 <div id="splash">
   <div style="display:flex;flex-direction:column;align-items:center;gap:18px;">
@@ -439,6 +471,7 @@ td a{color:var(--info);text-decoration:none;font-weight:700;}
     </div>
     <button class="btn btn-c" id="refreshBtn" onclick="loadData()"><svg class="btn-refresh-car" viewBox="0 0 64 40" xmlns="http://www.w3.org/2000/svg"><path d="M6 26 Q4 26 4 22 L6 18 Q10 12 20 11 L26 6 Q30 3 38 3 L46 6 Q52 8 56 14 L60 18 Q62 20 62 22 L62 26 Z" fill="#5cf3e2" stroke="#04202b" stroke-width="2"/><path d="M22 11 L28 6 Q31 4 37 4 L44 6 Q48 8 51 12 L52 14 L22 14 Z" fill="#04202b" opacity=".85"/><circle cx="16" cy="27" r="6" fill="#04202b"/><circle cx="50" cy="27" r="6" fill="#04202b"/></svg> Refresh</button>
     <button class="btn btn-d" onclick="clearAll()">✕ Clear</button>
+    <button class="btn logout-btn" onclick="logoutUser()">🚪 Logout</button>
   </div>
 </div>
 <div class="sync-bar" id="syncBar"><div class="sync-progress"></div><svg class="sync-car" viewBox="0 0 64 40" xmlns="http://www.w3.org/2000/svg"><path d="M6 26 Q4 26 4 22 L6 18 Q10 12 20 11 L26 6 Q30 3 38 3 L46 6 Q52 8 56 14 L60 18 Q62 20 62 22 L62 26 Z" fill="#e8f9ff" stroke="#0b6fd1" stroke-width="1.5"/><path d="M22 11 L28 6 Q31 4 37 4 L44 6 Q48 8 51 12 L52 14 L22 14 Z" fill="#0a2c3d" opacity=".85"/><circle cx="16" cy="27" r="6" fill="#161616"/><circle cx="50" cy="27" r="6" fill="#161616"/></svg></div>
@@ -467,6 +500,39 @@ td a{color:var(--info);text-decoration:none;font-weight:700;}
 <div class="content" id="mainContent"><div class="loader"><div class="spin"></div><span class="ltxt">Loading data…</span></div></div>
 <button class="scroll-top-car" id="scrollTopBtn" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Back to top">🚗</button>
 <script>
+/* ============ AUTH GATE ============ */
+const ALLOWED_EMAILS=["fpdahmed11@gmail.com","islamyasser424@gmail.com","mahmoudalnoby22@gmail.com","mm0508230@gmail.com","mohamedfathyy69@gmail.com","mostafaatito11158@gmail.com","oka60284@gmail.com","yassinyassen11@gmail.com","me917993@meti.ai","mahmoudseif589@gmail.com","abdallahbarbary39@gmail.com","eslamkhaled329@gmail.com"];
+const AUTH_KEY='meeg_auth_email';
+function isValidEmailFormat(e){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);}
+function getLoggedInEmail(){try{return localStorage.getItem(AUTH_KEY)||'';}catch(e){return '';}}
+function attemptLogin(){
+  const input=document.getElementById('loginEmailInput');
+  const errEl=document.getElementById('loginErrMsg');
+  const raw=(input.value||'').trim().toLowerCase();
+  input.classList.remove('err');
+  if(!raw){errEl.textContent='من فضلك اكتب الإيميل';input.classList.add('err');input.focus();return;}
+  if(!isValidEmailFormat(raw)){errEl.textContent='صيغة الإيميل غير صحيحة';input.classList.add('err');input.focus();return;}
+  if(!ALLOWED_EMAILS.includes(raw)){errEl.textContent='🚫 الإيميل غير مصرح له بالدخول';input.classList.add('err');input.focus();return;}
+  try{localStorage.setItem(AUTH_KEY,raw);}catch(e){}
+  errEl.textContent='';
+  document.getElementById('loginScreen').classList.add('hidden');
+  startApp();
+}
+function logoutUser(){
+  try{localStorage.removeItem(AUTH_KEY);}catch(e){}
+  window.location.reload();
+}
+function checkAuthOnLoad(){
+  const email=getLoggedInEmail();
+  if(email&&ALLOWED_EMAILS.includes(email)){
+    document.getElementById('loginScreen').classList.add('hidden');
+    return true;
+  }
+  document.getElementById('loginScreen').classList.remove('hidden');
+  setTimeout(()=>{const i=document.getElementById('loginEmailInput');if(i)i.focus();},80);
+  return false;
+}
+/* ============ END AUTH GATE ============ */
 function hideSplash(){const s=document.getElementById('splash');if(s){setTimeout(()=>{s.classList.add('fade-out');setTimeout(()=>s.remove(),650);},2200);}}
 function toggleDark(){const html=document.documentElement;const isDark=html.getAttribute('data-theme')==='dark';const t=isDark?'light':'dark';html.setAttribute('data-theme',t);const fob=document.getElementById('darkFob');if(fob)fob.classList.toggle('on',t==='dark');const ic=document.getElementById('dmIcon');if(ic)ic.textContent=t==='dark'?'🌙':'☀️';document.getElementById('dmLabel').textContent=t==='dark'?'DARK':'LIGHT';localStorage.setItem('meeg_theme',t);}
 let autoRefreshEnabled=(function(){try{const v=localStorage.getItem('meeg_autorefresh');return v===null?true:v==='1';}catch(e){return true;}})();
@@ -1003,7 +1069,18 @@ let _toastTimer=null;
 function showToast(msg){const ex=document.querySelector('.toast');if(ex)ex.remove();if(_toastTimer)clearTimeout(_toastTimer);const t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.appendChild(t);_toastTimer=setTimeout(()=>{t.style.opacity='0';t.style.transform='translateY(10px)';t.style.transition='all .3s';setTimeout(()=>t.remove(),300);},3000);}
 function showErr(msg){document.getElementById('mainContent').innerHTML=`<div class="errbox">⚠️ ${esc(msg)}</div>`;document.getElementById('fstrip').innerHTML=`<div style="padding:10px 16px;font-size:.68rem;color:var(--danger)">${esc(msg)}</div>`;document.getElementById('locTabs').innerHTML='';}
 function esc(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
-window.addEventListener('load',()=>{const savedTheme=localStorage.getItem('meeg_theme')||'light';document.documentElement.setAttribute('data-theme',savedTheme);const fob=document.getElementById('darkFob');if(fob)fob.classList.toggle('on',savedTheme==='dark');const ic=document.getElementById('dmIcon');if(ic)ic.textContent=savedTheme==='dark'?'🌙':'☀️';document.getElementById('dmLabel').textContent=savedTheme==='dark'?'DARK':'LIGHT';applyAutoRefreshUI();hideSplash();loadData();});
+function startApp(){
+  const savedTheme=localStorage.getItem('meeg_theme')||'light';document.documentElement.setAttribute('data-theme',savedTheme);const fob=document.getElementById('darkFob');if(fob)fob.classList.toggle('on',savedTheme==='dark');const ic=document.getElementById('dmIcon');if(ic)ic.textContent=savedTheme==='dark'?'🌙':'☀️';document.getElementById('dmLabel').textContent=savedTheme==='dark'?'DARK':'LIGHT';applyAutoRefreshUI();hideSplash();loadData();
+}
+window.addEventListener('load',()=>{
+  const isLoggedIn=checkAuthOnLoad();
+  const splash=document.getElementById('splash');
+  if(!isLoggedIn){
+    if(splash)splash.remove();
+    return;
+  }
+  startApp();
+});
 </script>
 </body>
 </html>
