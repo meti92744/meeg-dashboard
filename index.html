@@ -381,7 +381,7 @@ td a{color:var(--info);text-decoration:none;font-weight:700;}
 .login-btn{width:100%;padding:12px 16px;border-radius:16px;border:none;background:linear-gradient(135deg,#00e5d4,#0f8fff);color:#04202b;font-family:var(--display);font-size:.85rem;font-weight:800;cursor:pointer;transition:transform .15s,box-shadow .15s,left .16s ease-out,top .16s ease-out;box-shadow:0 4px 0 rgba(0,0,0,.25);}
 .login-btn:hover{transform:translateY(-2px);}
 .login-btn:active{transform:translateY(1px);box-shadow:0 1px 0 rgba(0,0,0,.25);}
-.login-btn.dodging{position:absolute;width:170px;z-index:5;}
+.login-btn.dodging{position:fixed;width:170px;z-index:99999;}
 .login-err-msg{color:#ff8fa3;font-size:.66rem;font-weight:700;margin-top:10px;min-height:14px;font-family:var(--font);}
 .logout-btn{background:rgba(255,95,126,.25);border-color:rgba(255,95,126,.5);color:#7a0d24}
 </style>
@@ -495,7 +495,7 @@ td a{color:var(--info);text-decoration:none;font-weight:700;}
 <button class="scroll-top-car" id="scrollTopBtn" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Back to top">🚗</button>
 <script>
 /* ============ AUTH GATE ============ */
-const ALLOWED_EMAILS=["fpdahmed11@gmail.com","islamyasser424@gmail.com","mahmoudalnoby22@gmail.com","mm0508230@gmail.com","mohamedfathyy69@gmail.com","mostafaatito11158@gmail.com","oka60284@gmail.com","yassinyassen11@gmail.com","me917993@meti.ai","mahmoudseif589@gmail.com","abdallahbarbary39@gmail.com","eslamkhaled329@gmail.com"];
+const ALLOWED_EMAILS=["fpdahmed11@gmail.com","islamyasser424@gmail.com","mahmoudalnoby22@gmail.com","mm0508230@gmail.com","mohamedfathyy69@gmail.com","mostafaatito11158@gmail.com","oka60284@gmail.com","yassinyassen11@gmail.com","me917993@meti.ai","mahmoudseif589@gmail.com","abdallahbarbary39@gmail.com","eslamkhaled329@gmail.com","me370444@meti.ai"];
 const AUTH_KEY='meeg_auth_email';
 function isValidEmailFormat(e){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);}
 function getLoggedInEmail(){try{return localStorage.getItem(AUTH_KEY)||'';}catch(e){return '';}}
@@ -526,7 +526,7 @@ function checkAuthOnLoad(){
   setTimeout(()=>{const i=document.getElementById('loginEmailInput');if(i)i.focus();},80);
   return false;
 }
-/* ============ LOGIN BUTTON DODGE (runs away while email is empty) ============ */
+/* ============ LOGIN BUTTON DODGE (roams the whole screen while email is empty) ============ */
 function initLoginDodge(){
   const btn=document.getElementById('loginSubmitBtn');
   const zone=document.getElementById('loginBtnZone');
@@ -537,22 +537,22 @@ function initLoginDodge(){
   function resetBtn(){
     dodging=false;
     btn.classList.remove('dodging');
-    btn.style.left='';btn.style.top='';btn.style.width='';
+    btn.style.left='';btn.style.top='';btn.style.width='';btn.style.position='';
   }
-  card.addEventListener('mousemove',(e)=>{
+  document.addEventListener('mousemove',(e)=>{
     if(input.value.trim().length>0){ if(dodging)resetBtn(); return; }
-    const cardRect=card.getBoundingClientRect();
     const btnRect=btn.getBoundingClientRect();
-    const btnCx=btnRect.left+btnRect.width/2-cardRect.left;
-    const btnCy=btnRect.top+btnRect.height/2-cardRect.top;
-    const mx=e.clientX-cardRect.left, my=e.clientY-cardRect.top;
+    const btnCx=btnRect.left+btnRect.width/2;
+    const btnCy=btnRect.top+btnRect.height/2;
+    const mx=e.clientX, my=e.clientY;
     const dist=Math.hypot(mx-btnCx,my-btnCy);
     if(dist<95){
       dodging=true;
       btn.classList.add('dodging');
+      btn.style.position='fixed';
       const bw=170,bh=46;
-      const maxLeft=Math.max(8,card.clientWidth-bw-8);
-      const maxTop=Math.max(8,card.clientHeight-bh-8);
+      const maxLeft=Math.max(8,window.innerWidth-bw-8);
+      const maxTop=Math.max(8,window.innerHeight-bh-8);
       let newLeft,newTop,tries=0;
       do{
         newLeft=8+Math.random()*maxLeft;
@@ -563,7 +563,6 @@ function initLoginDodge(){
       btn.style.top=newTop+'px';
     }
   });
-  card.addEventListener('mouseleave',()=>{ /* stays put once mouse leaves the card */ });
   input.addEventListener('input',()=>{ if(input.value.trim().length>0)resetBtn(); });
 }
 /* ============ END AUTH GATE ============ */
