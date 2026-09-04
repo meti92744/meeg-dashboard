@@ -318,9 +318,11 @@ td a{color:var(--info);text-decoration:none;font-weight:700;}
 .pg-road{position:relative;width:56px;height:16px;margin-left:8px;flex-shrink:0;}
 .pg-road-line{position:absolute;top:50%;left:2px;right:2px;height:2px;background:repeating-linear-gradient(90deg,var(--muted) 0 4px,transparent 4px 8px);transform:translateY(-50%);}
 .pg-road-car{position:absolute;top:50%;transform:translate(-50%,-50%);font-size:.7rem;transition:left .3s ease;}
-.scroll-top-car{position:fixed;bottom:20px;right:18px;width:44px;height:44px;border-radius:50%;background:var(--chrome-grad);border:2px solid rgba(255,255,255,.5);box-shadow:var(--shadow);font-size:1.2rem;cursor:pointer;z-index:9998;transform:rotate(-90deg);transition:transform .2s,opacity .2s;display:none;align-items:center;justify-content:center;opacity:0;}
+.scroll-top-car{position:fixed;bottom:20px;right:18px;width:44px;height:44px;border-radius:50%;background:var(--chrome-grad);border:2px solid rgba(255,255,255,.5);box-shadow:var(--shadow);font-size:1.2rem;cursor:pointer;z-index:9998;transition:transform .2s,opacity .2s;display:none;align-items:center;justify-content:center;opacity:0;}
 .scroll-top-car.show{display:flex;opacity:1;}
-.scroll-top-car:hover{transform:rotate(-90deg) scale(1.08);}
+.scroll-top-car:hover{transform:scale(1.08);}
+.web-line{position:fixed;width:2px;background:repeating-linear-gradient(to bottom,#f2f2f2 0 5px,transparent 5px 10px);z-index:9999;pointer-events:none;box-shadow:0 0 5px rgba(255,255,255,.7);transition:height .32s cubic-bezier(.2,.8,.3,1);transform-origin:bottom;}
+.web-line::before{content:'';position:absolute;top:-4px;left:50%;transform:translateX(-50%);width:8px;height:8px;border-radius:50%;background:#f2f2f2;box-shadow:0 0 6px rgba(255,255,255,.8);}
 .loader{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:50px;gap:12px}
 .spin{width:36px;height:36px;border:4px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:sp .6s linear infinite}
 @keyframes sp{to{transform:rotate(360deg)}}
@@ -492,7 +494,7 @@ td a{color:var(--info);text-decoration:none;font-weight:700;}
 <div class="pills-row" id="pillsRow"><span class="pill pill-all">All Data — No Filters Active</span></div>
 <div class="loc-tabs" id="locTabs"><div class="spin" style="width:14px;height:14px;border-width:3px;margin:9px 0"></div></div>
 <div class="content" id="mainContent"><div class="loader"><div class="spin"></div><span class="ltxt">Loading data…</span></div></div>
-<button class="scroll-top-car" id="scrollTopBtn" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Back to top">🚗</button>
+<button class="scroll-top-car" id="scrollTopBtn" onclick="shootWebScrollTop()" title="Back to top">🕷️</button>
 <script>
 /* ============ AUTH GATE ============ */
 const ALLOWED_EMAILS=["fpdahmed11@gmail.com","islamyasser424@gmail.com","mahmoudalnoby22@gmail.com","mm0508230@gmail.com","mohamedfathyy69@gmail.com","mostafaatito11158@gmail.com","oka60284@gmail.com","yassinyassen11@gmail.com","me917993@meti.ai","mahmoudseif589@gmail.com","abdallahbarbary39@gmail.com","eslamkhaled329@gmail.com","me370444@meti.ai","me817350@meti.ai"];
@@ -526,7 +528,7 @@ function checkAuthOnLoad(){
   setTimeout(()=>{const i=document.getElementById('loginEmailInput');if(i)i.focus();},80);
   return false;
 }
-/* ============ LOGIN BUTTON DODGE (roams the whole screen while email is empty) ============ */
+/* ============ LOGIN BUTTON DODGE (roams only inside the login card frame) ============ */
 function initLoginDodge(){
   const btn=document.getElementById('loginSubmitBtn');
   const zone=document.getElementById('loginBtnZone');
@@ -542,6 +544,7 @@ function initLoginDodge(){
   document.addEventListener('mousemove',(e)=>{
     if(input.value.trim().length>0){ if(dodging)resetBtn(); return; }
     const btnRect=btn.getBoundingClientRect();
+    const cardRect=card.getBoundingClientRect();
     const btnCx=btnRect.left+btnRect.width/2;
     const btnCy=btnRect.top+btnRect.height/2;
     const mx=e.clientX, my=e.clientY;
@@ -550,15 +553,19 @@ function initLoginDodge(){
       dodging=true;
       btn.classList.add('dodging');
       btn.style.position='fixed';
-      const bw=170,bh=46;
-      const maxLeft=Math.max(8,window.innerWidth-bw-8);
-      const maxTop=Math.max(8,window.innerHeight-bh-8);
+      const bw=Math.min(150,cardRect.width-2*14),bh=btnRect.height||46;
+      const pad=14;
+      const minLeft=cardRect.left+pad;
+      const maxLeft=Math.max(minLeft,cardRect.right-bw-pad);
+      const minTop=cardRect.top+pad;
+      const maxTop=Math.max(minTop,cardRect.bottom-bh-pad);
       let newLeft,newTop,tries=0;
       do{
-        newLeft=8+Math.random()*maxLeft;
-        newTop=8+Math.random()*maxTop;
+        newLeft=minLeft+Math.random()*(maxLeft-minLeft);
+        newTop=minTop+Math.random()*(maxTop-minTop);
         tries++;
-      }while(Math.hypot(newLeft+bw/2-mx,newTop+bh/2-my)<110 && tries<12);
+      }while(Math.hypot(newLeft+bw/2-mx,newTop+bh/2-my)<90 && tries<12);
+      btn.style.width=bw+'px';
       btn.style.left=newLeft+'px';
       btn.style.top=newTop+'px';
     }
@@ -1102,6 +1109,24 @@ let _toastTimer=null;
 function showToast(msg){const ex=document.querySelector('.toast');if(ex)ex.remove();if(_toastTimer)clearTimeout(_toastTimer);const t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.appendChild(t);_toastTimer=setTimeout(()=>{t.style.opacity='0';t.style.transform='translateY(10px)';t.style.transition='all .3s';setTimeout(()=>t.remove(),300);},3000);}
 function showErr(msg){document.getElementById('mainContent').innerHTML=`<div class="errbox">⚠️ ${esc(msg)}</div>`;document.getElementById('fstrip').innerHTML=`<div style="padding:10px 16px;font-size:.68rem;color:var(--danger)">${esc(msg)}</div>`;document.getElementById('locTabs').innerHTML='';}
 function esc(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+function shootWebScrollTop(){
+  const btn=document.getElementById('scrollTopBtn');
+  if(!btn)return;
+  const rect=btn.getBoundingClientRect();
+  const cx=rect.left+rect.width/2;
+  const web=document.createElement('div');
+  web.className='web-line';
+  web.style.left=(cx-1)+'px';
+  web.style.bottom=(window.innerHeight-rect.top)+'px';
+  web.style.height='0px';
+  document.body.appendChild(web);
+  btn.style.transform='scale(.82) rotate(-8deg)';
+  requestAnimationFrame(()=>{
+    web.style.height=Math.max(rect.top-10,10)+'px';
+  });
+  setTimeout(()=>{ window.scrollTo({top:0,behavior:'smooth'}); btn.style.transform=''; },140);
+  setTimeout(()=>{ web.remove(); },520);
+}
 function startApp(){
   const savedTheme=localStorage.getItem('meeg_theme')||'light';document.documentElement.setAttribute('data-theme',savedTheme);const btn=document.getElementById('darkBtn');if(btn){btn.classList.toggle('active',savedTheme==='dark');btn.innerHTML=savedTheme==='dark'?'🌙 Dark':'☀️ Light';}applyAutoRefreshUI();hideSplash();loadData();
 }
