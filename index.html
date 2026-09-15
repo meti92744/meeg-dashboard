@@ -643,8 +643,34 @@ function parseCSV(text){
   return rows;
 }
 const SHEET_GID='0'; // gid of the "Data Base" tab — change this if you add/reorder sheet tabs
-function loadData(){setSyncActive(true);setTrafficLight('yellow');const b=document.getElementById('refreshBtn');if(b)b.disabled=true;fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${SHEET_GID}`).then(r=>r.text()).then(txt=>{onCsvData(txt);}).catch(e=>{setSyncActive(false);setTrafficLight('red');if(b)b.disabled=false;showErr('Failed: '+e.message);});}
-function onCsvData(text){const b=document.getElementById('refreshBtn');if(b)b.disabled=false;setSyncActive(false);const table=parseCSV(text).filter(r=>r&&r.length&&!(r.length===1&&String(r[0]||'').trim()===''));if(!table.length){showErr('No data returned.');return;}hdrs=table[0].map(h=>String(h||'').trim());const hLower=hdrs.map(h=>h.toLowerCase());sIdx={};["Shift","Unit","Qtc Name","Yubikey Email","Labeler Name","Pc No","Modality","Queue Name","Location","Pass"].forEach(name=>{const i=hLower.indexOf(name.toLowerCase());if(i>=0)sIdx[name]=i;});tsIdx=hLower.findIndex(h=>h==='timestamp');if(tsIdx<0)tsIdx=hLower.findIndex(h=>h==='created at');if(tsIdx<0)tsIdx=hLower.findIndex(h=>h==='date');if(tsIdx<0)tsIdx=hLower.findIndex(h=>h.includes('date'));locColIdx=hLower.findIndex(h=>h==='location');if(locColIdx<0)locColIdx=hLower.findIndex(h=>h==='unit');if(locColIdx<0)locColIdx=hLower.findIndex(h=>h==='site');rawRows=[];for(let ri=1;ri<table.length;ri++){const rowRaw=table[ri];if(!rowRaw||!rowRaw.length)continue;const row=hdrs.map((_,ci)=>rowRaw[ci]!==undefined?String(rowRaw[ci]).trim():'');if(row.every(c=>c===''))continue;const sci=sIdx['Shift'];if(sci!==undefined){const sv=String(row[sci]||'').trim().toLowerCase();if(!ALL_SHIFTS.some(a=>sv===a))continue;}rawRows.push(row);}sOpts={};["Shift","Unit","Qtc Name","Yubikey Email","Labeler Name","Pc No","Modality","Queue Name","Location","Pass"].forEach(name=>{const ci=sIdx[name];if(ci===undefined)return;const set=new Set();rawRows.forEach(r=>{const v=String(r[ci]||'').trim();if(v)set.add(v);});sOpts[name]=[...set].sort();});const dateSet=new Set();rawRows.forEach(r=>{const d=extractDate(r[tsIdx]);if(d)dateSet.add(d);});sOpts['_dates']=[...dateSet].sort().reverse();const locSet=new Set();if(locColIdx>=0)rawRows.forEach(r=>{const v=String(r[locColIdx]||'').trim();if(v)locSet.add(v);});locations=[...locSet].sort();const now=new Date();todayStr=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');document.getElementById('todayLabel').textContent=todayStr;lastUpdateTs=Date.now();updateRelativeTime();setTrafficLight('green');document.getElementById('totalBadge').textContent=rawRows.length+' rows';SC.forEach(s=>{if(!sel[s.key])sel[s.key]=new Set();});if(!_filtersRestored){restoreFilters();_filtersRestored=true;}buildStrip();buildTabs();applyAll();if(autoRefreshTimer)clearInterval(autoRefreshTimer);autoRefreshTimer=null;if(autoRefreshEnabled)autoRefreshTimer=setInterval(loadData,REFRESH_INTERVAL*1000);applyAutoRefreshUI();if(cmpMode)populateCmpSelects();}
+
+/* ===== PATCH #5: smart auto-refresh — skip re-render if data unchanged ===== */
+let _lastCsvHash='';
+function simpleHash(s){let h=0;for(let i=0;i<s.length;i++){h=(h<<5)-h+s.charCodeAt(i);h|=0;}return h;}
+
+/* ===== PATCH #3: loading overlay only on first load, sync-bar handles refresh feedback ===== */
+function loadData(){
+  setSyncActive(true);setTrafficLight('yellow');
+  const b=document.getElementById('refreshBtn');if(b)b.disabled=true;
+  const mc=document.getElementById('mainContent');
+  if(mc && rawRows.length===0){
+    mc.innerHTML=`<div class="loader"><div class="spin"></div><span class="ltxt">Loading data…</span></div>`;
+  }
+  fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${SHEET_GID}`).then(r=>r.text()).then(txt=>{onCsvData(txt);}).catch(e=>{setSyncActive(false);setTrafficLight('red');if(b)b.disabled=false;showErr('Failed: '+e.message);});
+}
+function onCsvData(text){
+  const b=document.getElementById('refreshBtn');if(b)b.disabled=false;setSyncActive(false);
+  const newHash=simpleHash(text);
+  if(newHash===_lastCsvHash && rawRows.length>0){
+    /* PATCH #5: data hasn't actually changed — skip the full rebuild, just refresh the "updated" timestamp */
+    lastUpdateTs=Date.now();updateRelativeTime();setTrafficLight('green');
+    if(autoRefreshTimer)clearInterval(autoRefreshTimer);autoRefreshTimer=null;
+    if(autoRefreshEnabled)autoRefreshTimer=setInterval(loadData,REFRESH_INTERVAL*1000);
+    return;
+  }
+  _lastCsvHash=newHash;
+  const table=parseCSV(text).filter(r=>r&&r.length&&!(r.length===1&&String(r[0]||'').trim()===''));if(!table.length){showErr('No data returned.');return;}hdrs=table[0].map(h=>String(h||'').trim());const hLower=hdrs.map(h=>h.toLowerCase());sIdx={};["Shift","Unit","Qtc Name","Yubikey Email","Labeler Name","Pc No","Modality","Queue Name","Location","Pass"].forEach(name=>{const i=hLower.indexOf(name.toLowerCase());if(i>=0)sIdx[name]=i;});tsIdx=hLower.findIndex(h=>h==='timestamp');if(tsIdx<0)tsIdx=hLower.findIndex(h=>h==='created at');if(tsIdx<0)tsIdx=hLower.findIndex(h=>h==='date');if(tsIdx<0)tsIdx=hLower.findIndex(h=>h.includes('date'));locColIdx=hLower.findIndex(h=>h==='location');if(locColIdx<0)locColIdx=hLower.findIndex(h=>h==='unit');if(locColIdx<0)locColIdx=hLower.findIndex(h=>h==='site');rawRows=[];for(let ri=1;ri<table.length;ri++){const rowRaw=table[ri];if(!rowRaw||!rowRaw.length)continue;const row=hdrs.map((_,ci)=>rowRaw[ci]!==undefined?String(rowRaw[ci]).trim():'');if(row.every(c=>c===''))continue;const sci=sIdx['Shift'];if(sci!==undefined){const sv=String(row[sci]||'').trim().toLowerCase();if(!ALL_SHIFTS.some(a=>sv===a))continue;}rawRows.push(row);}sOpts={};["Shift","Unit","Qtc Name","Yubikey Email","Labeler Name","Pc No","Modality","Queue Name","Location","Pass"].forEach(name=>{const ci=sIdx[name];if(ci===undefined)return;const set=new Set();rawRows.forEach(r=>{const v=String(r[ci]||'').trim();if(v)set.add(v);});sOpts[name]=[...set].sort();});const dateSet=new Set();rawRows.forEach(r=>{const d=extractDate(r[tsIdx]);if(d)dateSet.add(d);});sOpts['_dates']=[...dateSet].sort().reverse();const locSet=new Set();if(locColIdx>=0)rawRows.forEach(r=>{const v=String(r[locColIdx]||'').trim();if(v)locSet.add(v);});locations=[...locSet].sort();const now=new Date();todayStr=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');document.getElementById('todayLabel').textContent=todayStr;lastUpdateTs=Date.now();updateRelativeTime();setTrafficLight('green');document.getElementById('totalBadge').textContent=rawRows.length+' rows';SC.forEach(s=>{if(!sel[s.key])sel[s.key]=new Set();});if(!_filtersRestored){restoreFilters();_filtersRestored=true;}buildStrip();buildTabs();applyAll();if(autoRefreshTimer)clearInterval(autoRefreshTimer);autoRefreshTimer=null;if(autoRefreshEnabled)autoRefreshTimer=setInterval(loadData,REFRESH_INTERVAL*1000);applyAutoRefreshUI();if(cmpMode)populateCmpSelects();
+}
 function extractDate(v){if(!v)return null;const s=String(v).trim();if(/^\d{4}-\d{2}-\d{2}/.test(s))return s.substring(0,10);const m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);if(m)return m[3]+'-'+m[1].padStart(2,'0')+'-'+m[2].padStart(2,'0');return null;}
 function rDate(r){if(tsIdx<0)return'';const v=String(r[tsIdx]||'').trim();return extractDate(v)||'';}
 function _now(){const n=new Date();return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0')+' '+String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');}
@@ -681,12 +707,60 @@ function updChip(k){const fc=document.getElementById('fc_'+sid(k));if(!fc)return
 function cntFor(tk){const f=rawRows.filter(r=>{if(!isRowAllowed(r))return false;if(selWeeks.size){const wl=getWeekLabel(rDate(r));if(!selWeeks.has(wl))return false;}if(tk!=='_dates'&&selD.size&&!selD.has(rDate(r)))return false;for(const[k,ss]of Object.entries(sel)){if(k===tk||!ss.size)continue;const ci=sIdx[k];if(ci===undefined)continue;if(!ss.has(String(r[ci]||'').trim()))return false;}return true;});const m={};f.forEach(r=>{let v;if(tk==='_dates'){v=rDate(r);}else{const ci=sIdx[tk];v=ci!==undefined?String(r[ci]||'').trim():'';}if(v)m[v]=(m[v]||0)+1;});return m;}
 function tgVal(k,v){if(!sel[k])sel[k]=new Set();if(sel[k].has(v))sel[k].delete(v);else sel[k].add(v);rdrop(k);updChip(k);SC.forEach(sc=>{if(sc.key!==k)rdrop(sc.key);});applyAll();}
 function clrSl(k){if(sel[k])sel[k].clear();rdrop(k);updChip(k);applyAll();}
-function clearAll(){selD.clear();selWeeks.clear();idFilter='';Object.keys(sel).forEach(k=>sel[k].clear());document.querySelectorAll('.dp-srch').forEach(e=>e.value='');locSearch={};saveFilters();buildStrip();applyAll();}
-function setIdFilter(v){idFilter=v.trim();saveFilters();applyAll();}
+
+/* ===== PATCH #4: Clear All with Undo toast ===== */
+let _lastClearedState=null;
+function clearAll(){
+  _lastClearedState={
+    sel:Object.fromEntries(Object.entries(sel).map(([k,v])=>[k,[...v]])),
+    selD:[...selD],
+    selWeeks:[...selWeeks],
+    idFilter
+  };
+  selD.clear();selWeeks.clear();idFilter='';Object.keys(sel).forEach(k=>sel[k].clear());
+  document.querySelectorAll('.dp-srch').forEach(e=>e.value='');
+  locSearch={};saveFilters();buildStrip();applyAll();
+  showToastUndo('🗑️ تم مسح كل الفلاتر','↩️ تراجع',undoClearAll);
+}
+function undoClearAll(){
+  if(!_lastClearedState)return;
+  Object.entries(_lastClearedState.sel).forEach(([k,arr])=>{sel[k]=new Set(arr);});
+  selD=new Set(_lastClearedState.selD);
+  selWeeks=new Set(_lastClearedState.selWeeks);
+  idFilter=_lastClearedState.idFilter;
+  const idInput=document.getElementById('idFilterInput');if(idInput)idInput.value=idFilter;
+  saveFilters();buildStrip();applyAll();
+  showToast('↩️ رجّعنا الفلاتر');
+}
+
+/* ===== PATCH #1: debounce the ID search input ===== */
+let _idFilterDebounce=null;
+function setIdFilter(v){
+  clearTimeout(_idFilterDebounce);
+  _idFilterDebounce=setTimeout(()=>{
+    idFilter=v.trim();
+    saveFilters();
+    applyAll();
+  },300);
+}
 function applyAll(){const idIdx=hdrs.findIndex(h=>h.toLowerCase()==='id');const idQ=idFilter.toLowerCase();fcache=rawRows.filter(r=>{if(!isRowAllowed(r))return false;if(selWeeks.size){const wl=getWeekLabel(rDate(r));if(!selWeeks.has(wl))return false;}if(selD.size&&!selD.has(rDate(r)))return false;if(idQ&&idIdx>=0&&!String(r[idIdx]||'').toLowerCase().includes(idQ))return false;for(const[k,ss]of Object.entries(sel)){if(!ss.size)continue;const ci=sIdx[k];if(ci===undefined)continue;if(!ss.has(String(r[ci]||'').trim()))return false;}return true;});saveFilters();updPills();buildTabs();renderAllSections();}
 function updPills(){const w=document.getElementById('pillsRow');const ps=[];let any=false;if(idFilter){any=true;ps.push(`<span class="pill">🔎 ID: ${esc(idFilter)} <span class="pill-x" onclick="setIdFilter('');const i=document.getElementById('idFilterInput');if(i)i.value='';">✕</span></span>`);}selWeeks.forEach(wk=>{any=true;ps.push(`<span class="pill">📅 ${esc(wk)} <span class="pill-x" onclick="tgWeek('${esc(wk)}')">✕</span></span>`);});selD.forEach(d=>{any=true;ps.push(`<span class="pill">${d===todayStr?'🗓️ '+d+' ⭐':'🗓️ '+d} <span class="pill-x" onclick="tgDate('${d}')">✕</span></span>`);});for(const[k,ss]of Object.entries(sel)){ss.forEach(v=>{any=true;const sc=SC.find(s=>s.key===k);ps.push(`<span class="pill">${sc?sc.ic:''} ${esc(v)} <span class="pill-x" onclick="tgVal('${esc(k)}','${esc(v)}')">✕</span></span>`);});}w.innerHTML=any?ps.join('')+`<button class="clr-btn" onclick="clearAll()">✕ Clear All</button>`:'<span class="pill pill-all">All Data — No Filters Active</span>';}
+
+/* ===== PATCH #2: race-condition-safe tab switching (token guard) ===== */
+let _tabRenderToken=0;
 function buildTabs(){const c=document.getElementById('locTabs');let h=`<div class="loc-tab loc-all-tab${activeLoc==='__all__'?' act':''}" data-loc="__all__" onclick="switchTab('__all__')">🌐 All <span class="tab-cnt">${fcache.length}</span></div>`;h+=`<div class="loc-tab loc-all-tab${activeLoc==='__totalsubmit__'?' act':''}" data-loc="__totalsubmit__" onclick="switchTab('__totalsubmit__')">📊 Total Submit</div>`;h+=`<div class="loc-tab loc-all-tab${activeLoc==='__topperf__'?' act':''}" data-loc="__topperf__" onclick="switchTab('__topperf__')">🏆 Top Performers</div>`;locations.forEach(loc=>{const cnt=fcache.filter(r=>locColIdx>=0?String(r[locColIdx]||'').trim()===loc:true).length;h+=`<div class="loc-tab${activeLoc===loc?' act':''}" data-loc="${esc(loc)}" onclick="switchTab('${esc(loc)}')">📍 ${esc(loc)} <span class="tab-cnt">${cnt}</span></div>`;});c.innerHTML=h;}
-function switchTab(loc){activeLoc=loc;document.querySelectorAll('.loc-tab').forEach(el=>{el.classList.toggle('act',el.dataset.loc===loc);});if(loc==='__totalsubmit__'||loc==='__topperf__'){const mc=document.getElementById('mainContent');mc.innerHTML=`<div class="loader"><svg style="width:44px;height:44px" viewBox="0 0 64 40" xmlns="http://www.w3.org/2000/svg"><path d="M6 26 Q4 26 4 22 L6 18 Q10 12 20 11 L26 6 Q30 3 38 3 L46 6 Q52 8 56 14 L60 18 Q62 20 62 22 L62 26 Z" fill="#dfe6ea" stroke="#7a9dae" stroke-width="1.5"/><path d="M22 11 L28 6 Q31 4 37 4 L44 6 Q48 8 51 12 L52 14 L22 14 Z" fill="#3c6478" opacity=".6"/><circle cx="16" cy="27" r="6" fill="#3c6478"/><circle cx="50" cy="27" r="6" fill="#3c6478"/></svg><span class="ltxt">Loading leaderboard…</span></div>`;setTimeout(renderAllSections,220);}else{renderAllSections();}}
+function switchTab(loc){
+  activeLoc=loc;
+  const myToken=++_tabRenderToken;
+  document.querySelectorAll('.loc-tab').forEach(el=>{el.classList.toggle('act',el.dataset.loc===loc);});
+  if(loc==='__totalsubmit__'||loc==='__topperf__'){
+    const mc=document.getElementById('mainContent');
+    mc.innerHTML=`<div class="loader"><svg style="width:44px;height:44px" viewBox="0 0 64 40" xmlns="http://www.w3.org/2000/svg"><path d="M6 26 Q4 26 4 22 L6 18 Q10 12 20 11 L26 6 Q30 3 38 3 L46 6 Q52 8 56 14 L60 18 Q62 20 62 22 L62 26 Z" fill="#dfe6ea" stroke="#7a9dae" stroke-width="1.5"/><path d="M22 11 L28 6 Q31 4 37 4 L44 6 Q48 8 51 12 L52 14 L22 14 Z" fill="#3c6478" opacity=".6"/><circle cx="16" cy="27" r="6" fill="#3c6478"/><circle cx="50" cy="27" r="6" fill="#3c6478"/></svg><span class="ltxt">Loading leaderboard…</span></div>`;
+    setTimeout(()=>{ if(myToken===_tabRenderToken) renderAllSections(); },180);
+  }else{
+    renderAllSections();
+  }
+}
 function sid(k){return k.replace(/[\s()]/g,'_');}
 function renderAllSections(){const mc=document.getElementById('mainContent');const cmpRes=document.getElementById('cmpResultSection');if(fcache.length===0&&rawRows.length===0){mc.innerHTML=`<div style="text-align:center;padding:60px 20px;color:var(--muted)"><svg style="width:52px;height:52px;margin:0 auto 12px;display:block" viewBox="0 0 64 40" xmlns="http://www.w3.org/2000/svg"><path d="M6 26 Q4 26 4 22 L6 18 Q10 12 20 11 L26 6 Q30 3 38 3 L46 6 Q52 8 56 14 L60 18 Q62 20 62 22 L62 26 Z" fill="#dfe6ea" stroke="#7a9dae" stroke-width="1.5"/><path d="M22 11 L28 6 Q31 4 37 4 L44 6 Q48 8 51 12 L52 14 L22 14 Z" fill="#3c6478" opacity=".6"/><circle cx="16" cy="27" r="6" fill="#3c6478"/><circle cx="50" cy="27" r="6" fill="#3c6478"/></svg><div style="font-size:.85rem;font-weight:700;color:var(--text);margin-bottom:6px">No data found — the car's still on its way 🛣️</div></div>`;return;}if(fcache.length===0&&rawRows.length>0){mc.innerHTML=`<div style="text-align:center;padding:60px 20px;color:var(--muted)"><svg style="width:52px;height:52px;margin:0 auto 12px;display:block" viewBox="0 0 64 40" xmlns="http://www.w3.org/2000/svg"><path d="M6 26 Q4 26 4 22 L6 18 Q10 12 20 11 L26 6 Q30 3 38 3 L46 6 Q52 8 56 14 L60 18 Q62 20 62 22 L62 26 Z" fill="#dfe6ea" stroke="#7a9dae" stroke-width="1.5"/><path d="M22 11 L28 6 Q31 4 37 4 L44 6 Q48 8 51 12 L52 14 L22 14 Z" fill="#3c6478" opacity=".6"/><circle cx="16" cy="27" r="6" fill="#3c6478"/><circle cx="50" cy="27" r="6" fill="#3c6478"/></svg><div style="font-size:.85rem;font-weight:700;color:var(--text);margin-bottom:6px">No rows match current filters — wrong turn 🚧</div><div style="font-size:.7rem">${rawRows.length} total rows loaded.</div></div>`;return;}if(activeLoc==='__totalsubmit__'){mc.innerHTML='';if(cmpRes)mc.appendChild(cmpRes);renderTotalSubmitSection(mc);return;}if(activeLoc==='__topperf__'){mc.innerHTML='';if(cmpRes)mc.appendChild(cmpRes);renderTopPerformersSection(mc);return;}const locsToRender=activeLoc==='__all__'?locations:[activeLoc];mc.innerHTML='';if(cmpRes)mc.appendChild(cmpRes);if(locations.length===0||locColIdx<0){const wrap=document.createElement('div');wrap.className='loc-section visible';mc.appendChild(wrap);renderLocSection(wrap,null,fcache);return;}locsToRender.forEach(loc=>{const locRows=fcache.filter(r=>String(r[locColIdx]||'').trim()===loc);const wrap=document.createElement('div');wrap.className='loc-section visible';mc.appendChild(wrap);renderLocSection(wrap,loc,locRows);});}
 function buildSpeedometer(pct,color){
@@ -755,7 +829,6 @@ function renderTotalSubmitSection(mc){
   sec.innerHTML=`<div class="sec-hd"><span class="sec-t">📊 Total Submit — Queue Breakdown (Modality × Pass)</span><span class="sec-m">${queues.length} queues · ${grandTotal} total</span></div><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.68rem">${mkGroupedThead('Queue')}<tbody>${bodyRows||`<tr><td colspan="99" style="text-align:center;padding:22px;color:var(--muted)">No queue data.</td></tr>`}</tbody><tfoot><tr style="border-top:2px solid var(--border);background:var(--elevated)"><td style="padding:8px 10px;font-size:.72rem;font-weight:800;color:var(--text)">🏆 Grand Total (All Rooms)</td>${footCells}<td style="padding:8px 10px;text-align:right;font-size:.75rem;font-weight:900;color:var(--accent);font-family:var(--mono)">${grandTotal}</td></tr></tfoot></table></div>`;
   mc.appendChild(sec);
 
-  // === Unit Breakdown (Modality × Pass) ===
   if(locColIdx>=0){
     const uMap={},uDetailMap={};
     rows.forEach(r=>{
@@ -914,7 +987,7 @@ function renderTopQtcTotalSection(mc,rows,qtcIdx){
 function buildPodium(sorted,col){
   const top3=[sorted[0]||null,sorted[1]||null,sorted[2]||null];
   const fourth=sorted[3]||null;
-  const order=[1,0,2]; // display left-to-right: 2nd, 1st, 3rd
+  const order=[1,0,2];
   const ranks=[2,1,3];
   const heights=[52,72,38];
   const medals=['🥈','🥇','🥉'];
@@ -1101,12 +1174,36 @@ function renderCards(locKey,rows){
     </div>`;
   }).join('');
 }
-function locSrch(locKey,val){if(!locSearch)locSearch={};locSearch[locKey]=val;renderLocTable(locKey,getLocRows(locKey),0);}
+
+/* ===== PATCH #1: debounce table search (locSrch) ===== */
+let _srchDebounce={};
+function locSrch(locKey,val){
+  if(!locSearch)locSearch={};
+  clearTimeout(_srchDebounce[locKey]);
+  _srchDebounce[locKey]=setTimeout(()=>{
+    locSearch[locKey]=val;
+    renderLocTable(locKey,getLocRows(locKey),0);
+  },250);
+}
 function getLocRows(locKey){if(locKey==='all'||locColIdx<0)return fcache;return fcache.filter(r=>String(r[locColIdx]||'').trim()===locKey);}
 function renderLocTable(locKey,baseRows,pg){const tblEl=document.getElementById('tbl_'+sid(locKey)),pgEl=document.getElementById('pg_'+sid(locKey));const rcEl=document.getElementById('rc_'+sid(locKey)),metaEl=document.getElementById('tblMeta_'+sid(locKey));if(!tblEl)return;const q=(locSearch[locKey]||'').toLowerCase().trim();let rows=q?baseRows.filter(r=>r.some(c=>String(c??'').toLowerCase().includes(q))):baseRows;if(sortC>=0)rows=[...rows].sort((a,b)=>String(a[sortC]??'').localeCompare(String(b[sortC]??''),undefined,{numeric:true})*sortDr);if(rcEl)rcEl.textContent=`${rows.length} row${rows.length!==1?'s':''}`;if(metaEl)metaEl.textContent=`${rows.length} rows shown`;const tp=Math.max(1,Math.ceil(rows.length/PGSZ));const cp=Math.min(pg,tp-1);const st=cp*PGSZ,en=Math.min(st+PGSZ,rows.length),pr=rows.slice(st,en);const hl=hdrs.map(h=>h.toLowerCase());const linkIdx=hl.findIndex(h=>h==='task link'||h==='link');const objIdx=hl.findIndex(h=>h==='object count');const hiddenCols=new Set(linkIdx>=0&&objIdx>=0?[objIdx]:[]);const thArr=[];hdrs.forEach((h,i)=>{if(hiddenCols.has(i))return;if(!h||h==='—')return;const cls=i===sortC?(sortDr===1?'sa':'sd'):'';thArr.push(`<th class="${cls}" data-ci="${i}">${esc(h)}</th>`);if(i===linkIdx&&objIdx>=0)thArr.push(`<th style="background:var(--elevated);color:var(--text-soft);text-transform:uppercase;font-size:.52rem;padding:6px 8px;border-bottom:1.5px solid var(--border);font-weight:700;white-space:nowrap">Objects</th>`);});const trs=pr.map(r=>{const cells=[];r.forEach((c,ci)=>{if(hiddenCols.has(ci))return;if(!hdrs[ci]||hdrs[ci]==='—')return;const h=hl[ci]||'';let v=c===null||c===undefined?'':String(c);if((h==='task link'||h==='link')&&v.startsWith('http'))v=`<a href="${esc(v)}" target="_blank" rel="noopener">🔗</a>`;else if(h==='queue name'&&v)v=`<span class="tdq">${esc(v)}</span>`;else if(h==='shift'&&v)v=`<span class="tds">${esc(v)}</span>`;else v=esc(v);cells.push(`<td title="${esc(String(c??''))}">${v}</td>`);if(ci===linkIdx&&objIdx>=0){const objVal=String(r[objIdx]??'').trim();const num=parseFloat(objVal);const disp=!isNaN(num)?`<span style="font-family:var(--mono);font-weight:700;color:var(--accent);font-size:.65rem">${num.toLocaleString()}</span>`:`<span style="color:var(--muted);font-size:.62rem">—</span>`;cells.push(`<td style="white-space:nowrap;text-align:right">${disp}</td>`);}});return`<tr>${cells.join('')}</tr>`;}).join('')||`<tr><td colspan="${thArr.length}" style="text-align:center;padding:22px;color:var(--muted)">No rows match.</td></tr>`;window['baseRows_'+sid(locKey)]=baseRows;tblEl.innerHTML=`<table><thead><tr>${thArr.join('')}</tr></thead><tbody>${trs}</tbody></table>`;tblEl.querySelectorAll('thead th[data-ci]').forEach(th=>{const ci=parseInt(th.dataset.ci);th.onclick=()=>srtBy(ci,locKey,baseRows);});if(!pgEl)return;if(tp<=1){pgEl.style.display='none';return;}pgEl.style.display='flex';let pgH=`<button class="pg-btn" onclick="renderLocTable('${locKey}',window['baseRows_${sid(locKey)}'],${cp-1})" ${cp===0?'disabled':''}>‹</button>`;const lo=Math.max(0,cp-2),hi=Math.min(tp-1,cp+2);if(lo>0)pgH+=`<button class="pg-btn" onclick="renderLocTable('${locKey}',window['baseRows_${sid(locKey)}'],0)">1</button>${lo>1?'<span style="color:var(--muted);padding:0 2px;font-size:.58rem">…</span>':''}`;for(let p=lo;p<=hi;p++)pgH+=`<button class="pg-btn${p===cp?' act':''}" onclick="renderLocTable('${locKey}',window['baseRows_${sid(locKey)}'],${p})">${p+1}</button>`;if(hi<tp-1)pgH+=`${hi<tp-2?'<span style="color:var(--muted);padding:0 2px;font-size:.58rem">…</span>':''}<button class="pg-btn" onclick="renderLocTable('${locKey}',window['baseRows_${sid(locKey)}'],${tp-1})">${tp}</button>`;pgH+=`<button class="pg-btn" onclick="renderLocTable('${locKey}',window['baseRows_${sid(locKey)}'],${cp+1})" ${cp===tp-1?'disabled':''}>›</button>`;pgH+=`<span class="pg-inf">${st+1}–${en} / ${rows.length}</span>`;const roadPct=tp>1?Math.round(cp/(tp-1)*100):0;pgH+=`<div class="pg-road"><div class="pg-road-line"></div><div class="pg-road-car" style="left:${roadPct}%">🚗</div></div>`;pgEl.innerHTML=pgH;}
 function srtBy(ci,locKey,baseRows){if(sortC===ci)sortDr*=-1;else{sortC=ci;sortDr=1;}renderLocTable(locKey,baseRows,0);}
 let _toastTimer=null;
 function showToast(msg){const ex=document.querySelector('.toast');if(ex)ex.remove();if(_toastTimer)clearTimeout(_toastTimer);const t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.appendChild(t);_toastTimer=setTimeout(()=>{t.style.opacity='0';t.style.transform='translateY(10px)';t.style.transition='all .3s';setTimeout(()=>t.remove(),300);},3000);}
+
+/* ===== PATCH #4 (helper): toast with an inline action button (used by Undo Clear All) ===== */
+function showToastUndo(msg,actionLabel,actionFn){
+  const ex=document.querySelector('.toast');if(ex)ex.remove();if(_toastTimer)clearTimeout(_toastTimer);
+  const t=document.createElement('div');t.className='toast';
+  const label=document.createElement('span');label.textContent=msg;
+  const btn=document.createElement('button');
+  btn.textContent=actionLabel;
+  btn.style.cssText='margin-left:8px;background:rgba(4,32,43,.15);border:none;border-radius:8px;padding:3px 8px;font-weight:800;cursor:pointer;color:inherit;font-family:inherit;font-size:inherit;';
+  btn.onclick=()=>{actionFn();t.remove();};
+  t.appendChild(label);t.appendChild(btn);
+  document.body.appendChild(t);
+  _toastTimer=setTimeout(()=>{t.style.opacity='0';t.style.transform='translateY(10px)';t.style.transition='all .3s';setTimeout(()=>t.remove(),300);},5000);
+}
 function showErr(msg){document.getElementById('mainContent').innerHTML=`<div class="errbox">⚠️ ${esc(msg)}</div>`;document.getElementById('fstrip').innerHTML=`<div style="padding:10px 16px;font-size:.68rem;color:var(--danger)">${esc(msg)}</div>`;document.getElementById('locTabs').innerHTML='';}
 function esc(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 function shootWebScrollTop(){
