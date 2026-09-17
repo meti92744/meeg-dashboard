@@ -4,6 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
 <title>MEEG Productivity</title>
+<meta name="app-version" content="1"/>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 54 46'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%2300e5d4'/%3E%3Cstop offset='100%25' stop-color='%230f8fff'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpolygon points='0,4 30,4 21,16 0,16' fill='url(%23g)'/%3E%3Cpolygon points='5,19 35,19 26,31 5,31' fill='url(%23g)'/%3E%3Cpolygon points='10,34 40,34 31,46 10,46' fill='url(%23g)'/%3E%3C/svg%3E"/>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
@@ -573,6 +574,43 @@ function initLoginDodge(){
   input.addEventListener('input',()=>{ if(input.value.trim().length>0)resetBtn(); });
 }
 /* ============ END AUTH GATE ============ */
+
+/* ============ FORCE REFRESH ON NEW VERSION ============ */
+const CURRENT_APP_VERSION = (document.querySelector('meta[name="app-version"]')||{}).content || '0';
+let _versionCheckTimer = null;
+
+function checkForNewVersion(){
+  const bustUrl = window.location.href.split('#')[0] + (window.location.href.includes('?') ? '&' : '?') + '_v=' + Date.now();
+  fetch(bustUrl, {cache:'no-store'})
+    .then(r => r.text())
+    .then(html => {
+      const match = html.match(/<meta\s+name=["']app-version["']\s+content=["']([^"']+)["']/i);
+      const serverVersion = match ? match[1] : null;
+      if(serverVersion && serverVersion !== CURRENT_APP_VERSION){
+        showReloadToast();
+      }
+    })
+    .catch(()=>{ /* silent fail — don't disrupt the user on a network hiccup */ });
+}
+
+function showReloadToast(){
+  const ex = document.querySelector('.toast'); if(ex) ex.remove();
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.innerHTML = '🔄 فيه نسخة جديدة من الداشبورد — هيتم التحديث تلقائيًا...';
+  document.body.appendChild(t);
+  setTimeout(() => window.location.reload(), 2500);
+}
+
+function startVersionPolling(){
+  if(_versionCheckTimer) clearInterval(_versionCheckTimer);
+  _versionCheckTimer = setInterval(checkForNewVersion, 60000); // كل دقيقة
+  document.addEventListener('visibilitychange', () => {
+    if(document.visibilityState === 'visible') checkForNewVersion();
+  });
+}
+/* ============ END FORCE REFRESH ============ */
+
 function hideSplash(){const s=document.getElementById('splash');if(s){setTimeout(()=>{s.classList.add('fade-out');setTimeout(()=>s.remove(),650);},2200);}}
 function toggleDark(){const html=document.documentElement;const isDark=html.getAttribute('data-theme')==='dark';const t=isDark?'light':'dark';html.setAttribute('data-theme',t);const btn=document.getElementById('darkBtn');if(btn){btn.classList.toggle('active',t==='dark');btn.innerHTML=t==='dark'?'🌙 Dark':'☀️ Light';}localStorage.setItem('meeg_theme',t);}
 let autoRefreshEnabled=(function(){try{const v=localStorage.getItem('meeg_autorefresh');return v===null?true:v==='1';}catch(e){return true;}})();
@@ -1225,7 +1263,7 @@ function shootWebScrollTop(){
   setTimeout(()=>{ web.remove(); },520);
 }
 function startApp(){
-  const savedTheme=localStorage.getItem('meeg_theme')||'light';document.documentElement.setAttribute('data-theme',savedTheme);const btn=document.getElementById('darkBtn');if(btn){btn.classList.toggle('active',savedTheme==='dark');btn.innerHTML=savedTheme==='dark'?'🌙 Dark':'☀️ Light';}applyAutoRefreshUI();hideSplash();loadData();
+  const savedTheme=localStorage.getItem('meeg_theme')||'light';document.documentElement.setAttribute('data-theme',savedTheme);const btn=document.getElementById('darkBtn');if(btn){btn.classList.toggle('active',savedTheme==='dark');btn.innerHTML=savedTheme==='dark'?'🌙 Dark':'☀️ Light';}applyAutoRefreshUI();hideSplash();loadData();startVersionPolling();
 }
 window.addEventListener('load',()=>{
   initLoginDodge();
