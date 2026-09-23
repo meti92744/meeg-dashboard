@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
 <title>MEEG Productivity</title>
-<meta name="app-version" content="2"/>
+<meta name="app-version" content="3"/>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 54 46'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%2300e5d4'/%3E%3Cstop offset='100%25' stop-color='%230f8fff'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpolygon points='0,4 30,4 21,16 0,16' fill='url(%23g)'/%3E%3Cpolygon points='5,19 35,19 26,31 5,31' fill='url(%23g)'/%3E%3Cpolygon points='10,34 40,34 31,46 10,46' fill='url(%23g)'/%3E%3C/svg%3E"/>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
@@ -721,6 +721,167 @@ function parseCSV(text){
 }
 const SHEET_GID='0'; // gid of the "Data Base" tab — change this if you add/reorder sheet tabs
 
+/* ============ QUALITY TAB (Export sheet import) ============ */
+const EXPORT_SHEET_NAME='Export'; // اسم التاب اللي هتلزق فيه بيانات الكوالتي جوه نفس الـ Google Sheet
+const QUALITY_STORE_KEY='meeg_quality_store_v1';
+const QUALITY_LAST_IMPORT_KEY='meeg_quality_last_import';
+const QUALITY_METRICS=['artifacts','attribute','tvaF1','totalAccuracy'];
+const QUALITY_METRIC_LABELS={artifacts:'Artifacts',attribute:'Attribute',tvaF1:'TVA F1',totalAccuracy:'Total Accuracy'};
+// كل الـ 8 شيفتات بتتقسم على 3 مجموعات بس حسب اللاحقة (M/N/ON) أو الاسم
+const SHIFT_GROUP_OF={
+  'morning':'Morning','morning 12 h':'Morning','over shift (m)':'Morning',
+  'night':'Night','over shift (n)':'Night',
+  'over night':'Overnight','over night 12 h':'Overnight','over shift (on)':'Overnight'
+};
+const SHIFT_GROUPS=['Morning','Night','Overnight'];
+const SHIFT_GROUP_COLORS={Morning:'#e8a000',Night:'#0f8fff',Overnight:'#7c3aed'};
+const SHIFT_GROUP_ICON={Morning:'🌅',Night:'🌆',Overnight:'🌙'};
+
+let qualityStore={};
+let qualityLastImport=null;
+let qualityLoading=false;
+
+function loadQualityStore(){
+  try{const raw=localStorage.getItem(QUALITY_STORE_KEY);qualityStore=raw?JSON.parse(raw):{};}catch(e){qualityStore={};}
+  try{const li=localStorage.getItem(QUALITY_LAST_IMPORT_KEY);qualityLastImport=li?parseInt(li):null;}catch(e){qualityLastImport=null;}
+}
+function saveQualityStore(){try{localStorage.setItem(QUALITY_STORE_KEY,JSON.stringify(qualityStore));}catch(e){}}
+
+// بيجيب بيانات تاب "Export" (بالاسم مش بالـ gid عشان تشتغل حتى لو التاب اتعمل جديد) ويدمجها فوق الأرشيف المحفوظ
+function fetchQualityData(silent){
+  if(qualityLoading)return;
+  qualityLoading=true;
+  const btn=document.getElementById('qualityRefreshBtn');if(btn)btn.disabled=true;
+  const url=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(EXPORT_SHEET_NAME)}`;
+  fetch(url).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.text();}).then(txt=>{
+    const table=parseCSV(txt).filter(r=>r&&r.length&&!(r.length===1&&String(r[0]||'').trim()===''));
+    qualityLoading=false;if(btn)btn.disabled=false;
+    if(!table.length){if(!silent)showToast('⚠️ Export sheet فاضي');return;}
+    const qh=table[0].map(h=>String(h||'').trim());
+    const qhLower=qh.map(h=>h.toLowerCase());
+    const aidIdx=qhLower.findIndex(h=>h==='actual id');
+    const metricIdx={artifacts:qhLower.findIndex(h=>h==='artifacts'),attribute:qhLower.findIndex(h=>h==='attribute'),tvaF1:qhLower.findIndex(h=>h==='tva f1'),totalAccuracy:qhLower.findIndex(h=>h==='total accuracy')};
+    if(aidIdx<0){showToast('⚠️ عمود "Actual ID" مش موجود في تاب Export');return;}
+    const now=Date.now();let added=0;
+    for(let ri=1;ri<table.length;ri++){
+      const row=table[ri];if(!row||!row.length)continue;
+      const aid=String(row[aidIdx]||'').trim();if(!aid)continue;
+      const rec={importedAt:now};
+      QUALITY_METRICS.forEach(m=>{const ci=metricIdx[m];rec[m]=ci>=0&&row[ci]!==undefined?String(row[ci]).trim():'';});
+      qualityStore[aid]=rec;added++;
+    }
+    saveQualityStore();
+    qualityLastImport=now;
+    try{localStorage.setItem(QUALITY_LAST_IMPORT_KEY,String(now));}catch(e){}
+    if(!silent)showToast(`✅ اتحفظ ${added} صف كوالتي (من غير ما نمسح القديم)`);
+    if(activeLoc==='__quality__')renderAllSections();
+  }).catch(e=>{
+    qualityLoading=false;if(btn)btn.disabled=false;
+    if(!silent)showToast('⚠️ فشل تحميل الكوالتي: '+e.message);
+  });
+}
+function qNum(v){const n=parseFloat(v);return isNaN(n)?null:n;}
+function qFmt(n){if(n===null||n===undefined)return'—';return(n<=1?(n*100):n).toFixed(1)+'%';}
+// كل شخص (Yubikey Email أو Labeler Name) بياخد الشيفت اللي بيتكرر فيها أكتر جوه Data Base
+function computePersonShiftGroups(){
+  const emailIdx=sIdx['Yubikey Email'];const nameIdx=sIdx['Labeler Name'];const shiftIdx=sIdx['Shift'];
+  const idIdx=hdrs.findIndex(h=>h.toLowerCase()==='id');
+  const personShiftCount={},personDisplay={},idToPersonKey={};
+  rawRows.forEach(r=>{
+    const em=emailIdx!==undefined?String(r[emailIdx]||'').trim():'';
+    const nm=nameIdx!==undefined?String(r[nameIdx]||'').trim():'';
+    const key=em||nm;if(!key)return;
+    const sv=shiftIdx!==undefined?String(r[shiftIdx]||'').trim().toLowerCase():'';
+    const grp=SHIFT_GROUP_OF[sv];
+    if(!personShiftCount[key])personShiftCount[key]={};
+    if(grp)personShiftCount[key][grp]=(personShiftCount[key][grp]||0)+1;
+    if(!personDisplay[key])personDisplay[key]=nm||em||key;
+    if(idIdx>=0){const rid=String(r[idIdx]||'').trim();if(rid)idToPersonKey[rid]=key;}
+  });
+  const personGroup={};
+  Object.entries(personShiftCount).forEach(([key,counts])=>{
+    let best=null,bestN=-1;
+    Object.entries(counts).forEach(([g,n])=>{if(n>bestN){bestN=n;best=g;}});
+    personGroup[key]=best||'Overnight';
+  });
+  return{personGroup,personDisplay,idToPersonKey};
+}
+function renderQualitySection(mc){
+  const ctx=computePersonShiftGroups();
+  const{idToPersonKey,personGroup,personDisplay}=ctx;
+  const buckets={Morning:{},Night:{},Overnight:{}};
+  let matched=0,unmatched=0;
+  Object.entries(qualityStore).forEach(([aid,q])=>{
+    const key=idToPersonKey[aid];
+    if(!key){unmatched++;return;}
+    matched++;
+    const grp=personGroup[key]||'Overnight';
+    if(!buckets[grp][key]){
+      buckets[grp][key]={display:personDisplay[key]||key,count:0,sum:{artifacts:0,attribute:0,tvaF1:0,totalAccuracy:0},cnt:{artifacts:0,attribute:0,tvaF1:0,totalAccuracy:0}};
+    }
+    const b=buckets[grp][key];b.count++;
+    QUALITY_METRICS.forEach(m=>{const n=qNum(q[m]);if(n!==null){b.sum[m]+=n;b.cnt[m]++;}});
+  });
+  const totalQ=Object.keys(qualityStore).length;
+  const lastImp=qualityLastImport?new Date(qualityLastImport).toLocaleString():'—';
+  const header=document.createElement('div');header.className='loc-hdr';
+  header.innerHTML=`<div class="loc-hdr-name">🎯 Quality — QA Diff Export</div><div class="loc-stats"><div class="loc-stat"><div class="sv anim-num" data-anim-num="${totalQ}">0</div><div class="sl">Total Records</div></div><div class="loc-stat"><div class="sv anim-num" data-anim-num="${matched}">0</div><div class="sl">Matched</div></div><div class="loc-stat"><div class="sv anim-num" data-anim-num="${unmatched}">0</div><div class="sl">Unmatched</div></div></div>`;
+  mc.appendChild(header);setTimeout(animateAllNums,50);
+
+  const toolbar=document.createElement('div');toolbar.className='sec';
+  toolbar.innerHTML=`<div class="sec-hd"><span class="sec-t">📥 استيراد من تاب "Export"</span><span class="sec-m">آخر استيراد: ${esc(lastImp)}</span></div><div style="padding:12px 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button class="btn btn-c" id="qualityRefreshBtn" onclick="fetchQualityData(false)">📥 Import / Refresh Quality</button><span class="ltxt" style="font-size:.6rem">البيانات القديمة بتفضل محفوظة في الداشبورد حتى لو مسحت تاب Export وحطيت بيانات جديدة</span></div>`;
+  mc.appendChild(toolbar);
+
+  SHIFT_GROUPS.forEach(grp=>{
+    const people=Object.values(buckets[grp]).sort((a,b)=>b.count-a.count);
+    const col=SHIFT_GROUP_COLORS[grp];
+    const groupTotalCount=people.reduce((s,p)=>s+p.count,0);
+    function avgOf(p,m){return p.cnt[m]?p.sum[m]/p.cnt[m]:null;}
+    const shiftSum={artifacts:0,attribute:0,tvaF1:0,totalAccuracy:0};
+    const shiftCnt={artifacts:0,attribute:0,tvaF1:0,totalAccuracy:0};
+    people.forEach(p=>{QUALITY_METRICS.forEach(m=>{shiftSum[m]+=p.sum[m];shiftCnt[m]+=p.cnt[m];});});
+    function shiftAvg(m){return shiftCnt[m]?shiftSum[m]/shiftCnt[m]:null;}
+    const rows=people.map(p=>`<tr style="border-bottom:1px solid var(--border-light)">
+        <td style="padding:6px 10px;color:var(--text);font-size:.68rem;font-weight:700;white-space:nowrap">${esc(p.display)}</td>
+        <td style="padding:6px 10px;text-align:center;font-size:.65rem;font-family:var(--mono)">${p.count}</td>
+        <td style="padding:6px 10px;text-align:center;font-size:.65rem;font-family:var(--mono)">${qFmt(avgOf(p,'artifacts'))}</td>
+        <td style="padding:6px 10px;text-align:center;font-size:.65rem;font-family:var(--mono)">${qFmt(avgOf(p,'attribute'))}</td>
+        <td style="padding:6px 10px;text-align:center;font-size:.65rem;font-family:var(--mono)">${qFmt(avgOf(p,'tvaF1'))}</td>
+        <td style="padding:6px 10px;text-align:center;font-size:.7rem;font-family:var(--mono);font-weight:800;color:${col}">${qFmt(avgOf(p,'totalAccuracy'))}</td>
+      </tr>`).join('');
+    const sec=document.createElement('div');sec.className='sec';sec.style.borderLeft=`4px solid ${col}`;
+    sec.innerHTML=`<div class="sec-hd"><span class="sec-t">${SHIFT_GROUP_ICON[grp]} ${grp} Shift</span><span class="sec-m">${people.length} labelers · ${groupTotalCount} tasks</span></div>
+    <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.66rem">
+    <thead><tr>
+      <th style="background:var(--elevated);color:var(--text-soft);font-size:.55rem;padding:7px 10px;text-align:left;border-bottom:1.5px solid var(--border);font-weight:700">Labeler</th>
+      <th style="background:var(--elevated);color:var(--text-soft);font-size:.55rem;padding:7px 10px;text-align:center;border-bottom:1.5px solid var(--border);font-weight:700">Tasks</th>
+      <th style="background:var(--elevated);color:var(--text-soft);font-size:.55rem;padding:7px 10px;text-align:center;border-bottom:1.5px solid var(--border);font-weight:700">Artifacts</th>
+      <th style="background:var(--elevated);color:var(--text-soft);font-size:.55rem;padding:7px 10px;text-align:center;border-bottom:1.5px solid var(--border);font-weight:700">Attribute</th>
+      <th style="background:var(--elevated);color:var(--text-soft);font-size:.55rem;padding:7px 10px;text-align:center;border-bottom:1.5px solid var(--border);font-weight:700">TVA F1</th>
+      <th style="background:var(--elevated);color:${col};font-size:.55rem;padding:7px 10px;text-align:center;border-bottom:1.5px solid var(--border);font-weight:800">Total Accuracy</th>
+    </tr></thead>
+    <tbody>${rows||`<tr><td colspan="6" style="text-align:center;padding:18px;color:var(--muted)">لا يوجد بيانات كوالتي لهذه الشيفت</td></tr>`}</tbody>
+    <tfoot><tr style="border-top:2px solid var(--border);background:var(--elevated)">
+      <td style="padding:8px 10px;font-size:.68rem;font-weight:800;color:var(--text)">🏆 ${grp} Total</td>
+      <td style="padding:8px 10px;text-align:center;font-size:.68rem;font-weight:800;font-family:var(--mono)">${groupTotalCount}</td>
+      <td style="padding:8px 10px;text-align:center;font-size:.68rem;font-weight:800;font-family:var(--mono)">${qFmt(shiftAvg('artifacts'))}</td>
+      <td style="padding:8px 10px;text-align:center;font-size:.68rem;font-weight:800;font-family:var(--mono)">${qFmt(shiftAvg('attribute'))}</td>
+      <td style="padding:8px 10px;text-align:center;font-size:.68rem;font-weight:800;font-family:var(--mono)">${qFmt(shiftAvg('tvaF1'))}</td>
+      <td style="padding:8px 10px;text-align:center;font-size:.75rem;font-weight:900;font-family:var(--mono);color:${col}">${qFmt(shiftAvg('totalAccuracy'))}</td>
+    </tr></tfoot>
+    </table></div>`;
+    mc.appendChild(sec);
+  });
+
+  if(unmatched>0){
+    const warn=document.createElement('div');warn.className='errbox';warn.style.margin='0';
+    warn.innerHTML=`⚠️ ${unmatched} صف من الكوالتي مالوش ID متطابق في Data Base (متعروضش مقسّم على شيفت). تأكد إن عمود Actual ID في Export مطابق لعمود ID في Data Base.`;
+    mc.appendChild(warn);
+  }
+}
+loadQualityStore();
+/* ============ END QUALITY TAB ============ */
+
 /* ===== PATCH #5: smart auto-refresh — skip re-render if data unchanged ===== */
 let _lastCsvHash='';
 function simpleHash(s){let h=0;for(let i=0;i<s.length;i++){h=(h<<5)-h+s.charCodeAt(i);h|=0;}return h;}
@@ -825,12 +986,12 @@ function updPills(){const w=document.getElementById('pillsRow');const ps=[];let 
 
 /* ===== PATCH #2: race-condition-safe tab switching (token guard) ===== */
 let _tabRenderToken=0;
-function buildTabs(){const c=document.getElementById('locTabs');let h=`<div class="loc-tab loc-all-tab${activeLoc==='__all__'?' act':''}" data-loc="__all__" onclick="switchTab('__all__')">🌐 All <span class="tab-cnt">${fcache.length}</span></div>`;h+=`<div class="loc-tab loc-all-tab${activeLoc==='__totalsubmit__'?' act':''}" data-loc="__totalsubmit__" onclick="switchTab('__totalsubmit__')">📊 Total Submit</div>`;h+=`<div class="loc-tab loc-all-tab${activeLoc==='__topperf__'?' act':''}" data-loc="__topperf__" onclick="switchTab('__topperf__')">🏆 Top Performers</div>`;locations.forEach(loc=>{const cnt=fcache.filter(r=>locColIdx>=0?String(r[locColIdx]||'').trim()===loc:true).length;h+=`<div class="loc-tab${activeLoc===loc?' act':''}" data-loc="${esc(loc)}" onclick="switchTab('${esc(loc)}')">📍 ${esc(loc)} <span class="tab-cnt">${cnt}</span></div>`;});c.innerHTML=h;}
+function buildTabs(){const c=document.getElementById('locTabs');let h=`<div class="loc-tab loc-all-tab${activeLoc==='__all__'?' act':''}" data-loc="__all__" onclick="switchTab('__all__')">🌐 All <span class="tab-cnt">${fcache.length}</span></div>`;h+=`<div class="loc-tab loc-all-tab${activeLoc==='__totalsubmit__'?' act':''}" data-loc="__totalsubmit__" onclick="switchTab('__totalsubmit__')">📊 Total Submit</div>`;h+=`<div class="loc-tab loc-all-tab${activeLoc==='__topperf__'?' act':''}" data-loc="__topperf__" onclick="switchTab('__topperf__')">🏆 Top Performers</div>`;h+=`<div class="loc-tab loc-all-tab${activeLoc==='__quality__'?' act':''}" data-loc="__quality__" onclick="switchTab('__quality__')">🎯 Quality</div>`;locations.forEach(loc=>{const cnt=fcache.filter(r=>locColIdx>=0?String(r[locColIdx]||'').trim()===loc:true).length;h+=`<div class="loc-tab${activeLoc===loc?' act':''}" data-loc="${esc(loc)}" onclick="switchTab('${esc(loc)}')">📍 ${esc(loc)} <span class="tab-cnt">${cnt}</span></div>`;});c.innerHTML=h;}
 function switchTab(loc){
   activeLoc=loc;
   const myToken=++_tabRenderToken;
   document.querySelectorAll('.loc-tab').forEach(el=>{el.classList.toggle('act',el.dataset.loc===loc);});
-  if(loc==='__totalsubmit__'||loc==='__topperf__'){
+  if(loc==='__totalsubmit__'||loc==='__topperf__'||loc==='__quality__'){
     const mc=document.getElementById('mainContent');
     mc.innerHTML=`<div class="loader"><svg style="width:44px;height:44px" viewBox="0 0 64 40" xmlns="http://www.w3.org/2000/svg"><path d="M6 26 Q4 26 4 22 L6 18 Q10 12 20 11 L26 6 Q30 3 38 3 L46 6 Q52 8 56 14 L60 18 Q62 20 62 22 L62 26 Z" fill="#dfe6ea" stroke="#7a9dae" stroke-width="1.5"/><path d="M22 11 L28 6 Q31 4 37 4 L44 6 Q48 8 51 12 L52 14 L22 14 Z" fill="#3c6478" opacity=".6"/><circle cx="16" cy="27" r="6" fill="#3c6478"/><circle cx="50" cy="27" r="6" fill="#3c6478"/></svg><span class="ltxt">Loading leaderboard…</span></div>`;
     setTimeout(()=>{ if(myToken===_tabRenderToken) renderAllSections(); },180);
@@ -839,7 +1000,7 @@ function switchTab(loc){
   }
 }
 function sid(k){return k.replace(/[\s()]/g,'_');}
-function renderAllSections(){const mc=document.getElementById('mainContent');const cmpRes=document.getElementById('cmpResultSection');if(fcache.length===0&&rawRows.length===0){mc.innerHTML=`<div style="text-align:center;padding:60px 20px;color:var(--muted)"><svg style="width:52px;height:52px;margin:0 auto 12px;display:block" viewBox="0 0 64 40" xmlns="http://www.w3.org/2000/svg"><path d="M6 26 Q4 26 4 22 L6 18 Q10 12 20 11 L26 6 Q30 3 38 3 L46 6 Q52 8 56 14 L60 18 Q62 20 62 22 L62 26 Z" fill="#dfe6ea" stroke="#7a9dae" stroke-width="1.5"/><path d="M22 11 L28 6 Q31 4 37 4 L44 6 Q48 8 51 12 L52 14 L22 14 Z" fill="#3c6478" opacity=".6"/><circle cx="16" cy="27" r="6" fill="#3c6478"/><circle cx="50" cy="27" r="6" fill="#3c6478"/></svg><div style="font-size:.85rem;font-weight:700;color:var(--text);margin-bottom:6px">No data found — the car's still on its way 🛣️</div></div>`;return;}if(fcache.length===0&&rawRows.length>0){mc.innerHTML=`<div style="text-align:center;padding:60px 20px;color:var(--muted)"><svg style="width:52px;height:52px;margin:0 auto 12px;display:block" viewBox="0 0 64 40" xmlns="http://www.w3.org/2000/svg"><path d="M6 26 Q4 26 4 22 L6 18 Q10 12 20 11 L26 6 Q30 3 38 3 L46 6 Q52 8 56 14 L60 18 Q62 20 62 22 L62 26 Z" fill="#dfe6ea" stroke="#7a9dae" stroke-width="1.5"/><path d="M22 11 L28 6 Q31 4 37 4 L44 6 Q48 8 51 12 L52 14 L22 14 Z" fill="#3c6478" opacity=".6"/><circle cx="16" cy="27" r="6" fill="#3c6478"/><circle cx="50" cy="27" r="6" fill="#3c6478"/></svg><div style="font-size:.85rem;font-weight:700;color:var(--text);margin-bottom:6px">No rows match current filters — wrong turn 🚧</div><div style="font-size:.7rem">${rawRows.length} total rows loaded.</div></div>`;return;}if(activeLoc==='__totalsubmit__'){mc.innerHTML='';if(cmpRes)mc.appendChild(cmpRes);renderTotalSubmitSection(mc);return;}if(activeLoc==='__topperf__'){mc.innerHTML='';if(cmpRes)mc.appendChild(cmpRes);renderTopPerformersSection(mc);return;}const locsToRender=activeLoc==='__all__'?locations:[activeLoc];mc.innerHTML='';if(cmpRes)mc.appendChild(cmpRes);if(locations.length===0||locColIdx<0){const wrap=document.createElement('div');wrap.className='loc-section visible';mc.appendChild(wrap);renderLocSection(wrap,null,fcache);return;}locsToRender.forEach(loc=>{const locRows=fcache.filter(r=>String(r[locColIdx]||'').trim()===loc);const wrap=document.createElement('div');wrap.className='loc-section visible';mc.appendChild(wrap);renderLocSection(wrap,loc,locRows);});}
+function renderAllSections(){const mc=document.getElementById('mainContent');const cmpRes=document.getElementById('cmpResultSection');if(activeLoc==='__quality__'){mc.innerHTML='';if(cmpRes)mc.appendChild(cmpRes);renderQualitySection(mc);return;}if(fcache.length===0&&rawRows.length===0){mc.innerHTML=`<div style="text-align:center;padding:60px 20px;color:var(--muted)"><svg style="width:52px;height:52px;margin:0 auto 12px;display:block" viewBox="0 0 64 40" xmlns="http://www.w3.org/2000/svg"><path d="M6 26 Q4 26 4 22 L6 18 Q10 12 20 11 L26 6 Q30 3 38 3 L46 6 Q52 8 56 14 L60 18 Q62 20 62 22 L62 26 Z" fill="#dfe6ea" stroke="#7a9dae" stroke-width="1.5"/><path d="M22 11 L28 6 Q31 4 37 4 L44 6 Q48 8 51 12 L52 14 L22 14 Z" fill="#3c6478" opacity=".6"/><circle cx="16" cy="27" r="6" fill="#3c6478"/><circle cx="50" cy="27" r="6" fill="#3c6478"/></svg><div style="font-size:.85rem;font-weight:700;color:var(--text);margin-bottom:6px">No data found — the car's still on its way 🛣️</div></div>`;return;}if(fcache.length===0&&rawRows.length>0){mc.innerHTML=`<div style="text-align:center;padding:60px 20px;color:var(--muted)"><svg style="width:52px;height:52px;margin:0 auto 12px;display:block" viewBox="0 0 64 40" xmlns="http://www.w3.org/2000/svg"><path d="M6 26 Q4 26 4 22 L6 18 Q10 12 20 11 L26 6 Q30 3 38 3 L46 6 Q52 8 56 14 L60 18 Q62 20 62 22 L62 26 Z" fill="#dfe6ea" stroke="#7a9dae" stroke-width="1.5"/><path d="M22 11 L28 6 Q31 4 37 4 L44 6 Q48 8 51 12 L52 14 L22 14 Z" fill="#3c6478" opacity=".6"/><circle cx="16" cy="27" r="6" fill="#3c6478"/><circle cx="50" cy="27" r="6" fill="#3c6478"/></svg><div style="font-size:.85rem;font-weight:700;color:var(--text);margin-bottom:6px">No rows match current filters — wrong turn 🚧</div><div style="font-size:.7rem">${rawRows.length} total rows loaded.</div></div>`;return;}if(activeLoc==='__totalsubmit__'){mc.innerHTML='';if(cmpRes)mc.appendChild(cmpRes);renderTotalSubmitSection(mc);return;}if(activeLoc==='__topperf__'){mc.innerHTML='';if(cmpRes)mc.appendChild(cmpRes);renderTopPerformersSection(mc);return;}const locsToRender=activeLoc==='__all__'?locations:[activeLoc];mc.innerHTML='';if(cmpRes)mc.appendChild(cmpRes);if(locations.length===0||locColIdx<0){const wrap=document.createElement('div');wrap.className='loc-section visible';mc.appendChild(wrap);renderLocSection(wrap,null,fcache);return;}locsToRender.forEach(loc=>{const locRows=fcache.filter(r=>String(r[locColIdx]||'').trim()===loc);const wrap=document.createElement('div');wrap.className='loc-section visible';mc.appendChild(wrap);renderLocSection(wrap,loc,locRows);});}
 function buildSpeedometer(pct,color){
   pct=Math.max(0,Math.min(100,Math.round(pct)));
   const angle=-90+(pct/100)*180,rad=angle*Math.PI/180,cx=40,cy=40,r=30;
@@ -1302,7 +1463,7 @@ function shootWebScrollTop(){
   setTimeout(()=>{ web.remove(); },520);
 }
 function startApp(){
-  const savedTheme=localStorage.getItem('meeg_theme')||'light';document.documentElement.setAttribute('data-theme',savedTheme);const btn=document.getElementById('darkBtn');if(btn){btn.classList.toggle('active',savedTheme==='dark');btn.innerHTML=savedTheme==='dark'?'🌙 Dark':'☀️ Light';}applyAutoRefreshUI();hideSplash();loadData();startVersionPolling();
+  const savedTheme=localStorage.getItem('meeg_theme')||'light';document.documentElement.setAttribute('data-theme',savedTheme);const btn=document.getElementById('darkBtn');if(btn){btn.classList.toggle('active',savedTheme==='dark');btn.innerHTML=savedTheme==='dark'?'🌙 Dark':'☀️ Light';}applyAutoRefreshUI();hideSplash();loadData();startVersionPolling();fetchQualityData(true);
 }
 window.addEventListener('load',()=>{
   initLoginDodge();
