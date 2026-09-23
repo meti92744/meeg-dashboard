@@ -876,14 +876,60 @@ function renderQualitySection(mc){
     mc.appendChild(umSec);
   }
 
-  /* ---- التوتالات في الآخر: كل شيفت لوحده + الـ Workforce ---- */
+  /* ---- التوتالات في الآخر: جدول Shift sheet + Workforce sheet زي الصورة ---- */
   const totalsSec=document.createElement('div');totalsSec.className='sec';
-  const shiftTotalsRows=SHIFT_GROUPS.map(grp=>{
-    const cnt=Object.values(buckets[grp]).reduce((s,p)=>s+p.count,0);
+  const SHIFT_SHORT={Morning:'M',Night:'N',Overnight:'ON'};
+  let wfSumA=0,wfCntA=0,wfSumB=0,wfCntB=0,wfSumT=0,wfCntT=0,wfCount=0;
+  const shiftRowsHtml=SHIFT_GROUPS.map(grp=>{
+    const people=Object.values(buckets[grp]);
+    const cnt=people.reduce((s,p)=>s+p.count,0);
+    let sumA=0,cntA=0,sumB=0,cntB=0,sumT=0,cntT=0;
+    people.forEach(p=>{sumA+=p.sum.artifacts;cntA+=p.cnt.artifacts;sumB+=p.sum.attribute;cntB+=p.cnt.attribute;sumT+=p.sum.totalAccuracy;cntT+=p.cnt.totalAccuracy;});
+    wfSumA+=sumA;wfCntA+=cntA;wfSumB+=sumB;wfCntB+=cntB;wfSumT+=sumT;wfCntT+=cntT;wfCount+=cnt;
     const col=SHIFT_GROUP_COLORS[grp];
-    return `<div class="cmp-stat-row"><span class="cmp-stat-label" style="color:${col};font-weight:800">${SHIFT_GROUP_ICON[grp]} ${grp}</span><span class="cmp-stat-val" style="color:${col}">${cnt}</span></div>`;
+    return `<tr style="border-bottom:1px solid var(--border-light)">
+      <td style="padding:7px 10px;font-size:.66rem;color:var(--text-soft);white-space:nowrap">${esc(todayStr)}</td>
+      <td style="padding:7px 10px;font-size:.68rem;font-weight:800;color:${col};white-space:nowrap">${SHIFT_GROUP_ICON[grp]} ${SHIFT_SHORT[grp]}</td>
+      <td style="padding:7px 10px;text-align:center;font-size:.68rem;font-family:var(--mono);font-weight:700">${cnt}</td>
+      <td style="padding:7px 10px;text-align:center;font-size:.66rem;font-family:var(--mono)">${qFmt(cntA?sumA/cntA:null)}</td>
+      <td style="padding:7px 10px;text-align:center;font-size:.66rem;font-family:var(--mono)">${qFmt(cntB?sumB/cntB:null)}</td>
+      <td style="padding:7px 10px;text-align:center;font-size:.72rem;font-family:var(--mono);font-weight:900;color:${col}">${qFmt(cntT?sumT/cntT:null)}</td>
+    </tr>`;
   }).join('');
-  totalsSec.innerHTML=`<div class="sec-hd"><span class="sec-t">📊 Totals</span></div><div style="padding:12px 16px;max-width:360px">${shiftTotalsRows}<div class="cmp-stat-row" style="border-top:2px solid var(--border);margin-top:6px;padding-top:8px"><span class="cmp-stat-label" style="font-weight:900;color:var(--text)">🏢 Workforce (Company Total)</span><span class="cmp-stat-val" style="font-size:.9rem;color:var(--accent)">${totalQ}</span></div></div>`;
+  const shiftSheet=`<div style="flex:1;min-width:280px">
+    <div style="text-align:center;font-family:var(--display);font-weight:800;font-size:.72rem;color:var(--text);background:var(--elevated);padding:7px;border-radius:10px 10px 0 0;border:2px solid var(--border);border-bottom:none">Shift sheet</div>
+    <div style="overflow-x:auto;border:2px solid var(--border);border-radius:0 0 10px 10px"><table style="width:100%;border-collapse:collapse">
+      <thead><tr>
+        <th style="background:var(--elevated);color:var(--text-soft);font-size:.52rem;padding:7px 10px;text-align:left;border-bottom:1.5px solid var(--border);font-weight:700">DATE</th>
+        <th style="background:var(--elevated);color:var(--text-soft);font-size:.52rem;padding:7px 10px;text-align:left;border-bottom:1.5px solid var(--border);font-weight:700">Shift</th>
+        <th style="background:var(--elevated);color:var(--text-soft);font-size:.52rem;padding:7px 10px;text-align:center;border-bottom:1.5px solid var(--border);font-weight:700">NO. Tasks</th>
+        <th style="background:var(--elevated);color:var(--text-soft);font-size:.52rem;padding:7px 10px;text-align:center;border-bottom:1.5px solid var(--border);font-weight:700">Artifacts</th>
+        <th style="background:var(--elevated);color:var(--text-soft);font-size:.52rem;padding:7px 10px;text-align:center;border-bottom:1.5px solid var(--border);font-weight:700">Attribute</th>
+        <th style="background:var(--elevated);color:var(--text-soft);font-size:.52rem;padding:7px 10px;text-align:center;border-bottom:1.5px solid var(--border);font-weight:700">Total Accuracy</th>
+      </tr></thead>
+      <tbody>${shiftRowsHtml}</tbody>
+    </table></div>
+  </div>`;
+  const workforceSheet=`<div style="flex:1;min-width:280px">
+    <div style="text-align:center;font-family:var(--display);font-weight:800;font-size:.72rem;color:var(--text);background:var(--elevated);padding:7px;border-radius:10px 10px 0 0;border:2px solid var(--border);border-bottom:none">Workforce sheet</div>
+    <div style="overflow-x:auto;border:2px solid var(--border);border-radius:0 0 10px 10px"><table style="width:100%;border-collapse:collapse">
+      <thead><tr>
+        <th style="background:var(--elevated);color:var(--text-soft);font-size:.52rem;padding:7px 10px;text-align:left;border-bottom:1.5px solid var(--border);font-weight:700">DATE</th>
+        <th style="background:var(--elevated);color:var(--text-soft);font-size:.52rem;padding:7px 10px;text-align:center;border-bottom:1.5px solid var(--border);font-weight:700">Total NO. Tasks</th>
+        <th style="background:var(--elevated);color:var(--text-soft);font-size:.52rem;padding:7px 10px;text-align:center;border-bottom:1.5px solid var(--border);font-weight:700">Artifacts</th>
+        <th style="background:var(--elevated);color:var(--text-soft);font-size:.52rem;padding:7px 10px;text-align:center;border-bottom:1.5px solid var(--border);font-weight:700">Attribute</th>
+        <th style="background:var(--accent-light);color:var(--accent);font-size:.52rem;padding:7px 10px;text-align:center;border-bottom:1.5px solid var(--border);font-weight:800">Total Accuracy</th>
+      </tr></thead>
+      <tbody><tr>
+        <td style="padding:7px 10px;font-size:.66rem;color:var(--text-soft);white-space:nowrap">${esc(todayStr)}</td>
+        <td style="padding:7px 10px;text-align:center;font-size:.68rem;font-family:var(--mono);font-weight:800">${wfCount}</td>
+        <td style="padding:7px 10px;text-align:center;font-size:.66rem;font-family:var(--mono)">${qFmt(wfCntA?wfSumA/wfCntA:null)}</td>
+        <td style="padding:7px 10px;text-align:center;font-size:.66rem;font-family:var(--mono)">${qFmt(wfCntB?wfSumB/wfCntB:null)}</td>
+        <td style="padding:7px 10px;text-align:center;font-size:.78rem;font-family:var(--mono);font-weight:900;color:var(--accent)">${qFmt(wfCntT?wfSumT/wfCntT:null)}</td>
+      </tr></tbody>
+    </table></div>
+  </div>`;
+  totalsSec.innerHTML=`<div class="sec-hd"><span class="sec-t">📊 Totals</span></div><div style="padding:14px 16px;display:flex;gap:16px;flex-wrap:wrap">${shiftSheet}${workforceSheet}</div>`;
   mc.appendChild(totalsSec);
 
   if(unmatched>0){
