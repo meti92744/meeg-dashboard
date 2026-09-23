@@ -809,11 +809,13 @@ function computePersonShiftGroups(){
 function renderQualitySection(mc){
   const ctx=computePersonShiftGroups();
   const{idToPersonKey,personGroup,personDisplay}=ctx;
+  window._qualityCtx=ctx;
   const buckets={Morning:{},Night:{},Overnight:{}};
   let matched=0,unmatched=0;
+  const unmatchedList=[];
   Object.entries(qualityStore).forEach(([aid,q])=>{
     const key=idToPersonKey[aid];
-    if(!key){unmatched++;return;}
+    if(!key){unmatched++;unmatchedList.push({aid,q});return;}
     matched++;
     const grp=personGroup[key]||'Overnight';
     if(!buckets[grp][key]){
@@ -832,52 +834,88 @@ function renderQualitySection(mc){
   toolbar.innerHTML=`<div class="sec-hd"><span class="sec-t">📥 استيراد من تاب "Export"</span><span class="sec-m">آخر استيراد: ${esc(lastImp)}</span></div><div style="padding:12px 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button class="btn btn-c" id="qualityRefreshBtn" onclick="fetchQualityData(false)">📥 Import / Refresh Quality</button><span class="ltxt" style="font-size:.6rem">البيانات القديمة بتفضل محفوظة في الداشبورد حتى لو مسحت تاب Export وحطيت بيانات جديدة</span></div>`;
   mc.appendChild(toolbar);
 
+  /* ---- بحث بالـ ID ---- */
+  const searchSec=document.createElement('div');searchSec.className='sec';
+  searchSec.innerHTML=`<div class="sec-hd"><span class="sec-t">🔎 دور على تاسك بالـ ID</span></div><div class="ttbar"><input class="srch" id="qualityIdSearch" placeholder="🔍 اكتب الـ ID..." oninput="filterQualityById(this.value)"/><span class="rcnt" id="qualityIdCount">—</span></div><div id="qualityIdResult" style="padding:0 14px 14px"></div>`;
+  mc.appendChild(searchSec);
+
+  /* ---- كروت زي Device Submit Counts، لكل شيفت لوحدها ---- */
   SHIFT_GROUPS.forEach(grp=>{
     const people=Object.values(buckets[grp]).sort((a,b)=>b.count-a.count);
     const col=SHIFT_GROUP_COLORS[grp];
     const groupTotalCount=people.reduce((s,p)=>s+p.count,0);
     function avgOf(p,m){return p.cnt[m]?p.sum[m]/p.cnt[m]:null;}
-    const shiftSum={artifacts:0,attribute:0,tvaF1:0,totalAccuracy:0};
-    const shiftCnt={artifacts:0,attribute:0,tvaF1:0,totalAccuracy:0};
-    people.forEach(p=>{QUALITY_METRICS.forEach(m=>{shiftSum[m]+=p.sum[m];shiftCnt[m]+=p.cnt[m];});});
-    function shiftAvg(m){return shiftCnt[m]?shiftSum[m]/shiftCnt[m]:null;}
-    const rows=people.map(p=>`<tr style="border-bottom:1px solid var(--border-light)">
-        <td style="padding:6px 10px;color:var(--text);font-size:.68rem;font-weight:700;white-space:nowrap">${esc(p.display)}</td>
-        <td style="padding:6px 10px;text-align:center;font-size:.65rem;font-family:var(--mono)">${p.count}</td>
-        <td style="padding:6px 10px;text-align:center;font-size:.65rem;font-family:var(--mono)">${qFmt(avgOf(p,'artifacts'))}</td>
-        <td style="padding:6px 10px;text-align:center;font-size:.65rem;font-family:var(--mono)">${qFmt(avgOf(p,'attribute'))}</td>
-        <td style="padding:6px 10px;text-align:center;font-size:.65rem;font-family:var(--mono)">${qFmt(avgOf(p,'tvaF1'))}</td>
-        <td style="padding:6px 10px;text-align:center;font-size:.7rem;font-family:var(--mono);font-weight:800;color:${col}">${qFmt(avgOf(p,'totalAccuracy'))}</td>
-      </tr>`).join('');
+    const cardsHtml=people.map(p=>{
+      const acc=avgOf(p,'totalAccuracy');
+      return `<div class="dcard" style="cursor:default;border-color:${col}55;background:${col}0d">
+        <div class="dc-top"><span class="dc-pc" style="color:${col}">${esc(p.display)}</span><span class="dc-cnt" style="background:linear-gradient(135deg,${col},${col}cc)">${p.count}</span></div>
+        <div class="dc-meta"><span class="dc-mi">🧩</span><span class="dc-mt">Artifacts: ${qFmt(avgOf(p,'artifacts'))}</span></div>
+        <div class="dc-meta"><span class="dc-mi">🏷️</span><span class="dc-mt">Attribute: ${qFmt(avgOf(p,'attribute'))}</span></div>
+        <div class="dc-meta"><span class="dc-mi">📐</span><span class="dc-mt">TVA F1: ${qFmt(avgOf(p,'tvaF1'))}</span></div>
+        <div class="dc-qs"><span class="qtag" style="background:${col}22;color:${col};border-color:${col}55;font-weight:800">🎯 Total: ${qFmt(acc)}</span></div>
+      </div>`;
+    }).join('');
     const sec=document.createElement('div');sec.className='sec';sec.style.borderLeft=`4px solid ${col}`;
-    sec.innerHTML=`<div class="sec-hd"><span class="sec-t">${SHIFT_GROUP_ICON[grp]} ${grp} Shift</span><span class="sec-m">${people.length} labelers · ${groupTotalCount} tasks</span></div>
-    <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.66rem">
-    <thead><tr>
-      <th style="background:var(--elevated);color:var(--text-soft);font-size:.55rem;padding:7px 10px;text-align:left;border-bottom:1.5px solid var(--border);font-weight:700">Labeler</th>
-      <th style="background:var(--elevated);color:var(--text-soft);font-size:.55rem;padding:7px 10px;text-align:center;border-bottom:1.5px solid var(--border);font-weight:700">Tasks</th>
-      <th style="background:var(--elevated);color:var(--text-soft);font-size:.55rem;padding:7px 10px;text-align:center;border-bottom:1.5px solid var(--border);font-weight:700">Artifacts</th>
-      <th style="background:var(--elevated);color:var(--text-soft);font-size:.55rem;padding:7px 10px;text-align:center;border-bottom:1.5px solid var(--border);font-weight:700">Attribute</th>
-      <th style="background:var(--elevated);color:var(--text-soft);font-size:.55rem;padding:7px 10px;text-align:center;border-bottom:1.5px solid var(--border);font-weight:700">TVA F1</th>
-      <th style="background:var(--elevated);color:${col};font-size:.55rem;padding:7px 10px;text-align:center;border-bottom:1.5px solid var(--border);font-weight:800">Total Accuracy</th>
-    </tr></thead>
-    <tbody>${rows||`<tr><td colspan="6" style="text-align:center;padding:18px;color:var(--muted)">لا يوجد بيانات كوالتي لهذه الشيفت</td></tr>`}</tbody>
-    <tfoot><tr style="border-top:2px solid var(--border);background:var(--elevated)">
-      <td style="padding:8px 10px;font-size:.68rem;font-weight:800;color:var(--text)">🏆 ${grp} Total</td>
-      <td style="padding:8px 10px;text-align:center;font-size:.68rem;font-weight:800;font-family:var(--mono)">${groupTotalCount}</td>
-      <td style="padding:8px 10px;text-align:center;font-size:.68rem;font-weight:800;font-family:var(--mono)">${qFmt(shiftAvg('artifacts'))}</td>
-      <td style="padding:8px 10px;text-align:center;font-size:.68rem;font-weight:800;font-family:var(--mono)">${qFmt(shiftAvg('attribute'))}</td>
-      <td style="padding:8px 10px;text-align:center;font-size:.68rem;font-weight:800;font-family:var(--mono)">${qFmt(shiftAvg('tvaF1'))}</td>
-      <td style="padding:8px 10px;text-align:center;font-size:.75rem;font-weight:900;font-family:var(--mono);color:${col}">${qFmt(shiftAvg('totalAccuracy'))}</td>
-    </tr></tfoot>
-    </table></div>`;
+    sec.innerHTML=`<div class="sec-hd"><span class="sec-t">${SHIFT_GROUP_ICON[grp]} ${grp} Shift</span><span class="sec-m">${people.length} labelers · ${groupTotalCount} tasks</span></div><div class="cgrid">${cardsHtml||`<div class="catempty" style="grid-column:1/-1">لا يوجد بيانات كوالتي لهذه الشيفت</div>`}</div>`;
     mc.appendChild(sec);
   });
 
+  /* ---- التاسكات اللي مالهاش ID متطابق ---- */
+  if(unmatchedList.length){
+    const umCards=unmatchedList.map(({aid,q})=>{
+      return `<div class="dcard" style="cursor:default;border-color:rgba(255,95,126,.5);background:rgba(255,95,126,.07)">
+        <div class="dc-top"><span class="dc-pc" style="color:var(--danger)">🆔 ${esc(aid)}</span></div>
+        <div class="dc-meta"><span class="dc-mi">🧩</span><span class="dc-mt">Artifacts: ${qFmt(qNum(q.artifacts))}</span></div>
+        <div class="dc-meta"><span class="dc-mi">🏷️</span><span class="dc-mt">Attribute: ${qFmt(qNum(q.attribute))}</span></div>
+        <div class="dc-meta"><span class="dc-mi">📐</span><span class="dc-mt">TVA F1: ${qFmt(qNum(q.tvaF1))}</span></div>
+        <div class="dc-qs"><span class="qtag" style="background:rgba(255,95,126,.15);color:var(--danger);border-color:rgba(255,95,126,.4);font-weight:800">🎯 Total: ${qFmt(qNum(q.totalAccuracy))}</span></div>
+      </div>`;
+    }).join('');
+    const umSec=document.createElement('div');umSec.className='sec';umSec.style.borderLeft='4px solid var(--danger)';
+    umSec.innerHTML=`<div class="sec-hd"><span class="sec-t">🚫 Unmatched Tasks</span><span class="sec-m">${unmatchedList.length} tasks بدون ID مطابق</span></div><div class="cgrid">${umCards}</div>`;
+    mc.appendChild(umSec);
+  }
+
+  /* ---- التوتالات في الآخر: كل شيفت لوحده + الـ Workforce ---- */
+  const totalsSec=document.createElement('div');totalsSec.className='sec';
+  const shiftTotalsRows=SHIFT_GROUPS.map(grp=>{
+    const cnt=Object.values(buckets[grp]).reduce((s,p)=>s+p.count,0);
+    const col=SHIFT_GROUP_COLORS[grp];
+    return `<div class="cmp-stat-row"><span class="cmp-stat-label" style="color:${col};font-weight:800">${SHIFT_GROUP_ICON[grp]} ${grp}</span><span class="cmp-stat-val" style="color:${col}">${cnt}</span></div>`;
+  }).join('');
+  totalsSec.innerHTML=`<div class="sec-hd"><span class="sec-t">📊 Totals</span></div><div style="padding:12px 16px;max-width:360px">${shiftTotalsRows}<div class="cmp-stat-row" style="border-top:2px solid var(--border);margin-top:6px;padding-top:8px"><span class="cmp-stat-label" style="font-weight:900;color:var(--text)">🏢 Workforce (Company Total)</span><span class="cmp-stat-val" style="font-size:.9rem;color:var(--accent)">${totalQ}</span></div></div>`;
+  mc.appendChild(totalsSec);
+
   if(unmatched>0){
     const warn=document.createElement('div');warn.className='errbox';warn.style.margin='0';
-    warn.innerHTML=`⚠️ ${unmatched} صف من الكوالتي مالوش ID متطابق في Data Base (متعروضش مقسّم على شيفت). تأكد إن عمود Actual ID في Export مطابق لعمود ID في Data Base.`;
+    warn.innerHTML=`⚠️ ${unmatched} صف من الكوالتي مالوش ID متطابق في Data Base (اتعرضوا في قسم Unmatched Tasks فوق). تأكد إن عمود Actual ID في Export مطابق لعمود ID في Data Base.`;
     mc.appendChild(warn);
   }
+}
+function filterQualityById(val){
+  const q=(val||'').trim().toLowerCase();
+  const resEl=document.getElementById('qualityIdResult');
+  const cntEl=document.getElementById('qualityIdCount');
+  if(!resEl)return;
+  if(!q){resEl.innerHTML='';if(cntEl)cntEl.textContent='—';return;}
+  const ctx=window._qualityCtx||computePersonShiftGroups();
+  const matches=Object.entries(qualityStore).filter(([aid])=>aid.toLowerCase().includes(q)).slice(0,30);
+  if(cntEl)cntEl.textContent=matches.length+' نتيجة';
+  if(!matches.length){resEl.innerHTML='<div class="empty" style="padding:16px"><span>🔍</span>مفيش تاسك بالـ ID ده</div>';return;}
+  resEl.innerHTML=`<div class="cgrid">`+matches.map(([aid,qd])=>{
+    const key=ctx.idToPersonKey[aid];
+    const grp=key?(ctx.personGroup[key]||null):null;
+    const person=key?(ctx.personDisplay[key]||key):null;
+    const col=grp?SHIFT_GROUP_COLORS[grp]:'var(--danger)';
+    return `<div class="dcard" style="cursor:default;border-color:${col}55;background:${col}0d">
+      <div class="dc-top"><span class="dc-pc" style="color:${col}">🆔 ${esc(aid)}</span></div>
+      ${person?`<div class="dc-meta"><span class="dc-mi">👤</span><span class="dc-mt">${esc(person)}</span></div><div class="dc-meta"><span class="dc-mi">${grp?SHIFT_GROUP_ICON[grp]:''}</span><span class="dc-mt">${esc(grp||'—')} Shift</span></div>`:`<div class="dc-meta"><span class="dc-mi">🚫</span><span class="dc-mt">Unmatched</span></div>`}
+      <div class="dc-meta"><span class="dc-mi">🧩</span><span class="dc-mt">Artifacts: ${qFmt(qNum(qd.artifacts))}</span></div>
+      <div class="dc-meta"><span class="dc-mi">🏷️</span><span class="dc-mt">Attribute: ${qFmt(qNum(qd.attribute))}</span></div>
+      <div class="dc-meta"><span class="dc-mi">📐</span><span class="dc-mt">TVA F1: ${qFmt(qNum(qd.tvaF1))}</span></div>
+      <div class="dc-qs"><span class="qtag" style="background:${col}22;color:${col};border-color:${col}55;font-weight:800">🎯 Total: ${qFmt(qNum(qd.totalAccuracy))}</span></div>
+    </div>`;
+  }).join('')+`</div>`;
 }
 loadQualityStore();
 /* ============ END QUALITY TAB ============ */
