@@ -737,6 +737,77 @@ const SHIFT_GROUPS=['Morning','Night','Overnight'];
 const SHIFT_GROUP_COLORS={Morning:'#e8a000',Night:'#0f8fff',Overnight:'#7c3aed'};
 const SHIFT_GROUP_ICON={Morning:'🌅',Night:'🌆',Overnight:'🌙'};
 
+/* ============ SHIFT SHEET / WORKFORCE SHEET (summary import) ============ */
+// نفس الـ Google Sheet — التاب اللي فيه جدول "Shift sheet" (T:Y) وجدول "Workforce sheet" (AA:AD) جنب بعض
+const SUMMARY_SHEET_NAME='Export'; // غيّر الاسم هنا لو الجدولين دول في تاب مختلف عن Export
+const SHIFT_STORE_KEY='meeg_shiftsheet_store_v1';
+const WORKFORCE_STORE_KEY='meeg_workforce_store_v1';
+const SUMMARY_LAST_IMPORT_KEY='meeg_summary_last_import';
+let shiftSheetStore={}; // key: date+'|'+shift
+let workforceStore={};  // key: date
+let summaryLastImport=null;
+let summaryLoading=false;
+
+function loadSummaryStore(){
+  try{const r=localStorage.getItem(SHIFT_STORE_KEY);shiftSheetStore=r?JSON.parse(r):{};}catch(e){shiftSheetStore={};}
+  try{const r=localStorage.getItem(WORKFORCE_STORE_KEY);workforceStore=r?JSON.parse(r):{};}catch(e){workforceStore={};}
+  try{const li=localStorage.getItem(SUMMARY_LAST_IMPORT_KEY);summaryLastImport=li?parseInt(li):null;}catch(e){summaryLastImport=null;}
+}
+function saveSummaryStore(){
+  try{localStorage.setItem(SHIFT_STORE_KEY,JSON.stringify(shiftSheetStore));}catch(e){}
+  try{localStorage.setItem(WORKFORCE_STORE_KEY,JSON.stringify(workforceStore));}catch(e){}
+}
+function parseSummarySheet(text){
+  const table=parseCSV(text).filter(r=>r&&r.length);
+  let headerRowIdx=-1;
+  for(let i=0;i<Math.min(8,table.length);i++){
+    if(table[i].some(c=>String(c||'').trim().toUpperCase()==='DATE')){headerRowIdx=i;break;}
+  }
+  if(headerRowIdx<0)return{shift:[],workforce:[]};
+  const header=table[headerRowIdx].map(h=>String(h||'').trim());
+  const dateCols=[];header.forEach((h,i)=>{if(h.toUpperCase()==='DATE')dateCols.push(i);});
+  if(!dateCols.length)return{shift:[],workforce:[]};
+  const shiftStart=dateCols[0];
+  const workforceStart=dateCols.length>1?dateCols[1]:-1;
+  const shiftEnd=workforceStart>=0?workforceStart:header.length;
+  function findCol(start,end,needles){for(let i=start;i<end;i++){const h=(header[i]||'').toLowerCase();for(const n of needles){if(h.includes(n))return i;}}return -1;}
+  const sMap={date:shiftStart,shift:findCol(shiftStart,shiftEnd,['shift']),tasks:findCol(shiftStart,shiftEnd,['task']),artifacts:findCol(shiftStart,shiftEnd,['artifact']),attribute:findCol(shiftStart,shiftEnd,['attribute']),accuracy:findCol(shiftStart,shiftEnd,['accuracy'])};
+  const wMap=workforceStart>=0?{date:workforceStart,artifacts:findCol(workforceStart,header.length,['artifact']),attribute:findCol(workforceStart,header.length,['attribute']),accuracy:findCol(workforceStart,header.length,['accuracy'])}:null;
+  const shiftRows=[],wfRows=[];
+  for(let r=headerRowIdx+1;r<table.length;r++){
+    const row=table[r];if(!row)continue;
+    const d=String(row[sMap.date]||'').trim();
+    if(d){
+      shiftRows.push({date:d,shift:sMap.shift>=0?String(row[sMap.shift]||'').trim():'',tasks:sMap.tasks>=0?String(row[sMap.tasks]||'').trim():'',artifacts:sMap.artifacts>=0?String(row[sMap.artifacts]||'').trim():'',attribute:sMap.attribute>=0?String(row[sMap.attribute]||'').trim():'',accuracy:sMap.accuracy>=0?String(row[sMap.accuracy]||'').trim():''});
+    }
+    if(wMap){
+      const d2=String(row[wMap.date]||'').trim();
+      if(d2){
+        wfRows.push({date:d2,artifacts:wMap.artifacts>=0?String(row[wMap.artifacts]||'').trim():'',attribute:wMap.attribute>=0?String(row[wMap.attribute]||'').trim():'',accuracy:wMap.accuracy>=0?String(row[wMap.accuracy]||'').trim():''});
+      }
+    }
+  }
+  return{shift:shiftRows,workforce:wfRows};
+}
+function fetchSummaryData(silent){
+  if(summaryLoading)return;
+  summaryLoading=true;
+  const url=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(SUMMARY_SHEET_NAME)}`;
+  fetch(url).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.text();}).then(txt=>{
+    summaryLoading=false;
+    const{shift,workforce}=parseSummarySheet(txt);
+    const now=Date.now();
+    shift.forEach(row=>{const key=row.date+'|'+row.shift;shiftSheetStore[key]={...row,importedAt:now};});
+    workforce.forEach(row=>{workforceStore[row.date]={...row,importedAt:now};});
+    saveSummaryStore();
+    summaryLastImport=now;
+    try{localStorage.setItem(SUMMARY_LAST_IMPORT_KEY,String(now));}catch(e){}
+    if(activeLoc==='__quality__')renderAllSections();
+  }).catch(e=>{summaryLoading=false;if(!silent)showToast('⚠️ فشل تحميل Shift/Workforce sheet: '+e.message);});
+}
+loadSummaryStore();
+/* ============ END SHIFT SHEET / WORKFORCE SHEET ============ */
+
 let qualityStore={};
 let qualityLastImport=null;
 let qualityLoading=false;
@@ -779,6 +850,7 @@ function fetchQualityData(silent){
     qualityLoading=false;if(btn)btn.disabled=false;
     if(!silent)showToast('⚠️ فشل تحميل الكوالتي: '+e.message);
   });
+  fetchSummaryData(silent);
 }
 function qNum(v){const n=parseFloat(v);return isNaN(n)?null:n;}
 function qFmt(n){if(n===null||n===undefined)return'—';return(n<=1?(n*100):n).toFixed(1)+'%';}
@@ -812,6 +884,102 @@ function computePersonShiftGroups(){
   });
   return{personGroup,personDisplay,idToPersonKey,personTopPc};
 }
+function computeIdToRow(){
+  const idIdx=hdrs.findIndex(h=>h.toLowerCase()==='id');
+  const map={};
+  if(idIdx<0)return map;
+  rawRows.forEach(r=>{const rid=String(r[idIdx]||'').trim();if(rid)map[rid]=r;});
+  return map;
+}
+let qualityIdSearch='';
+let _qualityIdSearchDebounce=null;
+function setQualityIdSearch(v){
+  clearTimeout(_qualityIdSearchDebounce);
+  _qualityIdSearchDebounce=setTimeout(()=>{qualityIdSearch=v.trim();renderQualityIdResults();},250);
+}
+function qMetricRow(rec){
+  return QUALITY_METRICS.map(m=>`<span class="qtag" title="${QUALITY_METRIC_LABELS[m]}">${QUALITY_METRIC_LABELS[m]}: ${esc(rec[m]||'—')}</span>`).join('');
+}
+function renderQualityIdResults(){
+  const box=document.getElementById('qualityIdResults');if(!box)return;
+  const idToRow=window._qIdToRow||{};
+  const q=qualityIdSearch.toLowerCase();
+  if(!q){box.innerHTML=`<div class="empty" style="padding:16px"><span>🔎</span>اكتب ID للبحث عن تاسك معين</div>`;return;}
+  const matches=Object.entries(qualityStore).filter(([aid])=>aid.toLowerCase().includes(q));
+  if(!matches.length){box.innerHTML=`<div class="empty" style="padding:16px"><span>🚫</span>مفيش تاسك بالـ ID ده في بيانات الكوالتي</div>`;return;}
+  box.innerHTML=matches.map(([aid,rec])=>{
+    const row=idToRow[aid];
+    const isUnmatched=!row;
+    const pcIdx=sIdx['Pc No'],nameIdx=hdrs.findIndex(h=>h.toLowerCase()==='labeler name'),qIdx2=hdrs.findIndex(h=>h.toLowerCase()==='queue name');
+    const pc=row&&pcIdx!==undefined?String(row[pcIdx]||'').trim():'—';
+    const name=row&&nameIdx>=0?String(row[nameIdx]||'').trim():'—';
+    const queue=row&&qIdx2>=0?String(row[qIdx2]||'').trim():'—';
+    return `<div class="dcard${isUnmatched?' sl-card':' sv-card'}">
+      <div class="dc-top"><span class="dc-pc">🆔 ${esc(aid)}</span>${isUnmatched?'<span class="dc-badge">Unmatched</span>':''}</div>
+      <div class="dc-meta"><span class="dc-mi">🖥️</span><span class="dc-mt">${esc(pc)}</span></div>
+      <div class="dc-meta"><span class="dc-mi">👤</span><span class="dc-mt">${esc(name)}</span></div>
+      <div class="dc-meta"><span class="dc-mi">📋</span><span class="dc-mt">${esc(queue)}</span></div>
+      <div class="dc-qs">${qMetricRow(rec)}</div>
+    </div>`;
+  }).join('');
+}
+function renderQualityDeviceCards(mc,idToRow){
+  const pcIdx=sIdx['Pc No'];
+  if(pcIdx===undefined)return;
+  const map={};
+  Object.entries(qualityStore).forEach(([aid,rec])=>{
+    const row=idToRow[aid];if(!row)return;
+    const pc=String(row[pcIdx]||'').trim();if(!pc)return;
+    if(!map[pc])map[pc]={pc,count:0,sum:{artifacts:0,attribute:0,tvaF1:0,totalAccuracy:0},cnt:{artifacts:0,attribute:0,tvaF1:0,totalAccuracy:0}};
+    map[pc].count++;
+    QUALITY_METRICS.forEach(m=>{const n=qNum(rec[m]);if(n!==null){map[pc].sum[m]+=n;map[pc].cnt[m]++;}});
+  });
+  const list=Object.values(map).sort((a,b)=>String(a.pc).localeCompare(String(b.pc),undefined,{numeric:true}));
+  const sec=document.createElement('div');sec.className='sec';
+  const cards=list.map(d=>{
+    let s=0,c=0;QUALITY_METRICS.forEach(m=>{if(d.cnt[m]){s+=d.sum[m]/d.cnt[m];c++;}});
+    const overall=c?s/c:null;
+    return `<div class="dcard">
+      <div class="dc-top"><span class="dc-pc">🖥️ ${esc(d.pc)}</span><span class="dc-cnt">${d.count}</span></div>
+      <div class="dc-meta"><span class="dc-mi">🎯</span><span class="dc-mt">Quality: ${qFmt(overall)}</span></div>
+      <div class="dc-qs">${QUALITY_METRICS.map(m=>`<span class="qtag">${QUALITY_METRIC_LABELS[m]}: ${qFmt(d.cnt[m]?d.sum[m]/d.cnt[m]:null)}</span>`).join('')}</div>
+    </div>`;
+  }).join('');
+  sec.innerHTML=`<div class="sec-hd"><span class="sec-t">🖥️ Device Quality Counts</span><span class="sec-m">${list.length} devices</span></div><div class="cgrid">${cards||`<div class="empty" style="grid-column:1/-1"><span>🖥️</span>لا يوجد بيانات كوالتي مرتبطة بأجهزة</div>`}</div>`;
+  mc.appendChild(sec);
+}
+function renderShiftSheetSection(mc){
+  const rows=Object.values(shiftSheetStore).sort((a,b)=>(b.date+b.shift).localeCompare(a.date+a.shift));
+  const sec=document.createElement('div');sec.className='sec';
+  const body=rows.map(r=>`<tr style="border-bottom:1px solid var(--border-light)">
+    <td style="padding:6px 10px;font-size:.66rem;color:var(--text);font-family:var(--mono)">${esc(r.date)}</td>
+    <td style="padding:6px 10px;text-align:center;font-size:.66rem"><span class="tds">${esc(r.shift)}</span></td>
+    <td style="padding:6px 10px;text-align:center;font-size:.66rem;font-family:var(--mono)">${esc(r.tasks)}</td>
+    <td style="padding:6px 10px;text-align:center;font-size:.66rem;font-family:var(--mono)">${esc(r.artifacts)}</td>
+    <td style="padding:6px 10px;text-align:center;font-size:.66rem;font-family:var(--mono)">${esc(r.attribute)}</td>
+    <td style="padding:6px 10px;text-align:center;font-size:.7rem;font-family:var(--mono);font-weight:800;color:var(--accent)">${esc(r.accuracy)}</td>
+  </tr>`).join('');
+  sec.innerHTML=`<div class="sec-hd"><span class="sec-t">🗓️ Shift Sheet — Per Shift Quality</span><span class="sec-m">${rows.length} rows</span></div>
+  <div class="tbl-w" style="max-height:320px"><table><thead><tr>
+    <th>Date</th><th style="text-align:center">Shift</th><th style="text-align:center">No. Tasks</th><th style="text-align:center">Artifacts</th><th style="text-align:center">Attribute</th><th style="text-align:center">Total Accuracy</th>
+  </tr></thead><tbody>${body||`<tr><td colspan="6" style="text-align:center;padding:18px;color:var(--muted)">لسه معملتش استيراد لتاب الـ Shift sheet</td></tr>`}</tbody></table></div>`;
+  mc.appendChild(sec);
+}
+function renderWorkforceSection(mc){
+  const rows=Object.values(workforceStore).sort((a,b)=>b.date.localeCompare(a.date));
+  const sec=document.createElement('div');sec.className='sec';sec.style.borderLeft='4px solid var(--accent)';
+  const body=rows.map((r,i)=>`<tr style="border-bottom:1px solid var(--border-light)${i===0?';background:var(--accent-light)':''}">
+    <td style="padding:7px 10px;font-size:.68rem;color:var(--text);font-family:var(--mono);font-weight:${i===0?800:600}">${esc(r.date)}${i===0?' 🏢':''}</td>
+    <td style="padding:7px 10px;text-align:center;font-size:.68rem;font-family:var(--mono)">${esc(r.artifacts)}</td>
+    <td style="padding:7px 10px;text-align:center;font-size:.68rem;font-family:var(--mono)">${esc(r.attribute)}</td>
+    <td style="padding:7px 10px;text-align:center;font-size:.75rem;font-family:var(--mono);font-weight:800;color:var(--accent)">${esc(r.accuracy)}</td>
+  </tr>`).join('');
+  sec.innerHTML=`<div class="sec-hd"><span class="sec-t">🏢 Workforce — Company Total</span><span class="sec-m">${rows.length} days</span></div>
+  <div class="tbl-w" style="max-height:280px"><table><thead><tr>
+    <th>Date</th><th style="text-align:center">Artifacts</th><th style="text-align:center">Attribute</th><th style="text-align:center">Total Accuracy</th>
+  </tr></thead><tbody>${body||`<tr><td colspan="4" style="text-align:center;padding:18px;color:var(--muted)">لسه معملتش استيراد لتاب الـ Workforce sheet</td></tr>`}</tbody></table></div>`;
+  mc.appendChild(sec);
+}
 function renderQualitySection(mc){
   const ctx=computePersonShiftGroups();
   const{idToPersonKey,personGroup,personDisplay,personTopPc}=ctx;
@@ -837,6 +1005,14 @@ function renderQualitySection(mc){
   const toolbar=document.createElement('div');toolbar.className='sec';
   toolbar.innerHTML=`<div class="sec-hd"><span class="sec-t">📥 استيراد من تاب "Export"</span><span class="sec-m">آخر استيراد: ${esc(lastImp)}</span></div><div style="padding:12px 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button class="btn btn-c" id="qualityRefreshBtn" onclick="fetchQualityData(false)">📥 Import / Refresh Quality</button><span class="ltxt" style="font-size:.6rem">البيانات القديمة بتفضل محفوظة في الداشبورد حتى لو مسحت تاب Export وحطيت بيانات جديدة</span></div>`;
   mc.appendChild(toolbar);
+
+  const idToRow=computeIdToRow();
+  window._qIdToRow=idToRow;
+  const searchSec=document.createElement('div');searchSec.className='sec';
+  searchSec.innerHTML=`<div class="sec-hd"><span class="sec-t">🔎 دور على تاسك معين بالـ ID</span></div><div class="ttbar"><input class="srch" id="qualityIdSearchInput" placeholder="🔎 اكتب الـ ID هنا…" oninput="setQualityIdSearch(this.value)"/></div><div id="qualityIdResults" class="cgrid"><div class="empty" style="padding:16px;grid-column:1/-1"><span>🔎</span>اكتب ID للبحث عن تاسك معين</div></div>`;
+  mc.appendChild(searchSec);
+
+  renderQualityDeviceCards(mc,idToRow);
 
   SHIFT_GROUPS.forEach(grp=>{
     const people=Object.values(buckets[grp]).sort((a,b)=>b.count-a.count);
