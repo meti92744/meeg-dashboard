@@ -879,13 +879,13 @@ function renderQualitySection(mc){
   /* ---- التوتالات في الآخر: جدول Shift sheet + Workforce sheet زي الصورة ---- */
   const totalsSec=document.createElement('div');totalsSec.className='sec';
   const SHIFT_SHORT={Morning:'M',Night:'N',Overnight:'ON'};
-  let wfSumA=0,wfCntA=0,wfSumB=0,wfCntB=0,wfSumT=0,wfCntT=0,wfCount=0;
+  let wfSumA=0,wfCntA=0,wfSumB=0,wfCntB=0,wfSumF=0,wfCntF=0,wfSumT=0,wfCntT=0,wfCount=0;
   const shiftRowsHtml=SHIFT_GROUPS.map(grp=>{
     const people=Object.values(buckets[grp]);
     const cnt=people.reduce((s,p)=>s+p.count,0);
-    let sumA=0,cntA=0,sumB=0,cntB=0,sumT=0,cntT=0;
-    people.forEach(p=>{sumA+=p.sum.artifacts;cntA+=p.cnt.artifacts;sumB+=p.sum.attribute;cntB+=p.cnt.attribute;sumT+=p.sum.totalAccuracy;cntT+=p.cnt.totalAccuracy;});
-    wfSumA+=sumA;wfCntA+=cntA;wfSumB+=sumB;wfCntB+=cntB;wfSumT+=sumT;wfCntT+=cntT;wfCount+=cnt;
+    let sumA=0,cntA=0,sumB=0,cntB=0,sumF=0,cntF=0,sumT=0,cntT=0;
+    people.forEach(p=>{sumA+=p.sum.artifacts;cntA+=p.cnt.artifacts;sumB+=p.sum.attribute;cntB+=p.cnt.attribute;sumF+=p.sum.tvaF1;cntF+=p.cnt.tvaF1;sumT+=p.sum.totalAccuracy;cntT+=p.cnt.totalAccuracy;});
+    wfSumA+=sumA;wfCntA+=cntA;wfSumB+=sumB;wfCntB+=cntB;wfSumF+=sumF;wfCntF+=cntF;wfSumT+=sumT;wfCntT+=cntT;wfCount+=cnt;
     const col=SHIFT_GROUP_COLORS[grp];
     return `<tr style="border-bottom:1px solid var(--border-light)">
       <td style="padding:7px 10px;font-size:.66rem;color:var(--text-soft);white-space:nowrap">${esc(todayStr)}</td>
@@ -893,6 +893,7 @@ function renderQualitySection(mc){
       <td style="padding:7px 10px;text-align:center;font-size:.68rem;font-family:var(--mono);font-weight:700">${cnt}</td>
       <td style="padding:7px 10px;text-align:center;font-size:.66rem;font-family:var(--mono)">${qFmt(cntA?sumA/cntA:null)}</td>
       <td style="padding:7px 10px;text-align:center;font-size:.66rem;font-family:var(--mono)">${qFmt(cntB?sumB/cntB:null)}</td>
+      <td style="padding:7px 10px;text-align:center;font-size:.66rem;font-family:var(--mono)">${qFmt(cntF?sumF/cntF:null)}</td>
       <td style="padding:7px 10px;text-align:center;font-size:.72rem;font-family:var(--mono);font-weight:900;color:${col}">${qFmt(cntT?sumT/cntT:null)}</td>
     </tr>`;
   }).join('');
@@ -905,6 +906,7 @@ function renderQualitySection(mc){
         <th style="background:var(--elevated);color:var(--text-soft);font-size:.52rem;padding:7px 10px;text-align:center;border-bottom:1.5px solid var(--border);font-weight:700">NO. Tasks</th>
         <th style="background:var(--elevated);color:var(--text-soft);font-size:.52rem;padding:7px 10px;text-align:center;border-bottom:1.5px solid var(--border);font-weight:700">Artifacts</th>
         <th style="background:var(--elevated);color:var(--text-soft);font-size:.52rem;padding:7px 10px;text-align:center;border-bottom:1.5px solid var(--border);font-weight:700">Attribute</th>
+        <th style="background:var(--elevated);color:var(--text-soft);font-size:.52rem;padding:7px 10px;text-align:center;border-bottom:1.5px solid var(--border);font-weight:700">TVA F1</th>
         <th style="background:var(--elevated);color:var(--text-soft);font-size:.52rem;padding:7px 10px;text-align:center;border-bottom:1.5px solid var(--border);font-weight:700">Total Accuracy</th>
       </tr></thead>
       <tbody>${shiftRowsHtml}</tbody>
@@ -918,6 +920,7 @@ function renderQualitySection(mc){
         <th style="background:var(--elevated);color:var(--text-soft);font-size:.52rem;padding:7px 10px;text-align:center;border-bottom:1.5px solid var(--border);font-weight:700">Total NO. Tasks</th>
         <th style="background:var(--elevated);color:var(--text-soft);font-size:.52rem;padding:7px 10px;text-align:center;border-bottom:1.5px solid var(--border);font-weight:700">Artifacts</th>
         <th style="background:var(--elevated);color:var(--text-soft);font-size:.52rem;padding:7px 10px;text-align:center;border-bottom:1.5px solid var(--border);font-weight:700">Attribute</th>
+        <th style="background:var(--elevated);color:var(--text-soft);font-size:.52rem;padding:7px 10px;text-align:center;border-bottom:1.5px solid var(--border);font-weight:700">TVA F1</th>
         <th style="background:var(--accent-light);color:var(--accent);font-size:.52rem;padding:7px 10px;text-align:center;border-bottom:1.5px solid var(--border);font-weight:800">Total Accuracy</th>
       </tr></thead>
       <tbody><tr>
@@ -925,6 +928,7 @@ function renderQualitySection(mc){
         <td style="padding:7px 10px;text-align:center;font-size:.68rem;font-family:var(--mono);font-weight:800">${wfCount}</td>
         <td style="padding:7px 10px;text-align:center;font-size:.66rem;font-family:var(--mono)">${qFmt(wfCntA?wfSumA/wfCntA:null)}</td>
         <td style="padding:7px 10px;text-align:center;font-size:.66rem;font-family:var(--mono)">${qFmt(wfCntB?wfSumB/wfCntB:null)}</td>
+        <td style="padding:7px 10px;text-align:center;font-size:.66rem;font-family:var(--mono)">${qFmt(wfCntF?wfSumF/wfCntF:null)}</td>
         <td style="padding:7px 10px;text-align:center;font-size:.78rem;font-family:var(--mono);font-weight:900;color:var(--accent)">${qFmt(wfCntT?wfSumT/wfCntT:null)}</td>
       </tr></tbody>
     </table></div>
