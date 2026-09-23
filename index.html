@@ -751,6 +751,7 @@ function mondayOf(d){
 }
 function computeQualityWeekLabel(dateStr){
   const mon=mondayOf(dateStr);
+  if(isNaN(mon.getTime()))return null;
   const dd=String(mon.getDate()).padStart(2,'0');
   const monthShort=mon.toLocaleString('en-US',{month:'short'});
   return `Week of ${dd} ${monthShort}`;
@@ -786,6 +787,7 @@ function fetchQualityData(silent){
     const qhLower=qh.map(h=>h.toLowerCase());
     const aidIdx=qhLower.findIndex(h=>h==='actual id');
     const adateIdx=qhLower.findIndex(h=>h==='actual date');
+    const aemailIdx=qhLower.findIndex(h=>h==='yubikey email');
     const metricIdx={artifacts:qhLower.findIndex(h=>h==='artifacts'),attribute:qhLower.findIndex(h=>h==='attribute'),tvaF1:qhLower.findIndex(h=>h==='tva f1'),totalAccuracy:qhLower.findIndex(h=>h==='total accuracy')};
     if(aidIdx<0){showToast('⚠️ "Actual ID" column not found in the Export tab');return;}
     const now=Date.now();let added=0;
@@ -794,7 +796,9 @@ function fetchQualityData(silent){
       const aid=String(row[aidIdx]||'').trim();if(!aid)continue;
       const rec={importedAt:now};
       QUALITY_METRICS.forEach(m=>{const ci=metricIdx[m];rec[m]=ci>=0&&row[ci]!==undefined?String(row[ci]).trim():'';});
-      rec.actualDate=adateIdx>=0&&row[adateIdx]!==undefined?(extractDate(row[adateIdx])||String(row[adateIdx]).trim()):'';
+      // if the date can't be parsed, leave it blank rather than storing a raw string that breaks the week label later
+      rec.actualDate=adateIdx>=0&&row[adateIdx]!==undefined?(extractDate(row[adateIdx])||''):'';
+      rec.email=aemailIdx>=0&&row[aemailIdx]!==undefined?String(row[aemailIdx]).trim():'';
       qualityStore[aid]=rec;added++;
     }
     saveQualityStore();
@@ -839,13 +843,14 @@ function computeQualityIdInfo(){
 function renderQualitySection(mc){
   const idInfo=computeQualityIdInfo();
   window._qualityIdInfo=idInfo;
+  // reverse lookup: Yubikey Email -> that person's info, so an Unmatched task (Actual ID not found) can still be
+  // placed on the right shift if the Export row's Yubikey Email matches someone in Data Base
+  const emailInfo={};
+  Object.values(idInfo).forEach(info=>{const ek=(info.email||'').trim().toLowerCase();if(ek&&!emailInfo[ek])emailInfo[ek]=info;});
   const buckets={Morning:{},Night:{},Overnight:{}};
   let matched=0,unmatched=0;
   const unmatchedList=[];
-  Object.entries(qualityStore).forEach(([aid,q])=>{
-    const info=idInfo[aid];
-    if(!info){unmatched++;unmatchedList.push({aid,q});return;}
-    matched++;
+  function addToBucket(info,q){
     const grp=info.group||'Overnight';
     const key=info.email||info.name;
     if(!buckets[grp][key]){
@@ -853,13 +858,32 @@ function renderQualitySection(mc){
     }
     const b=buckets[grp][key];b.count++;
     QUALITY_METRICS.forEach(m=>{const n=qNum(q[m]);if(n!==null){b.sum[m]+=n;b.cnt[m]++;}});
+    return grp;
+  }
+  Object.entries(qualityStore).forEach(([aid,q])=>{
+    const info=idInfo[aid];
+    if(!info){
+      // still no match by Actual ID — try to place it on a shift via the Yubikey Email instead
+      const ek=(q.email||'').trim().toLowerCase();
+      const byEmail=ek?emailInfo[ek]:null;
+      unmatched++;
+      if(byEmail){
+        const grp=addToBucket(byEmail,q);
+        unmatchedList.push({aid,q,resolvedGrp:grp,resolvedName:byEmail.name});
+      }else{
+        unmatchedList.push({aid,q});
+      }
+      return;
+    }
+    matched++;
+    addToBucket(info,q);
   });
   // work out which week this pulled quality data belongs to, straight from the "Actual Date" column in Export
   const weekCounts={};
   Object.values(qualityStore).forEach(q=>{
     if(q.actualDate){
       const wk=computeQualityWeekLabel(q.actualDate);
-      weekCounts[wk]=(weekCounts[wk]||0)+1;
+      if(wk)weekCounts[wk]=(weekCounts[wk]||0)+1;
     }
   });
   let derivedWeekLbl=null,bestN=-1;
@@ -925,17 +949,20 @@ function renderQualitySection(mc){
 
   /* ---- Tasks with no matching ID ---- */
   if(unmatchedList.length){
-    const umCards=unmatchedList.map(({aid,q})=>{
+    const resolvedCount=unmatchedList.filter(u=>u.resolvedGrp).length;
+    const umCards=unmatchedList.map(({aid,q,resolvedGrp,resolvedName})=>{
+      const resBadge=resolvedGrp?`<div class="dc-qs"><span class="qtag" style="background:rgba(23,185,120,.13);color:var(--success);border-color:rgba(23,185,120,.4);font-weight:800">${SHIFT_GROUP_ICON[resolvedGrp]} Counted under ${esc(resolvedName)} — ${esc(resolvedGrp)}</span></div>`:'';
       return `<div class="dcard" style="cursor:default;border-color:rgba(255,95,126,.5);background:rgba(255,95,126,.07)">
         <div class="dc-top"><span class="dc-pc" style="color:var(--danger)">🆔 ${esc(aid)}</span></div>
         <div class="dc-meta"><span class="dc-mi">🧩</span><span class="dc-mt">Artifacts: ${qFmt(qNum(q.artifacts))}</span></div>
         <div class="dc-meta"><span class="dc-mi">🏷️</span><span class="dc-mt">Attribute: ${qFmt(qNum(q.attribute))}</span></div>
         <div class="dc-meta"><span class="dc-mi">📐</span><span class="dc-mt">TVA F1: ${qFmt(qNum(q.tvaF1))}</span></div>
         <div class="dc-qs"><span class="qtag" style="background:rgba(255,95,126,.15);color:var(--danger);border-color:rgba(255,95,126,.4);font-weight:800">🎯 Total: ${qFmt(qNum(q.totalAccuracy))}</span></div>
+        ${resBadge}
       </div>`;
     }).join('');
     const umSec=document.createElement('div');umSec.className='sec';umSec.style.borderLeft='4px solid var(--danger)';
-    umSec.innerHTML=`<div class="sec-hd"><span class="sec-t">🚫 Unmatched Tasks</span><span class="sec-m">${unmatchedList.length} tasks with no matching ID</span></div><div class="cgrid">${umCards}</div>`;
+    umSec.innerHTML=`<div class="sec-hd"><span class="sec-t">🚫 Unmatched Tasks</span><span class="sec-m">${unmatchedList.length} tasks with no matching ID${resolvedCount?` · ${resolvedCount} counted toward a shift via Yubikey Email`:''}</span></div><div class="cgrid">${umCards}</div>`;
     mc.appendChild(umSec);
   }
 
@@ -961,9 +988,12 @@ function renderQualitySection(mc){
       <td style="padding:7px 10px;text-align:center;font-size:.72rem;font-family:var(--mono);font-weight:900;color:${col}">${qFmt(cntT?sumT/cntT:null)}</td>
     </tr>`;
   }).join('');
-  /* Unmatched tasks have no shift (no QTC to derive one from), so they never join the Shift sheet breakdown above —
-     but they still count as real work, so they're folded into the Workforce sheet totals only. */
-  unmatchedList.forEach(({q})=>{
+  /* Unmatched tasks that couldn't be pinned to a shift even via Yubikey Email have no shift at all, so they never
+     join the Shift sheet breakdown above — but they still count as real work, so they're folded into the
+     Workforce sheet totals only. Ones that WERE resolved via email already flow into wf* above through their
+     shift's bucket, so skip them here to avoid counting them twice. */
+  unmatchedList.forEach(({q,resolvedGrp})=>{
+    if(resolvedGrp)return;
     wfCount++;
     const ua=qNum(q.artifacts);if(ua!==null){wfSumA+=ua;wfCntA++;}
     const ub=qNum(q.attribute);if(ub!==null){wfSumB+=ub;wfCntB++;}
@@ -1072,7 +1102,28 @@ function onCsvData(text){
   _lastCsvHash=newHash;
   const table=parseCSV(text).filter(r=>r&&r.length&&!(r.length===1&&String(r[0]||'').trim()===''));if(!table.length){showErr('No data returned.');return;}hdrs=table[0].map(h=>String(h||'').trim());const hLower=hdrs.map(h=>h.toLowerCase());sIdx={};["Shift","Unit","Qtc Name","Yubikey Email","Labeler Name","Pc No","Modality","Queue Name","Location","Pass"].forEach(name=>{const i=hLower.indexOf(name.toLowerCase());if(i>=0)sIdx[name]=i;});tsIdx=hLower.findIndex(h=>h==='timestamp');if(tsIdx<0)tsIdx=hLower.findIndex(h=>h==='created at');if(tsIdx<0)tsIdx=hLower.findIndex(h=>h==='date');if(tsIdx<0)tsIdx=hLower.findIndex(h=>h.includes('date'));locColIdx=hLower.findIndex(h=>h==='location');if(locColIdx<0)locColIdx=hLower.findIndex(h=>h==='unit');if(locColIdx<0)locColIdx=hLower.findIndex(h=>h==='site');rawRows=[];for(let ri=1;ri<table.length;ri++){const rowRaw=table[ri];if(!rowRaw||!rowRaw.length)continue;const row=hdrs.map((_,ci)=>rowRaw[ci]!==undefined?String(rowRaw[ci]).trim():'');if(row.every(c=>c===''))continue;const sci=sIdx['Shift'];if(sci!==undefined){const sv=String(row[sci]||'').trim().toLowerCase();if(!ALL_SHIFTS.some(a=>sv===a))continue;}rawRows.push(row);}sOpts={};["Shift","Unit","Qtc Name","Yubikey Email","Labeler Name","Pc No","Modality","Queue Name","Location","Pass"].forEach(name=>{const ci=sIdx[name];if(ci===undefined)return;const set=new Set();rawRows.forEach(r=>{const v=String(r[ci]||'').trim();if(v)set.add(v);});sOpts[name]=[...set].sort();});const dateSet=new Set();rawRows.forEach(r=>{const d=extractDate(r[tsIdx]);if(d)dateSet.add(d);});sOpts['_dates']=[...dateSet].sort().reverse();const locSet=new Set();if(locColIdx>=0)rawRows.forEach(r=>{const v=String(r[locColIdx]||'').trim();if(v)locSet.add(v);});locations=[...locSet].sort();const now=new Date();todayStr=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');document.getElementById('todayLabel').textContent=todayStr;lastUpdateTs=Date.now();updateRelativeTime();setTrafficLight('green');document.getElementById('totalBadge').textContent=rawRows.length+' rows';SC.forEach(s=>{if(!sel[s.key])sel[s.key]=new Set();});if(!_filtersRestored){restoreFilters();_filtersRestored=true;}buildStrip();buildTabs();applyAll();if(autoRefreshTimer)clearInterval(autoRefreshTimer);autoRefreshTimer=null;if(autoRefreshEnabled)autoRefreshTimer=setInterval(loadData,REFRESH_INTERVAL*1000);applyAutoRefreshUI();if(cmpMode)populateCmpSelects();
 }
-function extractDate(v){if(!v)return null;const s=String(v).trim();if(/^\d{4}-\d{2}-\d{2}/.test(s))return s.substring(0,10);const m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);if(m)return m[3]+'-'+m[1].padStart(2,'0')+'-'+m[2].padStart(2,'0');return null;}
+const _MONTH_NAMES={jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12};
+function extractDate(v){
+  if(!v)return null;const s=String(v).trim();if(!s)return null;
+  if(/^\d{4}-\d{2}-\d{2}/.test(s))return s.substring(0,10);
+  let m=s.match(/^Date\((\d{4}),(\d{1,2}),(\d{1,2})/);
+  if(m)return m[1]+'-'+String(+m[2]+1).padStart(2,'0')+'-'+m[3].padStart(2,'0');
+  m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if(m)return m[3]+'-'+m[1].padStart(2,'0')+'-'+m[2].padStart(2,'0');
+  m=s.match(/^(\d{1,2})[.\-](\d{1,2})[.\-](\d{4})/);
+  if(m)return m[3]+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0');
+  m=s.match(/^(\d{1,2})[\s-]([A-Za-z]{3,9})[\s-](\d{4})/);
+  if(m){const mm=_MONTH_NAMES[m[2].slice(0,3).toLowerCase()];if(mm)return m[3]+'-'+String(mm).padStart(2,'0')+'-'+m[1].padStart(2,'0');}
+  m=s.match(/^([A-Za-z]{3,9})\s+(\d{1,2}),?\s+(\d{4})/);
+  if(m){const mm=_MONTH_NAMES[m[1].slice(0,3).toLowerCase()];if(mm)return m[3]+'-'+String(mm).padStart(2,'0')+'-'+m[2].padStart(2,'0');}
+  if(/^\d{4,6}(\.\d+)?$/.test(s)){
+    const serial=parseFloat(s);
+    if(!isNaN(serial)){const dt=new Date(Date.UTC(1899,11,30)+serial*86400000);if(!isNaN(dt.getTime()))return dt.toISOString().substring(0,10);}
+  }
+  const generic=new Date(s);
+  if(!isNaN(generic.getTime()))return generic.getFullYear()+'-'+String(generic.getMonth()+1).padStart(2,'0')+'-'+String(generic.getDate()).padStart(2,'0');
+  return null;
+}
 function rDate(r){if(tsIdx<0)return'';const v=String(r[tsIdx]||'').trim();return extractDate(v)||'';}
 function _now(){const n=new Date();return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0')+' '+String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');}
 let lastUpdateTs=null;
