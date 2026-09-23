@@ -811,6 +811,7 @@ function fetchQualityData(silent){
 }
 function qNum(v){const n=parseFloat(v);return isNaN(n)?null:n;}
 function qFmt(n){if(n===null||n===undefined)return'—';return(n<=1?(n*100):n).toFixed(1)+'%';}
+function accTier(n){if(n===null||n===undefined)return{c:'var(--muted)',bg:'transparent',bd:'var(--border)'};const pct=n<=1?n*100:n;if(pct>=98)return{c:'var(--success)',bg:'rgba(23,185,120,.13)',bd:'rgba(23,185,120,.4)'};if(pct>=95)return{c:'var(--warning)',bg:'rgba(255,178,56,.15)',bd:'rgba(255,178,56,.45)'};return{c:'var(--danger)',bg:'rgba(255,95,126,.15)',bd:'rgba(255,95,126,.45)'};}
 // كل شخص (Yubikey Email أو Labeler Name) بياخد الشيفت اللي بيتكرر فيها أكتر جوه Data Base
 function computePersonShiftGroups(){
   const emailIdx=sIdx['Yubikey Email'];const nameIdx=sIdx['Labeler Name'];const shiftIdx=sIdx['Shift'];
@@ -870,25 +871,46 @@ function renderQualitySection(mc){
   searchSec.innerHTML=`<div class="sec-hd"><span class="sec-t">🔎 دور على تاسك بالـ ID</span></div><div class="ttbar"><input class="srch" id="qualityIdSearch" placeholder="🔍 اكتب الـ ID..." oninput="filterQualityById(this.value)"/><span class="rcnt" id="qualityIdCount">—</span></div><div id="qualityIdResult" style="padding:0 14px 14px"></div>`;
   mc.appendChild(searchSec);
 
-  /* ---- كروت زي Device Submit Counts، لكل شيفت لوحدها ---- */
+  /* ---- جدول مرتب لكل شيفت لوحدها: مرتب حسب Total Accuracy، ميدالية لأعلى 3، ولون حسب مستوى الدقة ---- */
   SHIFT_GROUPS.forEach(grp=>{
-    const people=Object.values(buckets[grp]).sort((a,b)=>b.count-a.count);
+    function avgOf(p,m){return p.cnt[m]?p.sum[m]/p.cnt[m]:null;}
+    const people=Object.values(buckets[grp]).map(p=>({...p,accAvg:avgOf(p,'totalAccuracy')})).sort((a,b)=>{
+      if(a.accAvg===null&&b.accAvg===null)return b.count-a.count;
+      if(a.accAvg===null)return 1;if(b.accAvg===null)return -1;
+      return b.accAvg-a.accAvg;
+    });
     const col=SHIFT_GROUP_COLORS[grp];
     const groupTotalCount=people.reduce((s,p)=>s+p.count,0);
-    function avgOf(p,m){return p.cnt[m]?p.sum[m]/p.cnt[m]:null;}
-    const cardsHtml=people.map(p=>{
-      const acc=avgOf(p,'totalAccuracy');
-      return `<div class="dcard" style="cursor:default;border-color:${col}55;background:${col}0d">
-        <div class="dc-top"><span class="dc-pc" style="color:${col}">${esc(p.display)}</span><span class="dc-cnt" style="background:linear-gradient(135deg,${col},${col}cc)">${p.count}</span></div>
-        ${p.email?`<div class="dc-meta"><span class="dc-mi">✉️</span><span class="dc-mt">${esc(p.email)}</span></div>`:''}
-        <div class="dc-meta"><span class="dc-mi">🧩</span><span class="dc-mt">Artifacts: ${qFmt(avgOf(p,'artifacts'))}</span></div>
-        <div class="dc-meta"><span class="dc-mi">🏷️</span><span class="dc-mt">Attribute: ${qFmt(avgOf(p,'attribute'))}</span></div>
-        <div class="dc-meta"><span class="dc-mi">📐</span><span class="dc-mt">TVA F1: ${qFmt(avgOf(p,'tvaF1'))}</span></div>
-        <div class="dc-qs"><span class="qtag" style="background:${col}22;color:${col};border-color:${col}55;font-weight:800">🎯 Total: ${qFmt(acc)}</span></div>
-      </div>`;
+    let shiftSumT=0,shiftCntT=0;people.forEach(p=>{shiftSumT+=p.sum.totalAccuracy;shiftCntT+=p.cnt.totalAccuracy;});
+    const shiftAvgAcc=shiftCntT?shiftSumT/shiftCntT:null;
+    const rowsHtml=people.map((p,i)=>{
+      const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':`<span style="color:var(--muted);font-family:var(--mono);font-size:.55rem">#${i+1}</span>`;
+      const tier=accTier(p.accAvg);
+      return `<tr style="border-bottom:1px solid var(--border-light)">
+        <td style="padding:6px 10px;font-size:.62rem;white-space:nowrap">${medal}</td>
+        <td style="padding:6px 10px;font-size:.66rem;color:var(--text);font-weight:700;white-space:nowrap;max-width:150px;overflow:hidden;text-overflow:ellipsis">${esc(p.display)}</td>
+        <td style="padding:6px 10px;font-size:.58rem;color:var(--text-soft);white-space:nowrap;max-width:150px;overflow:hidden;text-overflow:ellipsis">${p.email?esc(p.email):'—'}</td>
+        <td style="padding:6px 10px;text-align:center;font-size:.64rem;font-family:var(--mono);font-weight:700">${p.count}</td>
+        <td style="padding:6px 10px;text-align:center;font-size:.62rem;font-family:var(--mono);color:var(--text-soft)">${qFmt(avgOf(p,'artifacts'))}</td>
+        <td style="padding:6px 10px;text-align:center;font-size:.62rem;font-family:var(--mono);color:var(--text-soft)">${qFmt(avgOf(p,'attribute'))}</td>
+        <td style="padding:6px 10px;text-align:center;font-size:.62rem;font-family:var(--mono);color:var(--text-soft)">${qFmt(avgOf(p,'tvaF1'))}</td>
+        <td style="padding:6px 10px;text-align:center"><span style="display:inline-block;padding:3px 10px;border-radius:10px;font-size:.66rem;font-weight:800;font-family:var(--mono);color:${tier.c};background:${tier.bg};border:1.5px solid ${tier.bd}">${qFmt(p.accAvg)}</span></td>
+      </tr>`;
     }).join('');
     const sec=document.createElement('div');sec.className='sec';sec.style.borderLeft=`4px solid ${col}`;
-    sec.innerHTML=`<div class="sec-hd"><span class="sec-t">${SHIFT_GROUP_ICON[grp]} ${grp} Shift</span><span class="sec-m">${people.length} labelers · ${groupTotalCount} tasks</span></div><div class="cgrid">${cardsHtml||`<div class="catempty" style="grid-column:1/-1">لا يوجد بيانات كوالتي لهذه الشيفت</div>`}</div>`;
+    sec.innerHTML=`<div class="sec-hd"><span class="sec-t">${SHIFT_GROUP_ICON[grp]} ${grp} Shift</span><span class="sec-m">${people.length} labelers · ${groupTotalCount} tasks · متوسط ${qFmt(shiftAvgAcc)}</span></div>${people.length?`<div style="overflow-x:auto;max-height:340px;overflow-y:auto"><table style="width:100%;border-collapse:collapse">
+      <thead><tr>
+        <th style="position:sticky;top:0;background:var(--elevated);font-size:.5rem;padding:7px 10px;text-align:left;border-bottom:1.5px solid var(--border);color:var(--text-soft);font-weight:700">#</th>
+        <th style="position:sticky;top:0;background:var(--elevated);font-size:.5rem;padding:7px 10px;text-align:left;border-bottom:1.5px solid var(--border);color:var(--text-soft);font-weight:700">Labeler</th>
+        <th style="position:sticky;top:0;background:var(--elevated);font-size:.5rem;padding:7px 10px;text-align:left;border-bottom:1.5px solid var(--border);color:var(--text-soft);font-weight:700">Email</th>
+        <th style="position:sticky;top:0;background:var(--elevated);font-size:.5rem;padding:7px 10px;text-align:center;border-bottom:1.5px solid var(--border);color:var(--text-soft);font-weight:700">Tasks</th>
+        <th style="position:sticky;top:0;background:var(--elevated);font-size:.5rem;padding:7px 10px;text-align:center;border-bottom:1.5px solid var(--border);color:var(--text-soft);font-weight:700">Artifacts</th>
+        <th style="position:sticky;top:0;background:var(--elevated);font-size:.5rem;padding:7px 10px;text-align:center;border-bottom:1.5px solid var(--border);color:var(--text-soft);font-weight:700">Attribute</th>
+        <th style="position:sticky;top:0;background:var(--elevated);font-size:.5rem;padding:7px 10px;text-align:center;border-bottom:1.5px solid var(--border);color:var(--text-soft);font-weight:700">TVA F1</th>
+        <th style="position:sticky;top:0;background:var(--elevated);font-size:.5rem;padding:7px 10px;text-align:center;border-bottom:1.5px solid var(--border);color:${col};font-weight:800">Total Accuracy</th>
+      </tr></thead>
+      <tbody>${rowsHtml}</tbody>
+    </table></div>`:`<div class="catempty">لا يوجد بيانات كوالتي لهذه الشيفت</div>`}`;
     mc.appendChild(sec);
   });
 
