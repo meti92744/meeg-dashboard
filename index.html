@@ -961,6 +961,15 @@ function renderQualitySection(mc){
       <td style="padding:7px 10px;text-align:center;font-size:.72rem;font-family:var(--mono);font-weight:900;color:${col}">${qFmt(cntT?sumT/cntT:null)}</td>
     </tr>`;
   }).join('');
+  /* Unmatched tasks have no shift (no QTC to derive one from), so they never join the Shift sheet breakdown above —
+     but they still count as real work, so they're folded into the Workforce sheet totals only. */
+  unmatchedList.forEach(({q})=>{
+    wfCount++;
+    const ua=qNum(q.artifacts);if(ua!==null){wfSumA+=ua;wfCntA++;}
+    const ub=qNum(q.attribute);if(ub!==null){wfSumB+=ub;wfCntB++;}
+    const uf=qNum(q.tvaF1);if(uf!==null){wfSumF+=uf;wfCntF++;}
+    const ut=qNum(q.totalAccuracy);if(ut!==null){wfSumT+=ut;wfCntT++;}
+  });
   const shiftSheet=`<div style="flex:1;min-width:280px">
     <div style="text-align:center;font-family:var(--display);font-weight:800;font-size:.72rem;color:var(--text);background:var(--elevated);padding:7px;border-radius:10px 10px 0 0;border:2px solid var(--border);border-bottom:none">Shift sheet</div>
     <div style="overflow-x:auto;border:2px solid var(--border);border-radius:0 0 10px 10px"><table style="width:100%;border-collapse:collapse">
