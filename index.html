@@ -787,7 +787,7 @@ function fetchQualityData(silent){
     const qhLower=qh.map(h=>h.toLowerCase());
     const aidIdx=qhLower.findIndex(h=>h==='actual id');
     const adateIdx=qhLower.findIndex(h=>h==='actual date');
-    const aemailIdx=qhLower.findIndex(h=>h==='yubikey email');
+    const aemailIdx=(()=>{let i=qhLower.findIndex(h=>h==='actual email');if(i<0)i=qhLower.findIndex(h=>h==='yubikey email');return i;})();
     const metricIdx={artifacts:qhLower.findIndex(h=>h==='artifacts'),attribute:qhLower.findIndex(h=>h==='attribute'),tvaF1:qhLower.findIndex(h=>h==='tva f1'),totalAccuracy:qhLower.findIndex(h=>h==='total accuracy')};
     if(aidIdx<0){showToast('⚠️ "Actual ID" column not found in the Export tab');return;}
     const now=Date.now();let added=0;
