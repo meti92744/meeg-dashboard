@@ -500,7 +500,7 @@ td a{color:var(--info);text-decoration:none;font-weight:700;}
 /* ============ AUTH GATE ============ */
 const ALLOWED_EMAILS=["fpdahmed11@gmail.com","islamyasser424@gmail.com","mahmoudalnoby22@gmail.com","mm0508230@gmail.com","mohamedfathyy69@gmail.com","mostafaatito11158@gmail.com","oka60284@gmail.com","yassinyassen11@gmail.com","me917993@meti.ai","mahmoudseif589@gmail.com","abdallahbarbary39@gmail.com","eslamkhaled329@gmail.com","me370444@meti.ai","me817350@meti.ai"];
 const AUTH_KEY='meeg_auth_email';
-const AUTH_VER='v2';                 /* غيّر ده لأي قيمة جديدة = تسجيل خروج للكل */
+const AUTH_VER='v2';                 /* change this to any new value = logs everyone out */
 const AUTH_VER_KEY='meeg_auth_ver';
 
 function isValidEmailFormat(e){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);}
@@ -521,8 +521,8 @@ function attemptLogin(){
   const errEl=document.getElementById('loginErrMsg');
   const raw=(input.value||'').trim().toLowerCase();
   input.classList.remove('err');
-  if(!raw){errEl.textContent='من فضلك اكتب الإيميل';input.classList.add('err');input.focus();return;}
-  if(!isValidEmailFormat(raw)){errEl.textContent='صيغة الإيميل غير صحيحة';input.classList.add('err');input.focus();return;}
+  if(!raw){errEl.textContent='Please enter your email';input.classList.add('err');input.focus();return;}
+  if(!isValidEmailFormat(raw)){errEl.textContent='Invalid email format';input.classList.add('err');input.focus();return;}
   if(!ALLOWED_EMAILS.includes(raw)){errEl.textContent='You Are Not Allowed 🚫';input.classList.add('err');input.focus();return;}
   try{
     localStorage.setItem(AUTH_KEY,raw);
@@ -552,7 +552,7 @@ function checkAuthOnLoad(){
   return false;
 }
 
-/* لو السيشن اتلغت (logout من تاب تاني / نسخة أوث جديدة) — رجّع شاشة اللوجين فورًا */
+/* if the session was invalidated (logout from another tab / new auth version) — show the login screen immediately */
 function enforceAuthLive(){
   const email=getLoggedInEmail();
   if(email&&ALLOWED_EMAILS.includes(email))return;
@@ -636,14 +636,14 @@ function showReloadToast(){
   const ex = document.querySelector('.toast'); if(ex) ex.remove();
   const t = document.createElement('div');
   t.className = 'toast';
-  t.innerHTML = '🔄 فيه نسخة جديدة من الداشبورد — هيتم التحديث تلقائيًا...';
+  t.innerHTML = '🔄 A new dashboard version is available — reloading automatically...';
   document.body.appendChild(t);
   setTimeout(() => window.location.reload(), 2500);
 }
 
 function startVersionPolling(){
   if(_versionCheckTimer) clearInterval(_versionCheckTimer);
-  _versionCheckTimer = setInterval(checkForNewVersion, 60000); // كل دقيقة
+  _versionCheckTimer = setInterval(checkForNewVersion, 60000); // every minute
   document.addEventListener('visibilitychange', () => {
     if(document.visibilityState === 'visible') checkForNewVersion();
   });
@@ -682,20 +682,20 @@ let locations=[],activeLoc='__all__';
 let sel={},selD=new Set(),selWeeks=new Set();
 let idFilter='';
 let sortC=-1,sortDr=1,fcache=[],openK=null,locSearch={};
-const ID_FILTER_PASSWORD='MEEG2025'; // غيّر الباسورد هنا لأي حاجة تحبها
+const ID_FILTER_PASSWORD='MEEG2025'; // change the password here to anything you like
 let idUnlocked=(function(){try{return localStorage.getItem('meeg_id_unlocked')==='1';}catch(e){return false;}})();
 let idPassBoxOpen=false,idPassVisible=false,idPassErr=false;
 function toggleIdPassBox(){idPassBoxOpen=!idPassBoxOpen;idPassErr=false;buildStrip();if(idPassBoxOpen)focusIdPassInput();}
 function focusIdPassInput(){setTimeout(()=>{const i=document.getElementById('idPassInput');if(i)i.focus();},30);}
 function toggleIdPassVisible(){idPassVisible=!idPassVisible;const i=document.getElementById('idPassInput');const val=i?i.value:'';buildStrip();focusIdPassInput();setTimeout(()=>{const ni=document.getElementById('idPassInput');if(ni){ni.value=val;const l=ni.value.length;ni.setSelectionRange(l,l);}},40);}
-function checkIdPassword(){const i=document.getElementById('idPassInput');const p=i?i.value:'';if(p===ID_FILTER_PASSWORD){idUnlocked=true;idPassBoxOpen=false;idPassErr=false;try{localStorage.setItem('meeg_id_unlocked','1');}catch(e){}buildStrip();showToast('✅ اتفتح فلتر الـ ID');}else{idPassErr=true;buildStrip();focusIdPassInput();showToast('⚠️ الباسورد غلط');}}
+function checkIdPassword(){const i=document.getElementById('idPassInput');const p=i?i.value:'';if(p===ID_FILTER_PASSWORD){idUnlocked=true;idPassBoxOpen=false;idPassErr=false;try{localStorage.setItem('meeg_id_unlocked','1');}catch(e){}buildStrip();showToast('✅ ID filter unlocked');}else{idPassErr=true;buildStrip();focusIdPassInput();showToast('⚠️ Wrong password');}}
 function cancelIdPassBox(){idPassBoxOpen=false;idPassErr=false;buildStrip();}
 function lockIdFilter(){
   idUnlocked=false;
   try{localStorage.removeItem('meeg_id_unlocked');}catch(e){}
   setIdFilter('');
   buildStrip();
-  showToast('🔒 اتقفل فلتر الـ ID');
+  showToast('🔒 ID filter locked');
 }
 let autoRefreshTimer=null,_filtersRestored=false;
 document.addEventListener('click',e=>{if(!e.target.closest('.fg'))closeAll();});
@@ -722,12 +722,12 @@ function parseCSV(text){
 const SHEET_GID='0'; // gid of the "Data Base" tab — change this if you add/reorder sheet tabs
 
 /* ============ QUALITY TAB (Export sheet import) ============ */
-const EXPORT_SHEET_NAME='Export'; // اسم التاب اللي هتلزق فيه بيانات الكوالتي جوه نفس الـ Google Sheet
+const EXPORT_SHEET_NAME='Export'; // the tab name where you paste the quality data inside the same Google Sheet
 const QUALITY_STORE_KEY='meeg_quality_store_v1';
 const QUALITY_LAST_IMPORT_KEY='meeg_quality_last_import';
 const QUALITY_METRICS=['artifacts','attribute','tvaF1','totalAccuracy'];
 const QUALITY_METRIC_LABELS={artifacts:'Artifacts',attribute:'Attribute',tvaF1:'TVA F1',totalAccuracy:'Total Accuracy'};
-// كل الـ 8 شيفتات بتتقسم على 3 مجموعات بس حسب اللاحقة (M/N/ON) أو الاسم
+// all 8 shifts are grouped into just 3 groups based on the (M/N/ON) suffix or the name
 const SHIFT_GROUP_OF={
   'morning':'Morning','morning 12 h':'Morning','over shift (m)':'Morning',
   'night':'Night','over shift (n)':'Night',
@@ -743,7 +743,7 @@ let qualityLoading=false;
 let qualityWeekLabel=null;
 const QUALITY_WEEK_KEY='meeg_quality_week';
 
-// الشغل بيبدأ اسبوعه من الاتنين للاتنين اللي بعده — الفانكشن دي بتحسب "الأسبوع الحالي" بصرف النظر عن باقي الداشبورد
+// the work week runs Monday to the following Monday — this function computes the "current week" independent of the rest of the dashboard
 function computeQualityWeekLabel(){
   const now=new Date();
   const day=now.getDay();
@@ -754,14 +754,14 @@ function computeQualityWeekLabel(){
   return `Week of ${dd} ${monthShort}`;
 }
 function resetQualityWeek(){
-  if(!confirm('هتمسح كل بيانات الكوالتي المحفوظة وتبدأ أسبوع جديد؟')) return;
+  if(!confirm('This will clear all saved quality data and start a new week. Continue?')) return;
   qualityStore={};qualityLastImport=null;qualityWeekLabel=null;
   try{
     localStorage.removeItem(QUALITY_STORE_KEY);
     localStorage.removeItem(QUALITY_LAST_IMPORT_KEY);
     localStorage.removeItem(QUALITY_WEEK_KEY);
   }catch(e){}
-  showToast('🗑️ اتمسحت بيانات الكوالتي — جاهز لأسبوع جديد');
+  showToast('🗑️ Quality data cleared — ready for a new week');
   if(activeLoc==='__quality__')renderAllSections();
 }
 
@@ -772,7 +772,7 @@ function loadQualityStore(){
 }
 function saveQualityStore(){try{localStorage.setItem(QUALITY_STORE_KEY,JSON.stringify(qualityStore));}catch(e){}}
 
-// بيجيب بيانات تاب "Export" (بالاسم مش بالـ gid عشان تشتغل حتى لو التاب اتعمل جديد) ويدمجها فوق الأرشيف المحفوظ
+// fetches data from the "Export" tab (by name, not gid, so it works even if the tab is recreated) and merges it on top of the saved archive
 function fetchQualityData(silent){
   if(qualityLoading)return;
   qualityLoading=true;
@@ -781,12 +781,12 @@ function fetchQualityData(silent){
   fetch(url).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.text();}).then(txt=>{
     const table=parseCSV(txt).filter(r=>r&&r.length&&!(r.length===1&&String(r[0]||'').trim()===''));
     qualityLoading=false;if(btn)btn.disabled=false;
-    if(!table.length){if(!silent)showToast('⚠️ Export sheet فاضي');return;}
+    if(!table.length){if(!silent)showToast('⚠️ Export sheet is empty');return;}
     const qh=table[0].map(h=>String(h||'').trim());
     const qhLower=qh.map(h=>h.toLowerCase());
     const aidIdx=qhLower.findIndex(h=>h==='actual id');
     const metricIdx={artifacts:qhLower.findIndex(h=>h==='artifacts'),attribute:qhLower.findIndex(h=>h==='attribute'),tvaF1:qhLower.findIndex(h=>h==='tva f1'),totalAccuracy:qhLower.findIndex(h=>h==='total accuracy')};
-    if(aidIdx<0){showToast('⚠️ عمود "Actual ID" مش موجود في تاب Export');return;}
+    if(aidIdx<0){showToast('⚠️ "Actual ID" column not found in the Export tab');return;}
     const now=Date.now();let added=0;
     for(let ri=1;ri<table.length;ri++){
       const row=table[ri];if(!row||!row.length)continue;
@@ -802,17 +802,17 @@ function fetchQualityData(silent){
       qualityWeekLabel=computeQualityWeekLabel();
       try{localStorage.setItem(QUALITY_WEEK_KEY,qualityWeekLabel);}catch(e){}
     }
-    if(!silent)showToast(`✅ اتحفظ ${added} صف كوالتي (من غير ما نمسح القديم)`);
+    if(!silent)showToast(`✅ Saved ${added} quality rows (old data kept)`);
     if(activeLoc==='__quality__')renderAllSections();
   }).catch(e=>{
     qualityLoading=false;if(btn)btn.disabled=false;
-    if(!silent)showToast('⚠️ فشل تحميل الكوالتي: '+e.message);
+    if(!silent)showToast('⚠️ Failed to load quality data: '+e.message);
   });
 }
 function qNum(v){const n=parseFloat(v);return isNaN(n)?null:n;}
 function qFmt(n){if(n===null||n===undefined)return'—';return(n<=1?(n*100):n).toFixed(1)+'%';}
 function accTier(n){if(n===null||n===undefined)return{c:'var(--muted)',bg:'transparent',bd:'var(--border)'};const pct=n<=1?n*100:n;if(pct>=98)return{c:'var(--success)',bg:'rgba(23,185,120,.13)',bd:'rgba(23,185,120,.4)'};if(pct>=95)return{c:'var(--warning)',bg:'rgba(255,178,56,.15)',bd:'rgba(255,178,56,.45)'};return{c:'var(--danger)',bg:'rgba(255,95,126,.15)',bd:'rgba(255,95,126,.45)'};}
-// كل شخص (Yubikey Email أو Labeler Name) بياخد الشيفت اللي بيتكرر فيها أكتر جوه Data Base
+// (kept for reference; per-ID row lookup below is now the source of truth for shift/labeler attribution)
 function computeQualityIdInfo(){
   const emailIdx=sIdx['Yubikey Email'];const nameIdx=sIdx['Labeler Name'];const shiftIdx=sIdx['Shift'];
   const idIdx=hdrs.findIndex(h=>h.toLowerCase()==='id');
@@ -854,15 +854,15 @@ function renderQualitySection(mc){
 
   const curWeekLbl=qualityWeekLabel||computeQualityWeekLabel();
   const toolbar=document.createElement('div');toolbar.className='sec';
-  toolbar.innerHTML=`<div class="sec-hd"><span class="sec-t">📥 استيراد من تاب "Export"</span><span class="sec-m">آخر استيراد: ${esc(lastImp)}</span></div><div style="padding:12px 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="bdg bdg-info" style="border-color:var(--border);color:var(--primary)">📅 ${esc(curWeekLbl)}</span><button class="btn btn-c" id="qualityRefreshBtn" onclick="fetchQualityData(false)">📥 Import / Refresh Quality</button><button class="btn btn-d" onclick="resetQualityWeek()">🔄 Reset (New Week)</button><span class="ltxt" style="font-size:.6rem">البيانات القديمة بتفضل محفوظة في الداشبورد حتى لو مسحت تاب Export وحطيت بيانات جديدة — دوس Reset لما تسحب كوالتي أسبوع جديد</span></div>`;
+  toolbar.innerHTML=`<div class="sec-hd"><span class="sec-t">📥 Import from "Export" tab</span><span class="sec-m">Last import: ${esc(lastImp)}</span></div><div style="padding:12px 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="bdg bdg-info" style="border-color:var(--border);color:var(--primary)">📅 ${esc(curWeekLbl)}</span><button class="btn btn-c" id="qualityRefreshBtn" onclick="fetchQualityData(false)">📥 Import / Refresh Quality</button><button class="btn btn-d" onclick="resetQualityWeek()">🔄 Reset (New Week)</button><span class="ltxt" style="font-size:.6rem">Old data stays saved in the dashboard even if you clear the Export tab and add new data — hit Reset when you pull a new week's quality</span></div>`;
   mc.appendChild(toolbar);
 
-  /* ---- بحث بالـ ID ---- */
+  /* ---- Search by ID ---- */
   const searchSec=document.createElement('div');searchSec.className='sec';
-  searchSec.innerHTML=`<div class="sec-hd"><span class="sec-t">🔎 دور على تاسك بالـ ID</span></div><div class="ttbar"><input class="srch" id="qualityIdSearch" placeholder="🔍 اكتب الـ ID..." oninput="filterQualityById(this.value)"/><span class="rcnt" id="qualityIdCount">—</span></div><div id="qualityIdResult" style="padding:0 14px 14px"></div>`;
+  searchSec.innerHTML=`<div class="sec-hd"><span class="sec-t">🔎 Find a task by ID</span></div><div class="ttbar"><input class="srch" id="qualityIdSearch" placeholder="🔍 Type the ID..." oninput="filterQualityById(this.value)"/><span class="rcnt" id="qualityIdCount">—</span></div><div id="qualityIdResult" style="padding:0 14px 14px"></div>`;
   mc.appendChild(searchSec);
 
-  /* ---- جدول مرتب لكل شيفت لوحدها: مرتب حسب Total Accuracy، ميدالية لأعلى 3، ولون حسب مستوى الدقة ---- */
+  /* ---- Ranked table per shift: sorted by Total Accuracy, medals for top 3, color-coded by accuracy tier ---- */
   SHIFT_GROUPS.forEach(grp=>{
     function avgOf(p,m){return p.cnt[m]?p.sum[m]/p.cnt[m]:null;}
     const people=Object.values(buckets[grp]).map(p=>({...p,accAvg:avgOf(p,'totalAccuracy')})).sort((a,b)=>{
@@ -889,7 +889,7 @@ function renderQualitySection(mc){
       </tr>`;
     }).join('');
     const sec=document.createElement('div');sec.className='sec';sec.style.borderLeft=`4px solid ${col}`;
-    sec.innerHTML=`<div class="sec-hd"><span class="sec-t">${SHIFT_GROUP_ICON[grp]} ${grp} Shift</span><span class="sec-m">${people.length} labelers · ${groupTotalCount} tasks · متوسط ${qFmt(shiftAvgAcc)}</span></div>${people.length?`<div style="overflow-x:auto;max-height:340px;overflow-y:auto"><table style="width:100%;border-collapse:collapse">
+    sec.innerHTML=`<div class="sec-hd"><span class="sec-t">${SHIFT_GROUP_ICON[grp]} ${grp} Shift</span><span class="sec-m">${people.length} labelers · ${groupTotalCount} tasks · avg ${qFmt(shiftAvgAcc)}</span></div>${people.length?`<div style="overflow-x:auto;max-height:340px;overflow-y:auto"><table style="width:100%;border-collapse:collapse">
       <thead><tr>
         <th style="position:sticky;top:0;background:var(--elevated);font-size:.5rem;padding:7px 10px;text-align:left;border-bottom:1.5px solid var(--border);color:var(--text-soft);font-weight:700">#</th>
         <th style="position:sticky;top:0;background:var(--elevated);font-size:.5rem;padding:7px 10px;text-align:left;border-bottom:1.5px solid var(--border);color:var(--text-soft);font-weight:700">Labeler</th>
@@ -901,11 +901,11 @@ function renderQualitySection(mc){
         <th style="position:sticky;top:0;background:var(--elevated);font-size:.5rem;padding:7px 10px;text-align:center;border-bottom:1.5px solid var(--border);color:${col};font-weight:800">Total Accuracy</th>
       </tr></thead>
       <tbody>${rowsHtml}</tbody>
-    </table></div>`:`<div class="catempty">لا يوجد بيانات كوالتي لهذه الشيفت</div>`}`;
+    </table></div>`:`<div class="catempty">No quality data for this shift</div>`}`;
     mc.appendChild(sec);
   });
 
-  /* ---- التاسكات اللي مالهاش ID متطابق ---- */
+  /* ---- Tasks with no matching ID ---- */
   if(unmatchedList.length){
     const umCards=unmatchedList.map(({aid,q})=>{
       return `<div class="dcard" style="cursor:default;border-color:rgba(255,95,126,.5);background:rgba(255,95,126,.07)">
@@ -917,11 +917,11 @@ function renderQualitySection(mc){
       </div>`;
     }).join('');
     const umSec=document.createElement('div');umSec.className='sec';umSec.style.borderLeft='4px solid var(--danger)';
-    umSec.innerHTML=`<div class="sec-hd"><span class="sec-t">🚫 Unmatched Tasks</span><span class="sec-m">${unmatchedList.length} tasks بدون ID مطابق</span></div><div class="cgrid">${umCards}</div>`;
+    umSec.innerHTML=`<div class="sec-hd"><span class="sec-t">🚫 Unmatched Tasks</span><span class="sec-m">${unmatchedList.length} tasks with no matching ID</span></div><div class="cgrid">${umCards}</div>`;
     mc.appendChild(umSec);
   }
 
-  /* ---- التوتالات في الآخر: جدول Shift sheet + Workforce sheet زي الصورة ---- */
+  /* ---- Totals at the bottom: Shift sheet + Workforce sheet tables ---- */
   const totalsSec=document.createElement('div');totalsSec.className='sec';
   const totalsWeekLbl=qualityWeekLabel||computeQualityWeekLabel();
   const SHIFT_SHORT={Morning:'M',Night:'N',Overnight:'ON'};
@@ -984,7 +984,7 @@ function renderQualitySection(mc){
 
   if(unmatched>0){
     const warn=document.createElement('div');warn.className='errbox';warn.style.margin='0';
-    warn.innerHTML=`⚠️ ${unmatched} صف من الكوالتي مالوش ID متطابق في Data Base (اتعرضوا في قسم Unmatched Tasks فوق). تأكد إن عمود Actual ID في Export مطابق لعمود ID في Data Base.`;
+    warn.innerHTML=`⚠️ ${unmatched} quality row(s) have no matching ID in Data Base (shown in the Unmatched Tasks section above). Make sure the Actual ID column in Export matches the ID column in Data Base.`;
     mc.appendChild(warn);
   }
 }
@@ -996,8 +996,8 @@ function filterQualityById(val){
   if(!q){resEl.innerHTML='';if(cntEl)cntEl.textContent='—';return;}
   const idInfo=window._qualityIdInfo||computeQualityIdInfo();
   const matches=Object.entries(qualityStore).filter(([aid])=>aid.toLowerCase().includes(q)).slice(0,30);
-  if(cntEl)cntEl.textContent=matches.length+' نتيجة';
-  if(!matches.length){resEl.innerHTML='<div class="empty" style="padding:16px"><span>🔍</span>مفيش تاسك بالـ ID ده</div>';return;}
+  if(cntEl)cntEl.textContent=matches.length+' result(s)';
+  if(!matches.length){resEl.innerHTML='<div class="empty" style="padding:16px"><span>🔍</span>No task found with this ID</div>';return;}
   resEl.innerHTML=`<div class="cgrid">`+matches.map(([aid,qd])=>{
     const info=idInfo[aid];
     const grp=info?info.group:null;
@@ -1057,7 +1057,7 @@ function getMondayStr(d){if(!d||!d.match(/^\d{4}-\d{2}-\d{2}$/))return'';const d
 function getWeekLabel(d){const m=getMondayStr(d);return m?'Week of Mon '+m:d;}
 function buildStrip(){const s=document.getElementById('fstrip');const dates=sOpts._dates||[];let h='';if(dates.length){window._weekList=[];const weekMap={};dates.forEach(d=>{const lbl=getWeekLabel(d);if(!weekMap[lbl]){weekMap[lbl]=[];window._weekList.push(lbl);}weekMap[lbl].push(d);});window._weekList.sort().reverse();window._weekMap=weekMap;const wCnt=selWeeks.size;h+=`<div class="fg" id="fg___week"><div class="fchip${wCnt?' has-sel':''}" id="fc___week" onclick="tgDrop('__week')">📅 Week${wCnt?` <span class="chk-cnt">${wCnt}</span>`:''} <span class="chk-arr">▾</span></div><div class="dpanel" id="dp___week">${window._weekList.length>5?`<input class="dp-srch" placeholder="Search week…" oninput="rdropWeek()" id="ds___week"/>`:''}<div class="dp-list" id="dl___week"></div><div class="dp-foot"><button onclick="clrWeeks();event.stopPropagation()">✕ Clear</button><button onclick="closeDr('__week');event.stopPropagation()">✓ Done</button></div></div></div>`;const dCnt=selD.size;h+=`<div class="fg" id="fg___date"><div class="fchip${dCnt?' has-sel':''}" id="fc___date" onclick="tgDrop('__date')">📆 Date${dCnt?` <span class="chk-cnt">${dCnt}</span>`:''} <span class="chk-arr">▾</span></div><div class="dpanel" id="dp___date"><input class="dp-srch" placeholder="Search date…" oninput="rdropDate()" id="ds___date"/><div class="dp-list" id="dl___date"></div><div class="dp-foot"><button onclick="clrDates();event.stopPropagation()">✕ Clear</button><button onclick="closeDr('__date');event.stopPropagation()">✓ Done</button></div></div></div>`;if(SC.some(c=>(sOpts[c.key]||[]).length))h+=`<div class="fsep"></div>`;}
 if(idUnlocked){
-  h+=`<div class="id-filter-box"><input class="id-filter-input" id="idFilterInput" placeholder="🔎 ID…" value="${esc(idFilter)}" oninput="setIdFilter(this.value)"/>${idFilter?`<span class="id-filter-x" onclick="setIdFilter('');document.getElementById('idFilterInput').value=''">✕</span>`:''}<span class="id-filter-x" title="قفل الفلتر" onclick="lockIdFilter()">🔒</span></div><div class="fsep"></div>`;
+  h+=`<div class="id-filter-box"><input class="id-filter-input" id="idFilterInput" placeholder="🔎 ID…" value="${esc(idFilter)}" oninput="setIdFilter(this.value)"/>${idFilter?`<span class="id-filter-x" onclick="setIdFilter('');document.getElementById('idFilterInput').value=''">✕</span>`:''}<span class="id-filter-x" title="Lock filter" onclick="lockIdFilter()">🔒</span></div><div class="fsep"></div>`;
 }else if(idPassBoxOpen){
   h+=`<div class="id-filter-box"><input type="${idPassVisible?'text':'password'}" class="id-filter-input" id="idPassInput" placeholder="Password…" style="width:110px;${idPassErr?'border-color:rgba(220,38,38,.6)':''}" onkeydown="if(event.key==='Enter'){checkIdPassword();}else if(event.key==='Escape'){cancelIdPassBox();}"/><span class="id-filter-x" title="${idPassVisible?'Hide':'Show'}" onclick="toggleIdPassVisible()">${idPassVisible?'🙈':'👁️'}</span><span class="id-filter-x" title="Confirm" onclick="checkIdPassword()">✔️</span><span class="id-filter-x" title="Cancel" onclick="cancelIdPassBox()">✕</span></div><div class="fsep"></div>`;
 }else{
@@ -1093,7 +1093,7 @@ function clearAll(){
   selD.clear();selWeeks.clear();idFilter='';Object.keys(sel).forEach(k=>sel[k].clear());
   document.querySelectorAll('.dp-srch').forEach(e=>e.value='');
   locSearch={};saveFilters();buildStrip();applyAll();
-  showToastUndo('🗑️ تم مسح كل الفلاتر','↩️ تراجع',undoClearAll);
+  showToastUndo('🗑️ All filters cleared','↩️ Undo',undoClearAll);
 }
 function undoClearAll(){
   if(!_lastClearedState)return;
@@ -1103,7 +1103,7 @@ function undoClearAll(){
   idFilter=_lastClearedState.idFilter;
   const idInput=document.getElementById('idFilterInput');if(idInput)idInput.value=idFilter;
   saveFilters();buildStrip();applyAll();
-  showToast('↩️ رجّعنا الفلاتر');
+  showToast('↩️ Filters restored');
 }
 
 /* ===== PATCH #1: debounce the ID search input ===== */
