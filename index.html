@@ -898,7 +898,7 @@ function renderQualitySection(mc){
       </tr>`;
     }).join('');
     const sec=document.createElement('div');sec.className='sec';sec.style.borderLeft=`4px solid ${col}`;
-    sec.innerHTML=`<div class="sec-hd"><span class="sec-t">${SHIFT_GROUP_ICON[grp]} ${grp} Shift</span><span class="sec-m">${people.length} labelers · ${groupTotalCount} tasks · متوسط ${qFmt(shiftAvgAcc)}</span></div>${people.length?`<div style="overflow-x:auto;max-height:340px;overflow-y:auto"><table style="width:100%;border-collapse:collapse">
+    sec.innerHTML=`<div class="sec-hd"><span class="sec-t">${SHIFT_GROUP_ICON[grp]} ${grp} Shift</span><span class="sec-m">${people.length} labelers · ${groupTotalCount} tasks · Avg ${qFmt(shiftAvgAcc)}</span></div>${people.length?`<div style="overflow-x:auto;max-height:340px;overflow-y:auto"><table style="width:100%;border-collapse:collapse">
       <thead><tr>
         <th style="position:sticky;top:0;background:var(--elevated);font-size:.5rem;padding:7px 10px;text-align:left;border-bottom:1.5px solid var(--border);color:var(--text-soft);font-weight:700">#</th>
         <th style="position:sticky;top:0;background:var(--elevated);font-size:.5rem;padding:7px 10px;text-align:left;border-bottom:1.5px solid var(--border);color:var(--text-soft);font-weight:700">Labeler</th>
