@@ -840,13 +840,39 @@ function computeQualityIdInfo(){
   });
   return idInfo;
 }
+// scans every Data Base row for a given Yubikey Email and works out which shift it shows up under most often —
+// used to place an Unmatched task (no Actual ID match) on a shift when the email itself is a known, repeated labeler
+function computeEmailShiftInfo(){
+  const emailIdx=sIdx['Yubikey Email'];const nameIdx=sIdx['Labeler Name'];const qtcIdx=hdrs.findIndex(h=>h.toLowerCase()==='qtc name');
+  const info={};
+  if(emailIdx===undefined)return info;
+  rawRows.forEach(r=>{
+    const em=String(r[emailIdx]||'').trim();if(!em)return;
+    const ek=em.toLowerCase();
+    const nm=nameIdx!==undefined?String(r[nameIdx]||'').trim():'';
+    const qtc=qtcIdx>=0?String(r[qtcIdx]||'').trim():'';
+    const grp=qtcShiftGroup(qtc);
+    if(!info[ek])info[ek]={email:em,counts:{Morning:0,Night:0,Overnight:0},names:{}};
+    const e=info[ek];
+    if(grp)e.counts[grp]=(e.counts[grp]||0)+1;
+    if(nm)e.names[nm]=(e.names[nm]||0)+1;
+  });
+  Object.values(info).forEach(e=>{
+    let bestGrp=null,bestC=0;
+    Object.entries(e.counts).forEach(([g,n])=>{if(n>bestC){bestC=n;bestGrp=g;}});
+    e.group=bestC>0?bestGrp:null;
+    let bestName=null,bestNc=-1;
+    Object.entries(e.names).forEach(([n,c])=>{if(c>bestNc){bestNc=c;bestName=n;}});
+    e.name=bestName||e.email;
+  });
+  return info;
+}
 function renderQualitySection(mc){
   const idInfo=computeQualityIdInfo();
   window._qualityIdInfo=idInfo;
-  // reverse lookup: Yubikey Email -> that person's info, so an Unmatched task (Actual ID not found) can still be
-  // placed on the right shift if the Export row's Yubikey Email matches someone in Data Base
-  const emailInfo={};
-  Object.values(idInfo).forEach(info=>{const ek=(info.email||'').trim().toLowerCase();if(ek&&!emailInfo[ek])emailInfo[ek]=info;});
+  // for an Unmatched task (Actual ID not found), fall back to whichever shift its Yubikey Email shows up under
+  // most often across all of Data Base
+  const emailInfo=computeEmailShiftInfo();
   const buckets={Morning:{},Night:{},Overnight:{}};
   let matched=0,unmatched=0;
   const unmatchedList=[];
@@ -867,7 +893,7 @@ function renderQualitySection(mc){
       const ek=(q.email||'').trim().toLowerCase();
       const byEmail=ek?emailInfo[ek]:null;
       unmatched++;
-      if(byEmail){
+      if(byEmail&&byEmail.group){
         const grp=addToBucket(byEmail,q);
         unmatchedList.push({aid,q,resolvedGrp:grp,resolvedName:byEmail.name});
       }else{
@@ -954,6 +980,7 @@ function renderQualitySection(mc){
       const resBadge=resolvedGrp?`<div class="dc-qs"><span class="qtag" style="background:rgba(23,185,120,.13);color:var(--success);border-color:rgba(23,185,120,.4);font-weight:800">${SHIFT_GROUP_ICON[resolvedGrp]} Counted under ${esc(resolvedName)} — ${esc(resolvedGrp)}</span></div>`:'';
       return `<div class="dcard" style="cursor:default;border-color:rgba(255,95,126,.5);background:rgba(255,95,126,.07)">
         <div class="dc-top"><span class="dc-pc" style="color:var(--danger)">🆔 ${esc(aid)}</span></div>
+        ${q.email?`<div class="dc-meta"><span class="dc-mi">✉️</span><span class="dc-mt">${esc(q.email)}</span></div>`:''}
         <div class="dc-meta"><span class="dc-mi">🧩</span><span class="dc-mt">Artifacts: ${qFmt(qNum(q.artifacts))}</span></div>
         <div class="dc-meta"><span class="dc-mi">🏷️</span><span class="dc-mt">Attribute: ${qFmt(qNum(q.attribute))}</span></div>
         <div class="dc-meta"><span class="dc-mi">📐</span><span class="dc-mt">TVA F1: ${qFmt(qNum(q.tvaF1))}</span></div>
