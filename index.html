@@ -863,12 +863,12 @@ function renderQualitySection(mc){
 
   const curWeekLbl=qualityWeekLabel||computeQualityWeekLabel();
   const toolbar=document.createElement('div');toolbar.className='sec';
-  toolbar.innerHTML=`<div class="sec-hd"><span class="sec-t">📥 استيراد من تاب "Export"</span><span class="sec-m">آخر استيراد: ${esc(lastImp)}</span></div><div style="padding:12px 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="bdg bdg-info" style="border-color:var(--border);color:var(--primary)">📅 ${esc(curWeekLbl)}</span><button class="btn btn-c" id="qualityRefreshBtn" onclick="fetchQualityData(false)">📥 Import / Refresh Quality</button><button class="btn btn-d" onclick="resetQualityWeek()">🔄 Reset (New Week)</button><span class="ltxt" style="font-size:.6rem">البيانات القديمة بتفضل محفوظة في الداشبورد حتى لو مسحت تاب Export وحطيت بيانات جديدة — دوس Reset لما تسحب كوالتي أسبوع جديد</span></div>`;
+  toolbar.innerHTML=`<div class="sec-hd"><span class="sec-t">Export📥</span><span class="sec-m">آخر استيراد: ${esc(lastImp)}</span></div><div style="padding:12px 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="bdg bdg-info" style="border-color:var(--border);color:var(--primary)">📅 ${esc(curWeekLbl)}</span><button class="btn btn-c" id="qualityRefreshBtn" onclick="fetchQualityData(false)">📥 Import / Refresh Quality</button><button class="btn btn-d" onclick="resetQualityWeek()">🔄 Reset (New Week)</button><span class="ltxt" style="font-size:.6rem">البيانات القديمة بتفضل محفوظة في الداشبورد حتى لو مسحت تاب Export وحطيت بيانات جديدة — دوس Reset لما تسحب كوالتي أسبوع جديد</span></div>`;
   mc.appendChild(toolbar);
 
   /* ---- بحث بالـ ID ---- */
   const searchSec=document.createElement('div');searchSec.className='sec';
-  searchSec.innerHTML=`<div class="sec-hd"><span class="sec-t">🔎 دور على تاسك بالـ ID</span></div><div class="ttbar"><input class="srch" id="qualityIdSearch" placeholder="🔍 اكتب الـ ID..." oninput="filterQualityById(this.value)"/><span class="rcnt" id="qualityIdCount">—</span></div><div id="qualityIdResult" style="padding:0 14px 14px"></div>`;
+  searchSec.innerHTML=`<div class="sec-hd"><span class="sec-t">Quality By Task ID🔎</span></div><div class="ttbar"><input class="srch" id="qualityIdSearch" placeholder="🔍 اكتب الـ ID..." oninput="filterQualityById(this.value)"/><span class="rcnt" id="qualityIdCount">—</span></div><div id="qualityIdResult" style="padding:0 14px 14px"></div>`;
   mc.appendChild(searchSec);
 
   /* ---- جدول مرتب لكل شيفت لوحدها: مرتب حسب Total Accuracy، ميدالية لأعلى 3، ولون حسب مستوى الدقة ---- */
