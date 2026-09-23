@@ -743,15 +743,30 @@ let qualityLoading=false;
 let qualityWeekLabel=null;
 const QUALITY_WEEK_KEY='meeg_quality_week';
 
-// the work week runs Monday to the following Monday — this function computes the "current week" independent of the rest of the dashboard
-function computeQualityWeekLabel(){
-  const now=new Date();
-  const day=now.getDay();
+// the work week runs Monday to the following Monday — this function computes the label for the Monday-starting week that contains a given date (defaults to today)
+function mondayOf(d){
+  const dt=d?new Date(d+'T12:00:00'):new Date();
+  const day=dt.getDay();
   const diff=day===0?-6:1-day;
-  const mon=new Date(now);mon.setDate(now.getDate()+diff);
+  const mon=new Date(dt);mon.setDate(dt.getDate()+diff);
+  return mon;
+}
+function computeQualityWeekLabel(dateStr){
+  const mon=mondayOf(dateStr);
   const dd=String(mon.getDate()).padStart(2,'0');
   const monthShort=mon.toLocaleString('en-US',{month:'short'});
   return `Week of ${dd} ${monthShort}`;
+}
+function mondayISO(dateStr){
+  const mon=mondayOf(dateStr);
+  return mon.getFullYear()+'-'+String(mon.getMonth()+1).padStart(2,'0')+'-'+String(mon.getDate()).padStart(2,'0');
+}
+function setQualityWeek(dateStr){
+  if(!dateStr)return;
+  qualityWeekLabel=computeQualityWeekLabel(dateStr);
+  try{localStorage.setItem(QUALITY_WEEK_KEY,qualityWeekLabel);}catch(e){}
+  showToast(`📅 Week set to: ${qualityWeekLabel}`);
+  if(activeLoc==='__quality__')renderAllSections();
 }
 function resetQualityWeek(){
   if(!confirm('This will clear all saved quality data and start a new week. Continue?')) return;
@@ -853,8 +868,9 @@ function renderQualitySection(mc){
   mc.appendChild(header);setTimeout(animateAllNums,50);
 
   const curWeekLbl=qualityWeekLabel||computeQualityWeekLabel();
+  const pickerDefault=qualityWeekLabel?mondayISO():mondayISO();
   const toolbar=document.createElement('div');toolbar.className='sec';
-  toolbar.innerHTML=`<div class="sec-hd"><span class="sec-t">📥 Import from "Export" tab</span><span class="sec-m">Last import: ${esc(lastImp)}</span></div><div style="padding:12px 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="bdg bdg-info" style="border-color:var(--border);color:var(--primary)">📅 ${esc(curWeekLbl)}</span><button class="btn btn-c" id="qualityRefreshBtn" onclick="fetchQualityData(false)">📥 Import / Refresh Quality</button><button class="btn btn-d" onclick="resetQualityWeek()">🔄 Reset (New Week)</button><span class="ltxt" style="font-size:.6rem">Old data stays saved in the dashboard even if you clear the Export tab and add new data — hit Reset when you pull a new week's quality</span></div>`;
+  toolbar.innerHTML=`<div class="sec-hd"><span class="sec-t">📥 Import from "Export" tab</span><span class="sec-m">Last import: ${esc(lastImp)}</span></div><div style="padding:12px 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="bdg bdg-info" style="border-color:var(--border);color:var(--primary)">📅 ${esc(curWeekLbl)}</span><button class="btn btn-c" id="qualityRefreshBtn" onclick="fetchQualityData(false)">📥 Import / Refresh Quality</button><button class="btn btn-d" onclick="resetQualityWeek()">🔄 Reset (New Week)</button><div class="id-filter-box" style="gap:6px"><input type="date" class="id-filter-input" id="qualityWeekPicker" style="width:150px" value="${esc(pickerDefault)}"/><button class="btn btn-cmp" style="padding:6px 10px" onclick="setQualityWeek(document.getElementById('qualityWeekPicker').value)">✓ Set Week</button></div><span class="ltxt" style="font-size:.6rem">Old data stays saved in the dashboard even if you clear the Export tab and add new data — hit Reset when you pull a new week's quality. Pick any date in the target week and hit "Set Week" if the label doesn't match the week you're pulling.</span></div>`;
   mc.appendChild(toolbar);
 
   /* ---- Search by ID ---- */
