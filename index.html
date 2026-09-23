@@ -813,44 +813,35 @@ function qNum(v){const n=parseFloat(v);return isNaN(n)?null:n;}
 function qFmt(n){if(n===null||n===undefined)return'—';return(n<=1?(n*100):n).toFixed(1)+'%';}
 function accTier(n){if(n===null||n===undefined)return{c:'var(--muted)',bg:'transparent',bd:'var(--border)'};const pct=n<=1?n*100:n;if(pct>=98)return{c:'var(--success)',bg:'rgba(23,185,120,.13)',bd:'rgba(23,185,120,.4)'};if(pct>=95)return{c:'var(--warning)',bg:'rgba(255,178,56,.15)',bd:'rgba(255,178,56,.45)'};return{c:'var(--danger)',bg:'rgba(255,95,126,.15)',bd:'rgba(255,95,126,.45)'};}
 // كل شخص (Yubikey Email أو Labeler Name) بياخد الشيفت اللي بيتكرر فيها أكتر جوه Data Base
-function computePersonShiftGroups(){
+function computeQualityIdInfo(){
   const emailIdx=sIdx['Yubikey Email'];const nameIdx=sIdx['Labeler Name'];const shiftIdx=sIdx['Shift'];
   const idIdx=hdrs.findIndex(h=>h.toLowerCase()==='id');
-  const personShiftCount={},personDisplay={},personEmail={},idToPersonKey={};
+  const idInfo={};
+  if(idIdx<0)return idInfo;
   rawRows.forEach(r=>{
+    const rid=String(r[idIdx]||'').trim();if(!rid)return;
     const em=emailIdx!==undefined?String(r[emailIdx]||'').trim():'';
     const nm=nameIdx!==undefined?String(r[nameIdx]||'').trim():'';
-    const key=em||nm;if(!key)return;
     const sv=shiftIdx!==undefined?String(r[shiftIdx]||'').trim().toLowerCase():'';
-    const grp=SHIFT_GROUP_OF[sv];
-    if(!personShiftCount[key])personShiftCount[key]={};
-    if(grp)personShiftCount[key][grp]=(personShiftCount[key][grp]||0)+1;
-    if(!personDisplay[key])personDisplay[key]=nm||em||key;
-    if(!personEmail[key]&&em)personEmail[key]=em;
-    if(idIdx>=0){const rid=String(r[idIdx]||'').trim();if(rid)idToPersonKey[rid]=key;}
+    const grp=SHIFT_GROUP_OF[sv]||null;
+    idInfo[rid]={name:nm||em||rid,email:em,group:grp};
   });
-  const personGroup={};
-  Object.entries(personShiftCount).forEach(([key,counts])=>{
-    let best=null,bestN=-1;
-    Object.entries(counts).forEach(([g,n])=>{if(n>bestN){bestN=n;best=g;}});
-    personGroup[key]=best||'Overnight';
-  });
-  return{personGroup,personDisplay,personEmail,idToPersonKey};
+  return idInfo;
 }
 function renderQualitySection(mc){
-  const ctx=computePersonShiftGroups();
-  const{idToPersonKey,personGroup,personDisplay,personEmail}=ctx;
-  window._qualityCtx=ctx;
+  const idInfo=computeQualityIdInfo();
+  window._qualityIdInfo=idInfo;
   const buckets={Morning:{},Night:{},Overnight:{}};
   let matched=0,unmatched=0;
   const unmatchedList=[];
   Object.entries(qualityStore).forEach(([aid,q])=>{
-    const key=idToPersonKey[aid];
-    if(!key){unmatched++;unmatchedList.push({aid,q});return;}
+    const info=idInfo[aid];
+    if(!info){unmatched++;unmatchedList.push({aid,q});return;}
     matched++;
-    const grp=personGroup[key]||'Overnight';
+    const grp=info.group||'Overnight';
+    const key=info.email||info.name;
     if(!buckets[grp][key]){
-      buckets[grp][key]={display:personDisplay[key]||key,email:personEmail[key]||'',count:0,sum:{artifacts:0,attribute:0,tvaF1:0,totalAccuracy:0},cnt:{artifacts:0,attribute:0,tvaF1:0,totalAccuracy:0}};
+      buckets[grp][key]={display:info.name,email:info.email||'',count:0,sum:{artifacts:0,attribute:0,tvaF1:0,totalAccuracy:0},cnt:{artifacts:0,attribute:0,tvaF1:0,totalAccuracy:0}};
     }
     const b=buckets[grp][key];b.count++;
     QUALITY_METRICS.forEach(m=>{const n=qNum(q[m]);if(n!==null){b.sum[m]+=n;b.cnt[m]++;}});
@@ -863,12 +854,12 @@ function renderQualitySection(mc){
 
   const curWeekLbl=qualityWeekLabel||computeQualityWeekLabel();
   const toolbar=document.createElement('div');toolbar.className='sec';
-  toolbar.innerHTML=`<div class="sec-hd"><span class="sec-t">Export📥</span><span class="sec-m">Lastest Export: ${esc(lastImp)}</span></div><div style="padding:12px 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="bdg bdg-info" style="border-color:var(--border);color:var(--primary)">📅 ${esc(curWeekLbl)}</span><button class="btn btn-c" id="qualityRefreshBtn" onclick="fetchQualityData(false)">📥 Import / Refresh Quality</button><button class="btn btn-d" onclick="resetQualityWeek()">🔄 Reset (New Week)</button><span class="ltxt" style="font-size:.6rem">Old data remains saved in the dashboard even if you clear the export tab and input new data—you need to hit "Reset" when pulling data for a new week.</span></div>`;
+  toolbar.innerHTML=`<div class="sec-hd"><span class="sec-t">📥 استيراد من تاب "Export"</span><span class="sec-m">آخر استيراد: ${esc(lastImp)}</span></div><div style="padding:12px 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="bdg bdg-info" style="border-color:var(--border);color:var(--primary)">📅 ${esc(curWeekLbl)}</span><button class="btn btn-c" id="qualityRefreshBtn" onclick="fetchQualityData(false)">📥 Import / Refresh Quality</button><button class="btn btn-d" onclick="resetQualityWeek()">🔄 Reset (New Week)</button><span class="ltxt" style="font-size:.6rem">البيانات القديمة بتفضل محفوظة في الداشبورد حتى لو مسحت تاب Export وحطيت بيانات جديدة — دوس Reset لما تسحب كوالتي أسبوع جديد</span></div>`;
   mc.appendChild(toolbar);
 
   /* ---- بحث بالـ ID ---- */
   const searchSec=document.createElement('div');searchSec.className='sec';
-  searchSec.innerHTML=`<div class="sec-hd"><span class="sec-t">Quality By Task ID🔎</span></div><div class="ttbar"><input class="srch" id="qualityIdSearch" placeholder="🔍Task ID..." oninput="filterQualityById(this.value)"/><span class="rcnt" id="qualityIdCount">—</span></div><div id="qualityIdResult" style="padding:0 14px 14px"></div>`;
+  searchSec.innerHTML=`<div class="sec-hd"><span class="sec-t">🔎 دور على تاسك بالـ ID</span></div><div class="ttbar"><input class="srch" id="qualityIdSearch" placeholder="🔍 اكتب الـ ID..." oninput="filterQualityById(this.value)"/><span class="rcnt" id="qualityIdCount">—</span></div><div id="qualityIdResult" style="padding:0 14px 14px"></div>`;
   mc.appendChild(searchSec);
 
   /* ---- جدول مرتب لكل شيفت لوحدها: مرتب حسب Total Accuracy، ميدالية لأعلى 3، ولون حسب مستوى الدقة ---- */
@@ -898,7 +889,7 @@ function renderQualitySection(mc){
       </tr>`;
     }).join('');
     const sec=document.createElement('div');sec.className='sec';sec.style.borderLeft=`4px solid ${col}`;
-    sec.innerHTML=`<div class="sec-hd"><span class="sec-t">${SHIFT_GROUP_ICON[grp]} ${grp} Shift</span><span class="sec-m">${people.length} labelers · ${groupTotalCount} tasks · Avg ${qFmt(shiftAvgAcc)}</span></div>${people.length?`<div style="overflow-x:auto;max-height:340px;overflow-y:auto"><table style="width:100%;border-collapse:collapse">
+    sec.innerHTML=`<div class="sec-hd"><span class="sec-t">${SHIFT_GROUP_ICON[grp]} ${grp} Shift</span><span class="sec-m">${people.length} labelers · ${groupTotalCount} tasks · متوسط ${qFmt(shiftAvgAcc)}</span></div>${people.length?`<div style="overflow-x:auto;max-height:340px;overflow-y:auto"><table style="width:100%;border-collapse:collapse">
       <thead><tr>
         <th style="position:sticky;top:0;background:var(--elevated);font-size:.5rem;padding:7px 10px;text-align:left;border-bottom:1.5px solid var(--border);color:var(--text-soft);font-weight:700">#</th>
         <th style="position:sticky;top:0;background:var(--elevated);font-size:.5rem;padding:7px 10px;text-align:left;border-bottom:1.5px solid var(--border);color:var(--text-soft);font-weight:700">Labeler</th>
@@ -910,7 +901,7 @@ function renderQualitySection(mc){
         <th style="position:sticky;top:0;background:var(--elevated);font-size:.5rem;padding:7px 10px;text-align:center;border-bottom:1.5px solid var(--border);color:${col};font-weight:800">Total Accuracy</th>
       </tr></thead>
       <tbody>${rowsHtml}</tbody>
-    </table></div>`:`<div class="catempty">There is no quality data for this shift.</div>`}`;
+    </table></div>`:`<div class="catempty">لا يوجد بيانات كوالتي لهذه الشيفت</div>`}`;
     mc.appendChild(sec);
   });
 
@@ -926,7 +917,7 @@ function renderQualitySection(mc){
       </div>`;
     }).join('');
     const umSec=document.createElement('div');umSec.className='sec';umSec.style.borderLeft='4px solid var(--danger)';
-    umSec.innerHTML=`<div class="sec-hd"><span class="sec-t">🚫 Unmatched Tasks</span><span class="sec-m">${unmatchedList.length} Missmatch Tasks</span></div><div class="cgrid">${umCards}</div>`;
+    umSec.innerHTML=`<div class="sec-hd"><span class="sec-t">🚫 Unmatched Tasks</span><span class="sec-m">${unmatchedList.length} tasks بدون ID مطابق</span></div><div class="cgrid">${umCards}</div>`;
     mc.appendChild(umSec);
   }
 
@@ -953,7 +944,7 @@ function renderQualitySection(mc){
     </tr>`;
   }).join('');
   const shiftSheet=`<div style="flex:1;min-width:280px">
-    <div style="text-align:center;font-family:var(--display);font-weight:800;font-size:.72rem;color:var(--text);background:var(--elevated);padding:7px;border-radius:10px 10px 0 0;border:2px solid var(--border);border-bottom:none">Shift</div>
+    <div style="text-align:center;font-family:var(--display);font-weight:800;font-size:.72rem;color:var(--text);background:var(--elevated);padding:7px;border-radius:10px 10px 0 0;border:2px solid var(--border);border-bottom:none">Shift sheet</div>
     <div style="overflow-x:auto;border:2px solid var(--border);border-radius:0 0 10px 10px"><table style="width:100%;border-collapse:collapse">
       <thead><tr>
         <th style="background:var(--elevated);color:var(--text-soft);font-size:.52rem;padding:7px 10px;text-align:left;border-bottom:1.5px solid var(--border);font-weight:700">WEEK</th>
@@ -968,7 +959,7 @@ function renderQualitySection(mc){
     </table></div>
   </div>`;
   const workforceSheet=`<div style="flex:1;min-width:280px">
-    <div style="text-align:center;font-family:var(--display);font-weight:800;font-size:.72rem;color:var(--text);background:var(--elevated);padding:7px;border-radius:10px 10px 0 0;border:2px solid var(--border);border-bottom:none">Workforce</div>
+    <div style="text-align:center;font-family:var(--display);font-weight:800;font-size:.72rem;color:var(--text);background:var(--elevated);padding:7px;border-radius:10px 10px 0 0;border:2px solid var(--border);border-bottom:none">Workforce sheet</div>
     <div style="overflow-x:auto;border:2px solid var(--border);border-radius:0 0 10px 10px"><table style="width:100%;border-collapse:collapse">
       <thead><tr>
         <th style="background:var(--elevated);color:var(--text-soft);font-size:.52rem;padding:7px 10px;text-align:left;border-bottom:1.5px solid var(--border);font-weight:700">WEEK</th>
@@ -993,8 +984,7 @@ function renderQualitySection(mc){
 
   if(unmatched>0){
     const warn=document.createElement('div');warn.className='errbox';warn.style.margin='0';
-    warn.innerHTML=`⚠️ ${unmatched}⚠️  quality rows lack a matching ID in the database (displayed in the "Unmatched Tasks" section above). Ensure that the "Actual ID" column in the export matches the "ID" column in the database.
-.`;
+    warn.innerHTML=`⚠️ ${unmatched} صف من الكوالتي مالوش ID متطابق في Data Base (اتعرضوا في قسم Unmatched Tasks فوق). تأكد إن عمود Actual ID في Export مطابق لعمود ID في Data Base.`;
     mc.appendChild(warn);
   }
 }
@@ -1004,15 +994,15 @@ function filterQualityById(val){
   const cntEl=document.getElementById('qualityIdCount');
   if(!resEl)return;
   if(!q){resEl.innerHTML='';if(cntEl)cntEl.textContent='—';return;}
-  const ctx=window._qualityCtx||computePersonShiftGroups();
+  const idInfo=window._qualityIdInfo||computeQualityIdInfo();
   const matches=Object.entries(qualityStore).filter(([aid])=>aid.toLowerCase().includes(q)).slice(0,30);
   if(cntEl)cntEl.textContent=matches.length+' نتيجة';
   if(!matches.length){resEl.innerHTML='<div class="empty" style="padding:16px"><span>🔍</span>مفيش تاسك بالـ ID ده</div>';return;}
   resEl.innerHTML=`<div class="cgrid">`+matches.map(([aid,qd])=>{
-    const key=ctx.idToPersonKey[aid];
-    const grp=key?(ctx.personGroup[key]||null):null;
-    const person=key?(ctx.personDisplay[key]||key):null;
-    const email=key?(ctx.personEmail[key]||''):'';
+    const info=idInfo[aid];
+    const grp=info?info.group:null;
+    const person=info?info.name:null;
+    const email=info?info.email:'';
     const col=grp?SHIFT_GROUP_COLORS[grp]:'var(--danger)';
     return `<div class="dcard" style="cursor:default;border-color:${col}55;background:${col}0d">
       <div class="dc-top"><span class="dc-pc" style="color:${col}">🆔 ${esc(aid)}</span></div>
