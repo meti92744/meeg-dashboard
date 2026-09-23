@@ -740,10 +740,8 @@ const SHIFT_GROUP_ICON={Morning:'🌅',Night:'🌆',Overnight:'🌙'};
 let qualityStore={};
 let qualityLastImport=null;
 let qualityLoading=false;
-let qualityWeekLabel=null;
-const QUALITY_WEEK_KEY='meeg_quality_week';
 
-// the work week runs Monday to the following Monday — this function computes the label for the Monday-starting week that contains a given date (defaults to today)
+// the work week runs Monday to the following Monday — this computes the label for the Monday-starting week containing a given date
 function mondayOf(d){
   const dt=d?new Date(d+'T12:00:00'):new Date();
   const day=dt.getDay();
@@ -757,24 +755,12 @@ function computeQualityWeekLabel(dateStr){
   const monthShort=mon.toLocaleString('en-US',{month:'short'});
   return `Week of ${dd} ${monthShort}`;
 }
-function mondayISO(dateStr){
-  const mon=mondayOf(dateStr);
-  return mon.getFullYear()+'-'+String(mon.getMonth()+1).padStart(2,'0')+'-'+String(mon.getDate()).padStart(2,'0');
-}
-function setQualityWeek(dateStr){
-  if(!dateStr)return;
-  qualityWeekLabel=computeQualityWeekLabel(dateStr);
-  try{localStorage.setItem(QUALITY_WEEK_KEY,qualityWeekLabel);}catch(e){}
-  showToast(`📅 Week set to: ${qualityWeekLabel}`);
-  if(activeLoc==='__quality__')renderAllSections();
-}
 function resetQualityWeek(){
   if(!confirm('This will clear all saved quality data and start a new week. Continue?')) return;
-  qualityStore={};qualityLastImport=null;qualityWeekLabel=null;
+  qualityStore={};qualityLastImport=null;
   try{
     localStorage.removeItem(QUALITY_STORE_KEY);
     localStorage.removeItem(QUALITY_LAST_IMPORT_KEY);
-    localStorage.removeItem(QUALITY_WEEK_KEY);
   }catch(e){}
   showToast('🗑️ Quality data cleared — ready for a new week');
   if(activeLoc==='__quality__')renderAllSections();
@@ -783,7 +769,6 @@ function resetQualityWeek(){
 function loadQualityStore(){
   try{const raw=localStorage.getItem(QUALITY_STORE_KEY);qualityStore=raw?JSON.parse(raw):{};}catch(e){qualityStore={};}
   try{const li=localStorage.getItem(QUALITY_LAST_IMPORT_KEY);qualityLastImport=li?parseInt(li):null;}catch(e){qualityLastImport=null;}
-  try{qualityWeekLabel=localStorage.getItem(QUALITY_WEEK_KEY)||null;}catch(e){qualityWeekLabel=null;}
 }
 function saveQualityStore(){try{localStorage.setItem(QUALITY_STORE_KEY,JSON.stringify(qualityStore));}catch(e){}}
 
@@ -800,6 +785,7 @@ function fetchQualityData(silent){
     const qh=table[0].map(h=>String(h||'').trim());
     const qhLower=qh.map(h=>h.toLowerCase());
     const aidIdx=qhLower.findIndex(h=>h==='actual id');
+    const adateIdx=qhLower.findIndex(h=>h==='actual date');
     const metricIdx={artifacts:qhLower.findIndex(h=>h==='artifacts'),attribute:qhLower.findIndex(h=>h==='attribute'),tvaF1:qhLower.findIndex(h=>h==='tva f1'),totalAccuracy:qhLower.findIndex(h=>h==='total accuracy')};
     if(aidIdx<0){showToast('⚠️ "Actual ID" column not found in the Export tab');return;}
     const now=Date.now();let added=0;
@@ -808,15 +794,12 @@ function fetchQualityData(silent){
       const aid=String(row[aidIdx]||'').trim();if(!aid)continue;
       const rec={importedAt:now};
       QUALITY_METRICS.forEach(m=>{const ci=metricIdx[m];rec[m]=ci>=0&&row[ci]!==undefined?String(row[ci]).trim():'';});
+      rec.actualDate=adateIdx>=0&&row[adateIdx]!==undefined?(extractDate(row[adateIdx])||String(row[adateIdx]).trim()):'';
       qualityStore[aid]=rec;added++;
     }
     saveQualityStore();
     qualityLastImport=now;
     try{localStorage.setItem(QUALITY_LAST_IMPORT_KEY,String(now));}catch(e){}
-    if(!qualityWeekLabel){
-      qualityWeekLabel=computeQualityWeekLabel();
-      try{localStorage.setItem(QUALITY_WEEK_KEY,qualityWeekLabel);}catch(e){}
-    }
     if(!silent)showToast(`✅ Saved ${added} quality rows (old data kept)`);
     if(activeLoc==='__quality__')renderAllSections();
   }).catch(e=>{
@@ -827,9 +810,19 @@ function fetchQualityData(silent){
 function qNum(v){const n=parseFloat(v);return isNaN(n)?null:n;}
 function qFmt(n){if(n===null||n===undefined)return'—';return(n<=1?(n*100):n).toFixed(1)+'%';}
 function accTier(n){if(n===null||n===undefined)return{c:'var(--muted)',bg:'transparent',bd:'var(--border)'};const pct=n<=1?n*100:n;if(pct>=98)return{c:'var(--success)',bg:'rgba(23,185,120,.13)',bd:'rgba(23,185,120,.4)'};if(pct>=95)return{c:'var(--warning)',bg:'rgba(255,178,56,.15)',bd:'rgba(255,178,56,.45)'};return{c:'var(--danger)',bg:'rgba(255,95,126,.15)',bd:'rgba(255,95,126,.45)'};}
-// (kept for reference; per-ID row lookup below is now the source of truth for shift/labeler attribution)
+// each QTC has their shift written next to their name, e.g. "Mohamed Ali (N)" = Night, "(ON)" = Overnight, "(M)" = Morning
+function qtcShiftGroup(qtcName){
+  if(!qtcName)return null;
+  const m=String(qtcName).match(/\(([^)]+)\)\s*$/);
+  if(!m)return null;
+  const tag=m[1].trim().toUpperCase();
+  if(tag==='N')return'Night';
+  if(tag==='ON')return'Overnight';
+  if(tag==='M')return'Morning';
+  return null;
+}
 function computeQualityIdInfo(){
-  const emailIdx=sIdx['Yubikey Email'];const nameIdx=sIdx['Labeler Name'];const shiftIdx=sIdx['Shift'];
+  const emailIdx=sIdx['Yubikey Email'];const nameIdx=sIdx['Labeler Name'];const qtcIdx=hdrs.findIndex(h=>h.toLowerCase()==='qtc name');
   const idIdx=hdrs.findIndex(h=>h.toLowerCase()==='id');
   const idInfo={};
   if(idIdx<0)return idInfo;
@@ -837,9 +830,9 @@ function computeQualityIdInfo(){
     const rid=String(r[idIdx]||'').trim();if(!rid)return;
     const em=emailIdx!==undefined?String(r[emailIdx]||'').trim():'';
     const nm=nameIdx!==undefined?String(r[nameIdx]||'').trim():'';
-    const sv=shiftIdx!==undefined?String(r[shiftIdx]||'').trim().toLowerCase():'';
-    const grp=SHIFT_GROUP_OF[sv]||null;
-    idInfo[rid]={name:nm||em||rid,email:em,group:grp};
+    const qtc=qtcIdx>=0?String(r[qtcIdx]||'').trim():'';
+    const grp=qtcShiftGroup(qtc);
+    idInfo[rid]={name:nm||em||rid,email:em,qtc,group:grp};
   });
   return idInfo;
 }
@@ -861,16 +854,25 @@ function renderQualitySection(mc){
     const b=buckets[grp][key];b.count++;
     QUALITY_METRICS.forEach(m=>{const n=qNum(q[m]);if(n!==null){b.sum[m]+=n;b.cnt[m]++;}});
   });
+  // work out which week this pulled quality data belongs to, straight from the "Actual Date" column in Export
+  const weekCounts={};
+  Object.values(qualityStore).forEach(q=>{
+    if(q.actualDate){
+      const wk=computeQualityWeekLabel(q.actualDate);
+      weekCounts[wk]=(weekCounts[wk]||0)+1;
+    }
+  });
+  let derivedWeekLbl=null,bestN=-1;
+  Object.entries(weekCounts).forEach(([wk,n])=>{if(n>bestN){bestN=n;derivedWeekLbl=wk;}});
+  const curWeekLbl=derivedWeekLbl||'— (no Actual Date found yet)';
   const totalQ=Object.keys(qualityStore).length;
   const lastImp=qualityLastImport?new Date(qualityLastImport).toLocaleString():'—';
   const header=document.createElement('div');header.className='loc-hdr';
   header.innerHTML=`<div class="loc-hdr-name">🎯 Quality — QA Diff Export</div><div class="loc-stats"><div class="loc-stat"><div class="sv anim-num" data-anim-num="${totalQ}">0</div><div class="sl">Total Records</div></div><div class="loc-stat"><div class="sv anim-num" data-anim-num="${matched}">0</div><div class="sl">Matched</div></div><div class="loc-stat"><div class="sv anim-num" data-anim-num="${unmatched}">0</div><div class="sl">Unmatched</div></div></div>`;
   mc.appendChild(header);setTimeout(animateAllNums,50);
 
-  const curWeekLbl=qualityWeekLabel||computeQualityWeekLabel();
-  const pickerDefault=qualityWeekLabel?mondayISO():mondayISO();
   const toolbar=document.createElement('div');toolbar.className='sec';
-  toolbar.innerHTML=`<div class="sec-hd"><span class="sec-t">📥 Import from "Export" tab</span><span class="sec-m">Last import: ${esc(lastImp)}</span></div><div style="padding:12px 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="bdg bdg-info" style="border-color:var(--border);color:var(--primary)">📅 ${esc(curWeekLbl)}</span><button class="btn btn-c" id="qualityRefreshBtn" onclick="fetchQualityData(false)">📥 Import / Refresh Quality</button><button class="btn btn-d" onclick="resetQualityWeek()">🔄 Reset (New Week)</button><div class="id-filter-box" style="gap:6px"><input type="date" class="id-filter-input" id="qualityWeekPicker" style="width:150px" value="${esc(pickerDefault)}"/><button class="btn btn-cmp" style="padding:6px 10px" onclick="setQualityWeek(document.getElementById('qualityWeekPicker').value)">✓ Set Week</button></div><span class="ltxt" style="font-size:.6rem">Old data stays saved in the dashboard even if you clear the Export tab and add new data — hit Reset when you pull a new week's quality. Pick any date in the target week and hit "Set Week" if the label doesn't match the week you're pulling.</span></div>`;
+  toolbar.innerHTML=`<div class="sec-hd"><span class="sec-t">📥 Import from "Export" tab</span><span class="sec-m">Last import: ${esc(lastImp)}</span></div><div style="padding:12px 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="bdg bdg-info" style="border-color:var(--border);color:var(--primary)">📅 ${esc(curWeekLbl)}</span><button class="btn btn-c" id="qualityRefreshBtn" onclick="fetchQualityData(false)">📥 Import / Refresh Quality</button><button class="btn btn-d" onclick="resetQualityWeek()">🔄 Reset (New Week)</button><span class="ltxt" style="font-size:.6rem">The week shown above is worked out automatically from the "Actual Date" column in Export — no need to set it manually. Old data stays saved even if you clear the Export tab and add new data — hit Reset before pulling a new week's quality.</span></div>`;
   mc.appendChild(toolbar);
 
   /* ---- Search by ID ---- */
@@ -939,7 +941,7 @@ function renderQualitySection(mc){
 
   /* ---- Totals at the bottom: Shift sheet + Workforce sheet tables ---- */
   const totalsSec=document.createElement('div');totalsSec.className='sec';
-  const totalsWeekLbl=qualityWeekLabel||computeQualityWeekLabel();
+  const totalsWeekLbl=curWeekLbl;
   const SHIFT_SHORT={Morning:'M',Night:'N',Overnight:'ON'};
   let wfSumA=0,wfCntA=0,wfSumB=0,wfCntB=0,wfSumF=0,wfCntF=0,wfSumT=0,wfCntT=0,wfCount=0;
   const shiftRowsHtml=SHIFT_GROUPS.map(grp=>{
@@ -1019,10 +1021,11 @@ function filterQualityById(val){
     const grp=info?info.group:null;
     const person=info?info.name:null;
     const email=info?info.email:'';
+    const qtc=info?info.qtc:'';
     const col=grp?SHIFT_GROUP_COLORS[grp]:'var(--danger)';
     return `<div class="dcard" style="cursor:default;border-color:${col}55;background:${col}0d">
       <div class="dc-top"><span class="dc-pc" style="color:${col}">🆔 ${esc(aid)}</span></div>
-      ${person?`<div class="dc-meta"><span class="dc-mi">👤</span><span class="dc-mt">${esc(person)}</span></div>${email?`<div class="dc-meta"><span class="dc-mi">✉️</span><span class="dc-mt">${esc(email)}</span></div>`:''}<div class="dc-meta"><span class="dc-mi">${grp?SHIFT_GROUP_ICON[grp]:''}</span><span class="dc-mt">${esc(grp||'—')} Shift</span></div>`:`<div class="dc-meta"><span class="dc-mi">🚫</span><span class="dc-mt">Unmatched</span></div>`}
+      ${person?`<div class="dc-meta"><span class="dc-mi">👤</span><span class="dc-mt">${esc(person)}</span></div>${email?`<div class="dc-meta"><span class="dc-mi">✉️</span><span class="dc-mt">${esc(email)}</span></div>`:''}${qtc?`<div class="dc-meta"><span class="dc-mi">🏷️</span><span class="dc-mt">${esc(qtc)}</span></div>`:''}<div class="dc-meta"><span class="dc-mi">${grp?SHIFT_GROUP_ICON[grp]:''}</span><span class="dc-mt">${esc(grp||'—')} Shift</span></div>`:`<div class="dc-meta"><span class="dc-mi">🚫</span><span class="dc-mt">Unmatched</span></div>`}
       <div class="dc-meta"><span class="dc-mi">🧩</span><span class="dc-mt">Artifacts: ${qFmt(qNum(qd.artifacts))}</span></div>
       <div class="dc-meta"><span class="dc-mi">🏷️</span><span class="dc-mt">Attribute: ${qFmt(qNum(qd.attribute))}</span></div>
       <div class="dc-meta"><span class="dc-mi">📐</span><span class="dc-mt">TVA F1: ${qFmt(qNum(qd.tvaF1))}</span></div>
