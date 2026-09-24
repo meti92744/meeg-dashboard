@@ -874,10 +874,12 @@ function renderQualitySection(mc){
   // most often across all of Data Base
   const emailInfo=computeEmailShiftInfo();
   const buckets={Morning:{},Night:{},Overnight:{}};
+  const shiftIds={Morning:[],Night:[],Overnight:[],Unassigned:[]};
   let matched=0,unmatched=0;
   const unmatchedList=[];
-  function addToBucket(info,q){
+  function addToBucket(info,q,aid){
     const grp=info.group||'Overnight';
+    shiftIds[grp].push(aid);
     const key=info.email||info.name;
     if(!buckets[grp][key]){
       buckets[grp][key]={display:info.name,email:info.email||'',count:0,sum:{artifacts:0,attribute:0,tvaF1:0,totalAccuracy:0},cnt:{artifacts:0,attribute:0,tvaF1:0,totalAccuracy:0}};
@@ -894,15 +896,16 @@ function renderQualitySection(mc){
       const byEmail=ek?emailInfo[ek]:null;
       unmatched++;
       if(byEmail&&byEmail.group){
-        const grp=addToBucket(byEmail,q);
+        const grp=addToBucket(byEmail,q,aid);
         unmatchedList.push({aid,q,resolvedGrp:grp,resolvedName:byEmail.name});
       }else{
         unmatchedList.push({aid,q});
+        shiftIds.Unassigned.push(aid);
       }
       return;
     }
     matched++;
-    addToBucket(info,q);
+    addToBucket(info,q,aid);
   });
   // work out which week this pulled quality data belongs to, straight from the "Actual Date" column in Export
   const weekCounts={};
@@ -1066,11 +1069,46 @@ function renderQualitySection(mc){
   totalsSec.innerHTML=`<div class="sec-hd"><span class="sec-t">📊 Totals</span></div><div style="padding:14px 16px;display:flex;gap:16px;flex-wrap:wrap">${shiftSheet}${workforceSheet}</div>`;
   mc.appendChild(totalsSec);
 
+  /* ---- Task IDs per shift (copy-ready, one ID per line) ---- */
+  window._qualityShiftIds=shiftIds;
+  const idBoxes=[...SHIFT_GROUPS,'Unassigned'].map(grp=>{
+    const ids=shiftIds[grp];
+    const col=SHIFT_GROUP_COLORS[grp]||'var(--danger)';
+    const ico=SHIFT_GROUP_ICON[grp]||'🚫';
+    const title=grp==='Unassigned'?'No shift (Unmatched)':grp;
+    return `<div style="flex:1;min-width:230px;border:2px solid var(--border);border-top:4px solid ${col};border-radius:10px;overflow:hidden;background:var(--card)">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;background:var(--elevated);border-bottom:1.5px solid var(--border)">
+        <span style="font-family:var(--display);font-weight:800;font-size:.7rem;color:${col}">${ico} ${title} <span style="font-family:var(--mono);color:var(--text)">(${ids.length})</span></span>
+        <button class="btn btn-c" onclick="copyShiftIds('${grp}')">📋 Copy</button>
+      </div>
+      <textarea readonly onclick="this.select()" style="width:100%;height:190px;border:none;outline:none;resize:vertical;padding:8px 10px;font-family:var(--mono);font-size:.62rem;background:transparent;color:var(--text);box-sizing:border-box" placeholder="No tasks">${esc(ids.join('\n'))}</textarea>
+    </div>`;
+  }).join('');
+  const idsSec=document.createElement('div');idsSec.className='sec';
+  const idsTotal=Object.values(shiftIds).reduce((a,l)=>a+l.length,0);
+  idsSec.innerHTML=`<div class="sec-hd"><span class="sec-t">📋 Task IDs per Shift</span><span class="sec-m">${idsTotal} IDs total · one per line, ready to paste into Sheets</span></div><div style="padding:14px 16px;display:flex;gap:12px;flex-wrap:wrap">${idBoxes}</div>`;
+  mc.appendChild(idsSec);
+
   if(unmatched>0){
     const warn=document.createElement('div');warn.className='errbox';warn.style.margin='0';
     warn.innerHTML=`⚠️ ${unmatched} quality row(s) have no matching ID in Data Base (shown in the Unmatched Tasks section above). Make sure the Actual ID column in Export matches the ID column in Data Base.`;
     mc.appendChild(warn);
   }
+}
+function copyShiftIds(grp){
+  const ids=(window._qualityShiftIds||{})[grp]||[];
+  if(!ids.length){showToast('⚠️ No IDs to copy');return;}
+  const text=ids.join('\n');
+  const done=()=>showToast('✅ Copied '+ids.length+' IDs — '+(grp==='Unassigned'?'No shift':grp));
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(done).catch(()=>fallbackCopy(text,done));
+  }else fallbackCopy(text,done);
+}
+function fallbackCopy(text,done){
+  const ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';
+  document.body.appendChild(ta);ta.select();
+  try{document.execCommand('copy');done();}catch(e){showToast('⚠️ Copy failed — select the text manually');}
+  ta.remove();
 }
 function filterQualityById(val){
   const q=(val||'').trim().toLowerCase();
