@@ -1001,18 +1001,19 @@ function renderQualitySection(mc){
     QUALITY_METRICS.forEach(m=>{const n=qNum(q[m]);if(n!==null){b.sum[m]+=n;b.cnt[m]++;}});
     return grp;
   }
-  const teamAgg={};
-  function addToTeam(email,q){
-    const k=teamsKey(email);const tl=teamsTL[k],g=teamsMap[k];
-    if(!tl||!g)return;
-    const key=g+'||'+tl;
-    if(!teamAgg[key])teamAgg[key]={tl,group:g,count:0,sum:{artifacts:0,attribute:0,tvaF1:0,totalAccuracy:0},cnt:{artifacts:0,attribute:0,tvaF1:0,totalAccuracy:0}};
+  const teamAgg={};let teamSkipped=0;
+  // one row per QTC (the "Qtc Name" from Data Base) — the task counts for whoever submitted it, under HIS shift
+  function addToTeam(qtc,group,q){
+    const norm=String(qtc||'').replace(/\s*\([^)]*\)\s*$/,'').replace(/\s+/g,' ').trim().toLowerCase();
+    if(!norm)return false;
+    const key=group+'||'+norm;
+    if(!teamAgg[key])teamAgg[key]={tl:String(qtc).trim(),group,count:0,sum:{artifacts:0,attribute:0,tvaF1:0,totalAccuracy:0},cnt:{artifacts:0,attribute:0,tvaF1:0,totalAccuracy:0}};
     const t=teamAgg[key];t.count++;
     QUALITY_METRICS.forEach(m=>{const n=qNum(q[m]);if(n!==null){t.sum[m]+=n;t.cnt[m]++;}});
+    return true;
   }
   Object.entries(qualityStore).forEach(([aid,q])=>{
     const info=idInfo[aid];
-    addToTeam((info&&info.email&&teamsMap[teamsKey(info.email)])?info.email:(q.email||(info&&info.email)),q);
     if(!info){
       // still no match by Actual ID — try to place it on a shift via the Yubikey Email instead
       const ek=(q.email||'').trim().toLowerCase();
@@ -1044,6 +1045,19 @@ function renderQualitySection(mc){
   let derivedWeekLbl=null,bestN=-1;
   Object.entries(weekCounts).forEach(([wk,n])=>{if(n>bestN){bestN=n;derivedWeekLbl=wk;}});
   const curWeekLbl=derivedWeekLbl||'— (no Actual Date found yet)';
+  /* ---- Team sheet pass: only tasks from the exported period; QTC comes from Data Base ("Qtc Name") by ID,
+         and if the ID isn't in Data Base it falls back to the Yubikey -> Teams tab (TL + shift) ---- */
+  Object.entries(qualityStore).forEach(([aid,q])=>{
+    if(derivedWeekLbl&&q.actualDate){const wk=computeQualityWeekLabel(q.actualDate);if(wk&&wk!==derivedWeekLbl)return;}
+    const info=idInfo[aid];
+    let qtc=null,grp=null;
+    if(info&&info.qtc){qtc=info.qtc;grp=info.group||qtcShiftGroup(info.qtc);}
+    if(!qtc||!grp){
+      const k=teamsKey(q.email||(info&&info.email)||'');
+      qtc=teamsTL[k]||qtc;grp=teamsMap[k]||(qtc?qtcShiftGroup(qtc):null)||grp;
+    }
+    if(!qtc||!grp||!addToTeam(qtc,grp,q))teamSkipped++;
+  });
   const totalQ=Object.keys(qualityStore).length;
   const lastImp=qualityLastImport?new Date(qualityLastImport).toLocaleString():'—';
   const header=document.createElement('div');header.className='loc-hdr';
@@ -1123,6 +1137,7 @@ function renderQualitySection(mc){
   }
 
   /* ---- Team sheet: one row per TL/QC, same averaging as the Shift sheet; 3 buttons filter by shift ---- */
+  window._teamSheetSkipped=teamSkipped;
   window._teamSheetData=Object.values(teamAgg).map(t=>({tl:t.tl,group:t.group,count:t.count,
     art:t.cnt.artifacts?t.sum.artifacts/t.cnt.artifacts:null,att:t.cnt.attribute?t.sum.attribute/t.cnt.attribute:null,
     acc:t.cnt.totalAccuracy?t.sum.totalAccuracy/t.cnt.totalAccuracy:null,tva:t.cnt.tvaF1?t.sum.tvaF1/t.cnt.tvaF1:null}))
@@ -1226,7 +1241,7 @@ function renderTeamSheet(){
   });
   const rows=(window._teamSheetData||[]).filter(r=>!teamSheetShift||r.group===teamSheetShift);
   const meta=document.getElementById('teamSheetMeta');
-  if(meta)meta.textContent=rows.length+' TL/QC · '+rows.reduce((a,r)=>a+r.count,0)+' tasks'+(teamSheetShift?'':' · click a shift to filter');
+  if(meta)meta.textContent=rows.length+' TL/QC · '+rows.reduce((a,r)=>a+r.count,0)+' tasks'+(window._teamSheetSkipped?' · '+window._teamSheetSkipped+' tasks with no QTC/Teams match':'')+(teamSheetShift?'':' · click a shift to filter');
   if(!rows.length){body.innerHTML='<div class="catempty">No quality data for this shift</div>';return;}
   const th=(t,al,extra)=>`<th style="position:sticky;top:0;background:#2b2f45;color:#fff;font-size:.56rem;padding:8px 10px;text-align:${al};font-weight:800;${extra||''}">${t}</th>`;
   const num='padding:6px 10px;text-align:center;font-size:.64rem;font-family:var(--mono)';
