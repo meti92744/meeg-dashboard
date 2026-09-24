@@ -387,6 +387,44 @@ td a{color:var(--info);text-decoration:none;font-weight:700;}
 .login-btn.dodging{position:fixed;width:170px;z-index:99999;}
 .login-err-msg{color:#ff8fa3;font-size:.66rem;font-weight:700;margin-top:10px;min-height:14px;font-family:var(--font);}
 .logout-btn{background:rgba(255,95,126,.25);border-color:rgba(255,95,126,.5);color:#7a0d24}
+
+/* ===== DARK MODE FIXES: text that was dark-on-dark or too faint ===== */
+html[data-theme="dark"]{
+  --primary:#5cf3e2;            /* was #0b7d92 — nearly invisible on the dark cards */
+  --muted:#8bb8c8;              /* was #4f7f92 — too faint for the tiny labels */
+  --text-soft:#a9dbe6;
+}
+/* header + big section banners use the chrome gradient; give them a solid dark base and light text */
+html[data-theme="dark"] .hdr,
+html[data-theme="dark"] .loc-hdr{background:linear-gradient(135deg,#0b2a38 0%,#0d4252 50%,#0a3552 100%);animation:none;border-color:rgba(0,229,212,.28);}
+html[data-theme="dark"] .meeg-wordmark .brand,
+html[data-theme="dark"] .hdr-title h1,
+html[data-theme="dark"] .meta-blk strong,
+html[data-theme="dark"] .loc-hdr-name,
+html[data-theme="dark"] .loc-stat .sv{color:#eafcfb;text-shadow:none;}
+html[data-theme="dark"] .meeg-wordmark .sub,
+html[data-theme="dark"] .hdr-title p,
+html[data-theme="dark"] .meta-blk span,
+html[data-theme="dark"] .loc-stat .sl{color:rgba(223,248,251,.78);}
+html[data-theme="dark"] .hdr-title{border-left-color:rgba(223,248,251,.35);}
+html[data-theme="dark"] .hdr-title h1 span{color:#5cf3e2;text-shadow:none;}
+html[data-theme="dark"] .loc-stat{background:rgba(255,255,255,.07);border-color:rgba(0,229,212,.25);}
+/* badges + header buttons */
+html[data-theme="dark"] .bdg{border-color:rgba(0,229,212,.35);}
+html[data-theme="dark"] .bdg-info,
+html[data-theme="dark"] .bdg-live,
+html[data-theme="dark"] .bdg-rows{background:rgba(255,255,255,.08);color:#dff8fb;}
+html[data-theme="dark"] .btn{background:rgba(255,255,255,.08);border-color:rgba(0,229,212,.4);color:#dff8fb;}
+html[data-theme="dark"] .btn:hover{box-shadow:0 5px 0 rgba(0,0,0,.45);}
+html[data-theme="dark"] .btn-c{background:#0a2a36;border-color:#5cf3e2;color:#5cf3e2;}
+html[data-theme="dark"] .btn-cmp{background:rgba(255,255,255,.08);border-color:rgba(0,229,212,.4);color:#dff8fb;}
+html[data-theme="dark"] .btn-cmp.active{background:#5cf3e2;border-color:#5cf3e2;color:#04202b;}
+html[data-theme="dark"] .btn-d,
+html[data-theme="dark"] .logout-btn{background:rgba(255,95,126,.2);border-color:rgba(255,95,126,.6);color:#ffb3c2;}
+/* toast + floating button sit on the chrome gradient too */
+html[data-theme="dark"] .toast{background:#0d4252;color:#eafcfb;border:1.5px solid rgba(0,229,212,.4);}
+/* small dim labels inside cards / keyfob */
+html[data-theme="dark"] .keyfob-cap{color:#a9dbe6;}
 </style>
 </head>
 <body>
@@ -1092,7 +1130,7 @@ function renderQualitySection(mc){
   const teamSec=document.createElement('div');teamSec.className='sec';
   const TS_SHORT={Morning:'M',Night:'N',Overnight:'ON'};
   const tsBtns=SHIFT_GROUPS.map(grp=>`<button type="button" id="tsBtn_${grp}" onclick="setTeamSheetShift('${grp}')" style="cursor:pointer;font-family:var(--display);font-weight:800;font-size:.62rem;padding:4px 12px;border-radius:14px;border:2px solid ${SHIFT_GROUP_COLORS[grp]};background:transparent;color:${SHIFT_GROUP_COLORS[grp]}">${SHIFT_GROUP_ICON[grp]} ${TS_SHORT[grp]}</button>`).join('');
-  teamSec.innerHTML=`<div class="sec-hd"><span class="sec-t">👥 Teams</span><span style="display:flex;gap:8px;align-items:center;margin-left:12px">${tsBtns}</span><span class="sec-m" id="teamSheetMeta"></span></div><div id="teamSheetBody" style="overflow-x:auto"></div>`;
+  teamSec.innerHTML=`<div class="sec-hd"><span class="sec-t">👥 Team sheet</span><span style="display:flex;gap:8px;align-items:center;margin-left:12px">${tsBtns}</span><span class="sec-m" id="teamSheetMeta"></span></div><div id="teamSheetBody" style="overflow-x:auto"></div>`;
   mc.appendChild(teamSec);
   renderTeamSheet();
 
