@@ -776,6 +776,7 @@ function saveQualityStore(){try{localStorage.setItem(QUALITY_STORE_KEY,JSON.stri
 // fetches data from the "Export" tab (by name, not gid, so it works even if the tab is recreated) and merges it on top of the saved archive
 function fetchQualityData(silent){
   if(qualityLoading)return;
+  loadTeamsMap();
   qualityLoading=true;
   const btn=document.getElementById('qualityRefreshBtn');if(btn)btn.disabled=true;
   const url=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(EXPORT_SHEET_NAME)}`;
@@ -824,6 +825,48 @@ function qtcShiftGroup(qtcName){
   if(tag==='ON')return'Overnight';
   if(tag==='M')return'Morning';
   return null;
+}
+/* ============ TEAMS sheet lookup (which shift each Yubikey/flash belongs to) ============ */
+const TEAMS_SHEET_NAME='Teams'; // the "Teams" tab inside the same main Google Sheet (same SHEET_ID as Data Base / Export)
+const TEAMS_CACHE_KEY='meeg_teams_map_v1';
+let teamsMap={};      // yubikey email (lowercase) -> shift group (Morning / Night / Overnight)
+let teamsLoaded=false,teamsLoading=false;
+// turns whatever is written in the TEAMS "Shift" column into one of the 3 groups
+function teamsShiftGroup(v){
+  const t=String(v||'').trim().toLowerCase();
+  if(!t)return null;
+  if(SHIFT_GROUP_OF[t])return SHIFT_GROUP_OF[t];
+  if(/over\s*-?\s*night|\(on\)|\bon\b/.test(t))return'Overnight';
+  if(/morning|\(m\)|\bam\b/.test(t))return'Morning';
+  if(/night|\(n\)|\bpm\b/.test(t))return'Night';
+  return null;
+}
+function loadTeamsMap(){
+  if(teamsLoading)return;
+  teamsLoading=true;
+  try{const raw=localStorage.getItem(TEAMS_CACHE_KEY);if(raw&&!teamsLoaded){teamsMap=JSON.parse(raw)||{};}}catch(e){}
+  fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(TEAMS_SHEET_NAME)}`)
+    .then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.text();})
+    .then(txt=>{
+      const table=parseCSV(txt);
+      const hi=table.findIndex(r=>r.some(c=>/yubikey/i.test(String(c||''))));
+      if(hi<0)throw new Error('Yubikey column not found in TEAMS');
+      const h=table[hi].map(c=>String(c||'').trim().toLowerCase());
+      const ei=h.findIndex(c=>/yubikey/.test(c));
+      const si=h.findIndex(c=>c==='shift'||/^shift\b/.test(c));
+      if(si<0)throw new Error('Shift column not found in TEAMS');
+      const map={};
+      for(let i=hi+1;i<table.length;i++){
+        const r=table[i];if(!r)continue;
+        const em=String(r[ei]||'').trim().toLowerCase();if(!em)continue;
+        const g=teamsShiftGroup(r[si]);
+        if(g)map[em]=g;
+      }
+      teamsMap=map;teamsLoaded=true;teamsLoading=false;
+      try{localStorage.setItem(TEAMS_CACHE_KEY,JSON.stringify(map));}catch(e){}
+      if(activeLoc==='__quality__')renderAllSections();
+    })
+    .catch(e=>{teamsLoading=false;showToast('⚠️ Failed to load TEAMS sheet: '+e.message);});
 }
 function computeQualityIdInfo(){
   const emailIdx=sIdx['Yubikey Email'];const nameIdx=sIdx['Labeler Name'];const qtcIdx=hdrs.findIndex(h=>h.toLowerCase()==='qtc name');
@@ -893,9 +936,12 @@ function renderQualitySection(mc){
     if(!info){
       // still no match by Actual ID — try to place it on a shift via the Yubikey Email instead
       const ek=(q.email||'').trim().toLowerCase();
-      const byEmail=ek?emailInfo[ek]:null;
+      // the shift comes from where this Yubikey (flash) is listed in the TEAMS sheet — NOT from how often it repeats in Data Base
+      const teamGrp=ek?teamsMap[ek]:null;
+      const dbName=ek&&emailInfo[ek]?emailInfo[ek].name:null;
       unmatched++;
-      if(byEmail&&byEmail.group){
+      if(teamGrp){
+        const byEmail={group:teamGrp,email:q.email,name:dbName||q.email};
         const grp=addToBucket(byEmail,q,aid);
         unmatchedList.push({aid,q,resolvedGrp:grp,resolvedName:byEmail.name});
       }else{
@@ -992,7 +1038,7 @@ function renderQualitySection(mc){
       </div>`;
     }).join('');
     const umSec=document.createElement('div');umSec.className='sec';umSec.style.borderLeft='4px solid var(--danger)';
-    umSec.innerHTML=`<div class="sec-hd"><span class="sec-t">🚫 Unmatched Tasks</span><span class="sec-m">${unmatchedList.length} tasks with no matching ID${resolvedCount?` · ${resolvedCount} counted toward a shift via Yubikey Email`:''}</span></div><div class="cgrid">${umCards}</div>`;
+    umSec.innerHTML=`<div class="sec-hd"><span class="sec-t">🚫 Unmatched Tasks</span><span class="sec-m">${unmatchedList.length} tasks with no matching ID${resolvedCount?` · ${resolvedCount} counted toward a shift via TEAMS sheet`:''}</span></div><div class="cgrid">${umCards}</div>`;
     mc.appendChild(umSec);
   }
 
@@ -1018,7 +1064,7 @@ function renderQualitySection(mc){
       <td style="padding:7px 10px;text-align:center;font-size:.72rem;font-family:var(--mono);font-weight:900;color:${col}">${qFmt(cntT?sumT/cntT:null)}</td>
     </tr>`;
   }).join('');
-  /* Unmatched tasks that couldn't be pinned to a shift even via Yubikey Email have no shift at all, so they never
+  /* Unmatched tasks that couldn't be pinned to a shift even via the TEAMS sheet have no shift at all, so they never
      join the Shift sheet breakdown above — but they still count as real work, so they're folded into the
      Workforce sheet totals only. Ones that WERE resolved via email already flow into wf* above through their
      shift's bucket, so skip them here to avoid counting them twice. */
@@ -1138,6 +1184,7 @@ function filterQualityById(val){
   }).join('')+`</div>`;
 }
 loadQualityStore();
+loadTeamsMap();
 /* ============ END QUALITY TAB ============ */
 
 /* ===== PATCH #5: smart auto-refresh — skip re-render if data unchanged ===== */
