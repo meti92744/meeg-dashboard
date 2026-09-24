@@ -1092,7 +1092,7 @@ function renderQualitySection(mc){
   const teamSec=document.createElement('div');teamSec.className='sec';
   const TS_SHORT={Morning:'M',Night:'N',Overnight:'ON'};
   const tsBtns=SHIFT_GROUPS.map(grp=>`<button type="button" id="tsBtn_${grp}" onclick="setTeamSheetShift('${grp}')" style="cursor:pointer;font-family:var(--display);font-weight:800;font-size:.62rem;padding:4px 12px;border-radius:14px;border:2px solid ${SHIFT_GROUP_COLORS[grp]};background:transparent;color:${SHIFT_GROUP_COLORS[grp]}">${SHIFT_GROUP_ICON[grp]} ${TS_SHORT[grp]}</button>`).join('');
-  teamSec.innerHTML=`<div class="sec-hd"><span class="sec-t">👥 Team sheet</span><span style="display:flex;gap:8px;align-items:center;margin-left:12px">${tsBtns}</span><span class="sec-m" id="teamSheetMeta"></span></div><div id="teamSheetBody" style="overflow-x:auto"></div>`;
+  teamSec.innerHTML=`<div class="sec-hd"><span class="sec-t">👥 Teams</span><span style="display:flex;gap:8px;align-items:center;margin-left:12px">${tsBtns}</span><span class="sec-m" id="teamSheetMeta"></span></div><div id="teamSheetBody" style="overflow-x:auto"></div>`;
   mc.appendChild(teamSec);
   renderTeamSheet();
 
