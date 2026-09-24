@@ -836,11 +836,13 @@ function teamsShiftGroup(v){
   const t=String(v||'').trim().toLowerCase();
   if(!t)return null;
   if(SHIFT_GROUP_OF[t])return SHIFT_GROUP_OF[t];
-  if(/over\s*-?\s*night|\(on\)|\bon\b/.test(t))return'Overnight';
-  if(/morning|\(m\)|\bam\b/.test(t))return'Morning';
-  if(/night|\(n\)|\bpm\b/.test(t))return'Night';
+  if(t==='on'||/over\s*-?\s*night|\(on\)|\bon\b/.test(t))return'Overnight';
+  if(t==='m'||/morning|\(m\)|\bam\b/.test(t))return'Morning';
+  if(t==='n'||/night|\(n\)|\bpm\b/.test(t))return'Night';
   return null;
 }
+// match on the part before "@" so tiny differences (case, spaces, domain) never break the lookup
+function teamsKey(em){return String(em||'').trim().toLowerCase().split('@')[0].replace(/\s+/g,'');}
 function loadTeamsMap(){
   if(teamsLoading)return;
   teamsLoading=true;
@@ -854,15 +856,18 @@ function loadTeamsMap(){
       const h=table[hi].map(c=>String(c||'').trim().toLowerCase());
       const ei=h.findIndex(c=>/yubikey/.test(c));
       const si=h.findIndex(c=>c==='shift'||/^shift\b/.test(c));
-      if(si<0)throw new Error('Shift column not found in TEAMS');
+      const qi=h.findIndex(c=>/qtc|tl/.test(c)&&c!==h[ei]);
+      if(si<0&&qi<0)throw new Error('Shift column not found in TEAMS');
       const map={};
       for(let i=hi+1;i<table.length;i++){
         const r=table[i];if(!r)continue;
-        const em=String(r[ei]||'').trim().toLowerCase();if(!em)continue;
-        const g=teamsShiftGroup(r[si]);
-        if(g)map[em]=g;
+        const k=teamsKey(r[ei]);if(!k)continue;
+        let g=si>=0?teamsShiftGroup(r[si]):null;
+        if(!g&&qi>=0)g=qtcShiftGroup(r[qi]);
+        if(g)map[k]=g;
       }
       teamsMap=map;teamsLoaded=true;teamsLoading=false;
+      showToast('✅ Teams loaded: '+Object.keys(map).length+' flashes');
       try{localStorage.setItem(TEAMS_CACHE_KEY,JSON.stringify(map));}catch(e){}
       if(activeLoc==='__quality__')renderAllSections();
     })
@@ -937,7 +942,7 @@ function renderQualitySection(mc){
       // still no match by Actual ID — try to place it on a shift via the Yubikey Email instead
       const ek=(q.email||'').trim().toLowerCase();
       // the shift comes from where this Yubikey (flash) is listed in the TEAMS sheet — NOT from how often it repeats in Data Base
-      const teamGrp=ek?teamsMap[ek]:null;
+      const teamGrp=ek?teamsMap[teamsKey(ek)]:null;
       const dbName=ek&&emailInfo[ek]?emailInfo[ek].name:null;
       unmatched++;
       if(teamGrp){
@@ -1026,7 +1031,7 @@ function renderQualitySection(mc){
   if(unmatchedList.length){
     const resolvedCount=unmatchedList.filter(u=>u.resolvedGrp).length;
     const umCards=unmatchedList.map(({aid,q,resolvedGrp,resolvedName})=>{
-      const resBadge=resolvedGrp?`<div class="dc-qs"><span class="qtag" style="background:rgba(23,185,120,.13);color:var(--success);border-color:rgba(23,185,120,.4);font-weight:800">${SHIFT_GROUP_ICON[resolvedGrp]} Counted under ${esc(resolvedName)} — ${esc(resolvedGrp)}</span></div>`:'';
+      const resBadge=!resolvedGrp?`<div class="dc-qs"><span class="qtag" style="font-weight:800">❓ ${q.email?'Not found in Teams':'No email'}</span></div>`:resolvedGrp?`<div class="dc-qs"><span class="qtag" style="background:rgba(23,185,120,.13);color:var(--success);border-color:rgba(23,185,120,.4);font-weight:800">${SHIFT_GROUP_ICON[resolvedGrp]} Counted under ${esc(resolvedName)} — ${esc(resolvedGrp)}</span></div>`:'';
       return `<div class="dcard" style="cursor:default;border-color:rgba(255,95,126,.5);background:rgba(255,95,126,.07)">
         <div class="dc-top"><span class="dc-pc" style="color:var(--danger)">🆔 ${esc(aid)}</span></div>
         ${q.email?`<div class="dc-meta"><span class="dc-mi">✉️</span><span class="dc-mt">${esc(q.email)}</span></div>`:''}
@@ -1038,7 +1043,7 @@ function renderQualitySection(mc){
       </div>`;
     }).join('');
     const umSec=document.createElement('div');umSec.className='sec';umSec.style.borderLeft='4px solid var(--danger)';
-    umSec.innerHTML=`<div class="sec-hd"><span class="sec-t">🚫 Unmatched Tasks</span><span class="sec-m">${unmatchedList.length} tasks with no matching ID${resolvedCount?` · ${resolvedCount} counted toward a shift via TEAMS sheet`:''}</span></div><div class="cgrid">${umCards}</div>`;
+    umSec.innerHTML=`<div class="sec-hd"><span class="sec-t">🚫 Unmatched Tasks</span><span class="sec-m">${unmatchedList.length} tasks with no matching ID${resolvedCount?` · ${resolvedCount} counted toward a shift via TEAMS sheet`:''} · Teams tab: ${Object.keys(teamsMap).length} flashes${teamsLoaded?'':' (loading…)'}</span></div><div class="cgrid">${umCards}</div>`;
     mc.appendChild(umSec);
   }
 
