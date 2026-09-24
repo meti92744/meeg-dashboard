@@ -850,13 +850,13 @@ function loadTeamsMap(){
   if(teamsLoading)return;
   teamsLoading=true;
   try{const raw=localStorage.getItem(TEAMS_CACHE_KEY);if(raw&&!teamsLoaded){teamsMap=JSON.parse(raw)||{};}}catch(e){}
-  fetch(TEAMS_GID?`https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${TEAMS_GID}`:`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(TEAMS_SHEET_NAME)}`)
+  fetch(TEAMS_GID?`https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${TEAMS_GID}`:`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&headers=1&sheet=${encodeURIComponent(TEAMS_SHEET_NAME)}`)
     .then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.text();})
     .then(txt=>{
       const table=parseCSV(txt);
       const hi=table.findIndex(r=>r.some(c=>/yubikey/i.test(String(c||''))));
       if(hi<0)throw new Error('Yubikey column not found in TEAMS');
-      const h=table[hi].map(c=>String(c||'').trim().toLowerCase());
+      const h=table[hi].map(c=>String(c||'').trim().toLowerCase().split(/\s+/).slice(0,2).join(' '));
       const ei=h.findIndex(c=>/yubikey/.test(c));
       const si=h.findIndex(c=>c==='shift'||/^shift\b/.test(c));
       const qi=h.findIndex(c=>/qtc|tl/.test(c)&&c!==h[ei]);
@@ -1066,7 +1066,7 @@ function renderQualitySection(mc){
       </div>`;
     }).join('');
     const umSec=document.createElement('div');umSec.className='sec';umSec.style.borderLeft='4px solid var(--danger)';
-    umSec.innerHTML=`<div class="sec-hd"><span class="sec-t">🚫 Unmatched Tasks</span><span class="sec-m">${unmatchedList.length} tasks with no matching ID${resolvedCount?` · ${resolvedCount} counted toward a shift via TEAMS sheet`:''} · Teams tab: ${Object.keys(teamsMap).length} flashes${teamsLoaded?'':' (loading…)'}${teamsUsingSnapshot?' · built-in copy':''}</span></div>${teamsUsingSnapshot&&teamsDebug?`<div style="padding:8px 16px;font-size:.6rem;font-family:var(--mono);color:var(--danger);word-break:break-all">Teams debug: ${esc(teamsDebug)}</div>`:''}<div class="cgrid">${umCards}</div>`;
+    umSec.innerHTML=`<div class="sec-hd"><span class="sec-t">🚫 Unmatched Tasks</span><span class="sec-m">${unmatchedList.length} tasks with no matching ID${resolvedCount?` · ${resolvedCount} counted toward a shift via TEAMS sheet`:''} · Teams tab: ${Object.keys(teamsMap).length} flashes${teamsLoaded?'':' (loading…)'}${teamsUsingSnapshot?' · built-in copy':''}</span></div><div class="cgrid">${umCards}</div>`;
     mc.appendChild(umSec);
   }
 
@@ -1143,25 +1143,6 @@ function renderQualitySection(mc){
   totalsSec.innerHTML=`<div class="sec-hd"><span class="sec-t">📊 Totals</span></div><div style="padding:14px 16px;display:flex;gap:16px;flex-wrap:wrap">${shiftSheet}${workforceSheet}</div>`;
   mc.appendChild(totalsSec);
 
-  /* ---- Task IDs per shift (copy-ready, one ID per line) ---- */
-  window._qualityShiftIds=shiftIds;
-  const idBoxes=[...SHIFT_GROUPS,'Unassigned'].map(grp=>{
-    const ids=shiftIds[grp];
-    const col=SHIFT_GROUP_COLORS[grp]||'var(--danger)';
-    const ico=SHIFT_GROUP_ICON[grp]||'🚫';
-    const title=grp==='Unassigned'?'No shift (Unmatched)':grp;
-    return `<div style="flex:1;min-width:230px;border:2px solid var(--border);border-top:4px solid ${col};border-radius:10px;overflow:hidden;background:var(--card)">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;background:var(--elevated);border-bottom:1.5px solid var(--border)">
-        <span style="font-family:var(--display);font-weight:800;font-size:.7rem;color:${col}">${ico} ${title} <span style="font-family:var(--mono);color:var(--text)">(${ids.length})</span></span>
-        <button class="btn btn-c" onclick="copyShiftIds('${grp}')">📋 Copy</button>
-      </div>
-      <textarea readonly onclick="this.select()" style="width:100%;height:190px;border:none;outline:none;resize:vertical;padding:8px 10px;font-family:var(--mono);font-size:.62rem;background:transparent;color:var(--text);box-sizing:border-box" placeholder="No tasks">${esc(ids.join('\n'))}</textarea>
-    </div>`;
-  }).join('');
-  const idsSec=document.createElement('div');idsSec.className='sec';
-  const idsTotal=Object.values(shiftIds).reduce((a,l)=>a+l.length,0);
-  idsSec.innerHTML=`<div class="sec-hd"><span class="sec-t">📋 Task IDs per Shift</span><span class="sec-m">${idsTotal} IDs total · one per line, ready to paste into Sheets</span></div><div style="padding:14px 16px;display:flex;gap:12px;flex-wrap:wrap">${idBoxes}</div>`;
-  mc.appendChild(idsSec);
 
   if(unmatched>0){
     const warn=document.createElement('div');warn.className='errbox';warn.style.margin='0';
