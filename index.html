@@ -883,14 +883,14 @@ function loadTeamsMap(){
       }
       teamsUsingSnapshot=false;
       const liveCount=Object.keys(map).length;
-      // live Teams tab wins wherever it has data; the built-in copy only fills flashes the live read is missing
+      // live Teams tab wins wherever it has data; the built-in copy only fills Yubikeys the live read is missing
       if(liveCount<Object.keys(TEAMS_SNAPSHOT).length*0.5){
         Object.keys(TEAMS_SNAPSHOT).forEach(k=>{if(!map[k])map[k]=TEAMS_SNAPSHOT[k];});
         teamsUsingSnapshot=true;
-        teamsDebug='live read only found '+liveCount+' flashes | '+teamsDebug;
+        teamsDebug='live read only found '+liveCount+' Yubikeys | '+teamsDebug;
       }
       teamsMap=map;teamsLoaded=true;teamsLoading=false;
-      showToast(teamsUsingSnapshot?'⚠️ Live Teams tab looks incomplete — filled from built-in copy ('+Object.keys(map).length+' flashes)':'✅ Teams loaded: '+Object.keys(map).length+' flashes');
+      showToast(teamsUsingSnapshot?'⚠️ Live Teams tab looks incomplete — filled from built-in copy ('+Object.keys(map).length+' Yubikeys)':'✅ Teams loaded: '+Object.keys(map).length+' Yubikeys');
       try{localStorage.setItem(TEAMS_CACHE_KEY,JSON.stringify(map));}catch(e){}
       if(activeLoc==='__quality__')renderAllSections();
     })
@@ -1066,7 +1066,7 @@ function renderQualitySection(mc){
       </div>`;
     }).join('');
     const umSec=document.createElement('div');umSec.className='sec';umSec.style.borderLeft='4px solid var(--danger)';
-    umSec.innerHTML=`<div class="sec-hd"><span class="sec-t">🚫 Unmatched Tasks</span><span class="sec-m">${unmatchedList.length} tasks with no matching ID${resolvedCount?` · ${resolvedCount} counted toward a shift via TEAMS sheet`:''} · Teams tab: ${Object.keys(teamsMap).length} flashes${teamsLoaded?'':' (loading…)'}${teamsUsingSnapshot?' · built-in copy':''}</span></div><div class="cgrid">${umCards}</div>`;
+    umSec.innerHTML=`<div class="sec-hd"><span class="sec-t">🚫 Unmatched Tasks</span><span class="sec-m">${unmatchedList.length} tasks with no matching ID${resolvedCount?` · ${resolvedCount} counted toward a shift via TEAMS sheet`:''} · Teams tab: ${Object.keys(teamsMap).length} Yubikeys${teamsLoaded?'':' (loading…)'}${teamsUsingSnapshot?' · built-in copy':''}</span></div><div class="cgrid">${umCards}</div>`;
     mc.appendChild(umSec);
   }
 
