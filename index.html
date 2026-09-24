@@ -987,6 +987,17 @@ function renderQualitySection(mc){
   // most often across all of Data Base
   const emailInfo=computeEmailShiftInfo();
   const buckets={Morning:{},Night:{},Overnight:{}};
+  const teamAgg={};let teamSkipped=0;
+  // one row per QTC (the "Qtc Name" from Data Base) — the task counts for whoever submitted it, under HIS shift
+  function addToTeam(qtc,group,q){
+    const norm=String(qtc||'').replace(/\s*\([^)]*\)\s*$/,'').replace(/\s+/g,' ').trim().toLowerCase();
+    if(!norm)return false;
+    const key=group+'||'+norm;
+    if(!teamAgg[key])teamAgg[key]={tl:String(qtc).trim(),group,count:0,sum:{artifacts:0,attribute:0,tvaF1:0,totalAccuracy:0},cnt:{artifacts:0,attribute:0,tvaF1:0,totalAccuracy:0}};
+    const t=teamAgg[key];t.count++;
+    QUALITY_METRICS.forEach(m=>{const n=qNum(q[m]);if(n!==null){t.sum[m]+=n;t.cnt[m]++;}});
+    return true;
+  }
   const shiftIds={Morning:[],Night:[],Overnight:[],Unassigned:[]};
   let matched=0,unmatched=0;
   const unmatchedList=[];
@@ -1001,17 +1012,6 @@ function renderQualitySection(mc){
     QUALITY_METRICS.forEach(m=>{const n=qNum(q[m]);if(n!==null){b.sum[m]+=n;b.cnt[m]++;}});
     return grp;
   }
-  const teamAgg={};let teamSkipped=0;
-  // one row per QTC (the "Qtc Name" from Data Base) — the task counts for whoever submitted it, under HIS shift
-  function addToTeam(qtc,group,q){
-    const norm=String(qtc||'').replace(/\s*\([^)]*\)\s*$/,'').replace(/\s+/g,' ').trim().toLowerCase();
-    if(!norm)return false;
-    const key=group+'||'+norm;
-    if(!teamAgg[key])teamAgg[key]={tl:String(qtc).trim(),group,count:0,sum:{artifacts:0,attribute:0,tvaF1:0,totalAccuracy:0},cnt:{artifacts:0,attribute:0,tvaF1:0,totalAccuracy:0}};
-    const t=teamAgg[key];t.count++;
-    QUALITY_METRICS.forEach(m=>{const n=qNum(q[m]);if(n!==null){t.sum[m]+=n;t.cnt[m]++;}});
-    return true;
-  }
   Object.entries(qualityStore).forEach(([aid,q])=>{
     const info=idInfo[aid];
     if(!info){
@@ -1024,6 +1024,7 @@ function renderQualitySection(mc){
       if(teamGrp){
         const byEmail={group:teamGrp,email:q.email,name:dbName||q.email};
         const grp=addToBucket(byEmail,q,aid);
+        addToTeam(teamsTL[teamsKey(ek)]||dbName||q.email,teamGrp,q);
         unmatchedList.push({aid,q,resolvedGrp:grp,resolvedName:byEmail.name});
       }else{
         unmatchedList.push({aid,q});
@@ -1032,7 +1033,9 @@ function renderQualitySection(mc){
       return;
     }
     matched++;
-    addToBucket(info,q,aid);
+    const grp0=addToBucket(info,q,aid);
+    const qtc0=info.qtc||teamsTL[teamsKey(info.email)]||info.name;
+    addToTeam(qtc0,grp0,q);
   });
   // work out which week this pulled quality data belongs to, straight from the "Actual Date" column in Export
   const weekCounts={};
@@ -1045,25 +1048,6 @@ function renderQualitySection(mc){
   let derivedWeekLbl=null,bestN=-1;
   Object.entries(weekCounts).forEach(([wk,n])=>{if(n>bestN){bestN=n;derivedWeekLbl=wk;}});
   const curWeekLbl=derivedWeekLbl||'— (no Actual Date found yet)';
-  /* ---- Team sheet pass: only tasks from the exported period; QTC comes from Data Base ("Qtc Name") by ID,
-         and if the ID isn't in Data Base it falls back to the Yubikey -> Teams tab (TL + shift) ---- */
-  Object.entries(qualityStore).forEach(([aid,q])=>{
-    if(derivedWeekLbl&&q.actualDate){const wk=computeQualityWeekLabel(q.actualDate);if(wk&&wk!==derivedWeekLbl)return;}
-    const info=idInfo[aid];
-    let qtc=null,grp=null;
-    if(info&&info.qtc){qtc=info.qtc;grp=info.group||qtcShiftGroup(info.qtc);}
-    if(!qtc||!grp){
-      const k=teamsKey(q.email||(info&&info.email)||'');
-      qtc=teamsTL[k]||qtc;grp=teamsMap[k]||(qtc?qtcShiftGroup(qtc):null)||grp;
-    }
-    if(!qtc||!grp||!addToTeam(qtc,grp,q))teamSkipped++;
-  });
-  const totalQ=Object.keys(qualityStore).length;
-  const lastImp=qualityLastImport?new Date(qualityLastImport).toLocaleString():'—';
-  const header=document.createElement('div');header.className='loc-hdr';
-  header.innerHTML=`<div class="loc-hdr-name">🎯 Quality — QA Diff Export</div><div class="loc-stats"><div class="loc-stat"><div class="sv anim-num" data-anim-num="${totalQ}">0</div><div class="sl">Total Records</div></div><div class="loc-stat"><div class="sv anim-num" data-anim-num="${matched}">0</div><div class="sl">Matched</div></div><div class="loc-stat"><div class="sv anim-num" data-anim-num="${unmatched}">0</div><div class="sl">Unmatched</div></div></div>`;
-  mc.appendChild(header);setTimeout(animateAllNums,50);
-
   const toolbar=document.createElement('div');toolbar.className='sec';
   toolbar.innerHTML=`<div class="sec-hd"><span class="sec-t">📥 Import from "Export" tab</span><span class="sec-m">Last import: ${esc(lastImp)}</span></div><div style="padding:12px 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="bdg bdg-info" style="border-color:var(--border);color:var(--primary)">📅 ${esc(curWeekLbl)}</span><button class="btn btn-c" id="qualityRefreshBtn" onclick="fetchQualityData(false)">📥 Import / Refresh Quality</button><button class="btn btn-d" onclick="resetQualityWeek()">🔄 Reset (New Week)</button><span class="ltxt" style="font-size:.6rem">The week shown above is worked out automatically from the "Actual Date" column in Export — no need to set it manually. Old data stays saved even if you clear the Export tab and add new data — hit Reset before pulling a new week's quality.</span></div>`;
   mc.appendChild(toolbar);
