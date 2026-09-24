@@ -827,6 +827,7 @@ function qtcShiftGroup(qtcName){
   return null;
 }
 /* ============ TEAMS sheet lookup (which shift each Yubikey/flash belongs to) ============ */
+const TEAMS_GID=''; // optional: paste the Teams tab's gid here (the number after gid= in the URL while you're on that tab) to read it the same way Data Base is read
 const TEAMS_SHEET_NAME='Teams'; // the "Teams" tab inside the same main Google Sheet (same SHEET_ID as Data Base / Export)
 const TEAMS_CACHE_KEY='meeg_teams_map_v1';
 let teamsMap={};      // yubikey email (lowercase) -> shift group (Morning / Night / Overnight)
@@ -849,7 +850,7 @@ function loadTeamsMap(){
   if(teamsLoading)return;
   teamsLoading=true;
   try{const raw=localStorage.getItem(TEAMS_CACHE_KEY);if(raw&&!teamsLoaded){teamsMap=JSON.parse(raw)||{};}}catch(e){}
-  fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(TEAMS_SHEET_NAME)}`)
+  fetch(TEAMS_GID?`https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${TEAMS_GID}`:`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(TEAMS_SHEET_NAME)}`)
     .then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.text();})
     .then(txt=>{
       const table=parseCSV(txt);
@@ -881,9 +882,15 @@ function loadTeamsMap(){
         teamsDebug+=' | fallback used';
       }
       teamsUsingSnapshot=false;
-      if(!Object.keys(map).length){Object.assign(map,TEAMS_SNAPSHOT);teamsUsingSnapshot=true;}
+      const liveCount=Object.keys(map).length;
+      // live Teams tab wins wherever it has data; the built-in copy only fills flashes the live read is missing
+      if(liveCount<Object.keys(TEAMS_SNAPSHOT).length*0.5){
+        Object.keys(TEAMS_SNAPSHOT).forEach(k=>{if(!map[k])map[k]=TEAMS_SNAPSHOT[k];});
+        teamsUsingSnapshot=true;
+        teamsDebug='live read only found '+liveCount+' flashes | '+teamsDebug;
+      }
       teamsMap=map;teamsLoaded=true;teamsLoading=false;
-      showToast(teamsUsingSnapshot?'⚠️ Live Teams tab returned nothing — using built-in copy ('+Object.keys(map).length+' flashes)':'✅ Teams loaded: '+Object.keys(map).length+' flashes');
+      showToast(teamsUsingSnapshot?'⚠️ Live Teams tab looks incomplete — filled from built-in copy ('+Object.keys(map).length+' flashes)':'✅ Teams loaded: '+Object.keys(map).length+' flashes');
       try{localStorage.setItem(TEAMS_CACHE_KEY,JSON.stringify(map));}catch(e){}
       if(activeLoc==='__quality__')renderAllSections();
     })
@@ -1059,7 +1066,7 @@ function renderQualitySection(mc){
       </div>`;
     }).join('');
     const umSec=document.createElement('div');umSec.className='sec';umSec.style.borderLeft='4px solid var(--danger)';
-    umSec.innerHTML=`<div class="sec-hd"><span class="sec-t">🚫 Unmatched Tasks</span><span class="sec-m">${unmatchedList.length} tasks with no matching ID${resolvedCount?` · ${resolvedCount} counted toward a shift via TEAMS sheet`:''} · Teams tab: ${Object.keys(teamsMap).length} flashes${teamsLoaded?'':' (loading…)'}${teamsUsingSnapshot?' · built-in copy':''}</span></div>${(teamsUsingSnapshot||!Object.keys(teamsMap).length)&&teamsDebug?`<div style="padding:8px 16px;font-size:.6rem;font-family:var(--mono);color:var(--danger);word-break:break-all">Teams debug: ${esc(teamsDebug)}</div>`:''}<div class="cgrid">${umCards}</div>`;
+    umSec.innerHTML=`<div class="sec-hd"><span class="sec-t">🚫 Unmatched Tasks</span><span class="sec-m">${unmatchedList.length} tasks with no matching ID${resolvedCount?` · ${resolvedCount} counted toward a shift via TEAMS sheet`:''} · Teams tab: ${Object.keys(teamsMap).length} flashes${teamsLoaded?'':' (loading…)'}${teamsUsingSnapshot?' · built-in copy':''}</span></div>${teamsUsingSnapshot&&teamsDebug?`<div style="padding:8px 16px;font-size:.6rem;font-family:var(--mono);color:var(--danger);word-break:break-all">Teams debug: ${esc(teamsDebug)}</div>`:''}<div class="cgrid">${umCards}</div>`;
     mc.appendChild(umSec);
   }
 
