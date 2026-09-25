@@ -1226,7 +1226,7 @@ function renderTeamSheet(){
   });
   const rows=(window._teamSheetData||[]).filter(r=>!teamSheetShift||r.group===teamSheetShift);
   const meta=document.getElementById('teamSheetMeta');
-  if(meta)meta.textContent=rows.length+' TL/QC · '+rows.reduce((a,r)=>a+r.count,0)+' tasks'+(window._teamSheetSkipped?' · '+window._teamSheetSkipped+' tasks with no QTC/Teams match':'')+(teamSheetShift?'':' · click a shift to filter');
+  if(meta)meta.textContent=rows.length+' QTC · '+rows.reduce((a,r)=>a+r.count,0)+' tasks'+(window._teamSheetSkipped?' · '+window._teamSheetSkipped+' tasks with no QTC/Teams match':'')+(teamSheetShift?'':' · click a shift to filter');
   if(!rows.length){body.innerHTML='<div class="catempty">No quality data for this shift</div>';return;}
   const th=(t,al,extra)=>`<th style="position:sticky;top:0;background:#2b2f45;color:#fff;font-size:.56rem;padding:8px 10px;text-align:${al};font-weight:800;${extra||''}">${t}</th>`;
   const num='padding:6px 10px;text-align:center;font-size:.64rem;font-family:var(--mono)';
