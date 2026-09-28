@@ -813,6 +813,48 @@ const SHIFT_GROUP_ICON={Morning:'🌅',Night:'🌆',Overnight:'🌙'};
 let qualityStore={};
 let qualityLastImport=null;
 let qualityLoading=false;
+/* ---- Archive spreadsheet (a SEPARATE Google Sheet with monthly tabs): old Data Base rows, used ONLY to look up an Actual ID -> person/shift.
+        They are never added to rawRows, so dashboard totals/filters don't change. ---- */
+const ARCHIVE_SHEET_ID='1BSeiRLiRTSmH_Et0B8TQAPKsuY98CVSB-gcg6ai51YQ';  // ID of the Archive spreadsheet = the long code between /d/ and /edit in its URL (must be shared "anyone with the link can view")
+const ARCHIVE_TABS=['1/2','March 2026','May 2026','April 2026','June 2026','July 2026','Aug 2026','Sep 1/9 to 3/9']; // exact tab names — add every new tab here
+let archiveIdInfo={},archiveLoading=false,archiveLoaded=false,archiveStatus='';
+function normHdr(x){return String(x||'').replace(/\s+/g,' ').trim().toLowerCase();}
+async function loadArchiveIds(){
+  if(!ARCHIVE_SHEET_ID||archiveLoading)return;
+  const wanted=new Set(Object.keys(qualityStore||{})); // only keep archive rows for IDs that actually appear in the quality export (keeps memory small)
+  if(!wanted.size)return;
+  archiveLoading=true;
+  const texts=await Promise.all(ARCHIVE_TABS.map(tab=>
+    fetch(`https://docs.google.com/spreadsheets/d/${ARCHIVE_SHEET_ID}/gviz/tq?tqx=out:csv&headers=1&sheet=${encodeURIComponent(tab)}`)
+      .then(r=>r.ok?r.text():null).catch(()=>null)));
+  const map={};let tabsOk=0;
+  for(let t=0;t<texts.length;t++){
+    if(!texts[t])continue;
+    try{
+      const table=parseCSV(texts[t]).filter(r=>r&&r.length&&!(r.length===1&&String(r[0]||'').trim()===''));
+      if(!table.length)continue;
+      const h=table[0].map(normHdr);
+      // some tabs call it "Task ID", others "ID" — and a tab can even have two (a numeric "ID" and a UUID "Id"), so index every one of them
+      const idCols=[];h.forEach((x,i)=>{if(x==='id'||x==='task id'||x==='taskid')idCols.push(i);});
+      if(!idCols.length){console.warn('Archive tab "'+ARCHIVE_TABS[t]+'": no ID / Task ID column');continue;}
+      const emI=h.findIndex(x=>x.startsWith('yubikey email')),nmI=h.indexOf('labeler name'),qtI=h.indexOf('qtc name');
+      for(let i=1;i<table.length;i++){
+        const r=table[i];if(!r)continue;
+        const hits=idCols.map(c=>String(r[c]||'').trim()).filter(v=>v&&wanted.has(v));
+        if(!hits.length)continue;
+        const em=emI>=0?String(r[emI]||'').trim():'';
+        const nm=nmI>=0?String(r[nmI]||'').trim():'';
+        const qtc=qtI>=0?String(r[qtI]||'').trim():'';
+        hits.forEach(rid=>{map[rid]={name:nm||em||rid,email:em,qtc,group:qtcShiftGroup(qtc),src:'archive'};});
+      }
+      tabsOk++;
+    }catch(err){console.warn('Archive tab "'+ARCHIVE_TABS[t]+'" failed:',err.message);}
+    await new Promise(r=>setTimeout(r,0)); // let the page breathe between big tabs
+  }
+  archiveIdInfo=map;archiveLoaded=true;archiveLoading=false;
+  archiveStatus=tabsOk+'/'+ARCHIVE_TABS.length+' tabs read';
+  if(activeLoc==='__quality__')renderAllSections();
+}
 
 // the work week runs Monday to the following Monday — this computes the label for the Monday-starting week containing a given date
 function mondayOf(d){
@@ -876,12 +918,14 @@ function fetchQualityData(silent){
       qualityStore[aid]=rec;added++;
     }
     saveQualityStore();
+    loadArchiveIds();
     qualityLastImport=now;
     try{localStorage.setItem(QUALITY_LAST_IMPORT_KEY,String(now));}catch(e){}
     if(!silent)showToast(`✅ Saved ${added} quality rows (old data kept)`);
     if(activeLoc==='__quality__')renderAllSections();
   }).catch(e=>{
     qualityLoading=false;if(btn)btn.disabled=false;
+    loadArchiveIds();
     if(!silent)showToast('⚠️ Failed to load quality data: '+e.message);
   });
 }
@@ -976,7 +1020,7 @@ function loadTeamsMap(){
 function computeQualityIdInfo(){
   const emailIdx=sIdx['Yubikey Email'];const nameIdx=sIdx['Labeler Name'];const qtcIdx=hdrs.findIndex(h=>h.toLowerCase()==='qtc name');
   const idIdx=hdrs.findIndex(h=>h.toLowerCase()==='id');
-  const idInfo={};
+  const idInfo=Object.assign({},archiveIdInfo); // Archive first — current Data Base rows below override it for the same ID
   if(idIdx<0)return idInfo;
   rawRows.forEach(r=>{
     const rid=String(r[idIdx]||'').trim();if(!rid)return;
@@ -1034,7 +1078,7 @@ function renderQualitySection(mc){
     return true;
   }
   const shiftIds={Morning:[],Night:[],Overnight:[],Unassigned:[]};
-  let matched=0,unmatched=0;
+  let matched=0,unmatched=0,archiveHits=0;
   const unmatchedList=[];
   function addToBucket(info,q,aid){
     const grp=info.group||'Overnight';
@@ -1067,7 +1111,7 @@ function renderQualitySection(mc){
       }
       return;
     }
-    matched++;
+    matched++;if(info.src==='archive')archiveHits++;
     const grp0=addToBucket(info,q,aid);
     const qtc0=info.qtc||teamsTL[teamsKey(info.email)]||info.name;
     addToTeam(qtc0,grp0,q);
@@ -1152,7 +1196,7 @@ function renderQualitySection(mc){
       </div>`;
     }).join('');
     const umSec=document.createElement('div');umSec.className='sec';umSec.style.borderLeft='4px solid var(--danger)';
-    umSec.innerHTML=`<div class="sec-hd"><span class="sec-t">🚫 Unmatched Tasks</span><span class="sec-m">${unmatchedList.length} tasks with no matching ID${resolvedCount?` · ${resolvedCount} counted toward a shift via TEAMS sheet`:''} · Teams tab: ${Object.keys(teamsMap).length} Yubikeys${teamsLoaded?'':' (loading…)'}${teamsUsingSnapshot?' · built-in copy':''}</span></div><div class="cgrid">${umCards}</div>`;
+    umSec.innerHTML=`<div class="sec-hd"><span class="sec-t">🚫 Unmatched Tasks</span><span class="sec-m">${unmatchedList.length} tasks with no matching ID${archiveHits?` · ${archiveHits} matched via Archive`:''}${ARCHIVE_SHEET_ID&&archiveStatus?` · Archive: ${archiveStatus}`:''}${resolvedCount?` · ${resolvedCount} counted toward a shift via TEAMS sheet`:''} · Teams tab: ${Object.keys(teamsMap).length} Yubikeys${teamsLoaded?'':' (loading…)'}${teamsUsingSnapshot?' · built-in copy':''}</span></div><div class="cgrid">${umCards}</div>`;
     mc.appendChild(umSec);
   }
 
@@ -1245,7 +1289,7 @@ function renderQualitySection(mc){
 
   if(unmatched>0){
     const warn=document.createElement('div');warn.className='errbox';warn.style.margin='0';
-    warn.innerHTML=`⚠️ ${unmatched} quality row(s) have no matching ID in Data Base (shown in the Unmatched Tasks section above). Make sure the Actual ID column in Export matches the ID column in Data Base.`;
+    warn.innerHTML=`⚠️ ${unmatched} quality row(s) have no matching ID in Data Base or Archive (shown in the Unmatched Tasks section above). Make sure the Actual ID column in Export matches the ID column in Data Base.`;
     mc.appendChild(warn);
   }
 }
