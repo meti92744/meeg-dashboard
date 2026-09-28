@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
 <title>MEEG Productivity</title>
-<meta name="app-version" content="3"/>
+<meta name="app-version" content="4"/>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 54 46'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%2300e5d4'/%3E%3Cstop offset='100%25' stop-color='%230f8fff'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpolygon points='0,4 30,4 21,16 0,16' fill='url(%23g)'/%3E%3Cpolygon points='5,19 35,19 26,31 5,31' fill='url(%23g)'/%3E%3Cpolygon points='10,34 40,34 31,46 10,46' fill='url(%23g)'/%3E%3C/svg%3E"/>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -496,7 +496,7 @@ td a{color:var(--info);text-decoration:none;font-weight:700;}
 /* ============ AUTH GATE ============ */
 const ALLOWED_EMAILS=["fpdahmed11@gmail.com","islamyasser424@gmail.com","mahmoudalnoby22@gmail.com","mm0508230@gmail.com","mohamedfathyy69@gmail.com","mostafaatito11158@gmail.com","oka60284@gmail.com","yassinyassen11@gmail.com","me917993@meti.ai","mahmoudseif589@gmail.com","abdallahbarbary39@gmail.com","eslamkhaled329@gmail.com","me370444@meti.ai","me817350@meti.ai"];
 const AUTH_KEY='meeg_auth_email';
-const AUTH_VER='v2';                 /* change this to any new value = logs everyone out */
+const AUTH_VER=(document.querySelector('meta[name="app-version"]')||{}).content||'v2'; /* tied to the <meta name="app-version"> tag at the top of the file — bump that ONE number on deploy and it both force-reloads open tabs (see FORCE REFRESH below) AND logs everyone out, no second edit needed */
 const AUTH_VER_KEY='meeg_auth_ver';
 
 function isValidEmailFormat(e){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);}
@@ -835,40 +835,39 @@ async function loadArchiveIds(){
   if(!remaining.size){archiveStatus='';return;} // nothing unmatched — no reason to touch the archive at all
   const key=[...remaining].sort().join(',');
   if(archiveLoaded&&key===archiveLastKey)return; // same still-unmatched IDs as last time (e.g. a re-render) — don't re-fetch
-  archiveLoading=true;
+  archiveLoading=true;archiveStatus='searching…';
+  if(activeLoc==='__quality__')renderAllSections(); // show "searching…" right away instead of going quiet until it's all done
+  // fetch every tab at once — the sheet is what's slow to read, not the network, so requesting all tabs in
+  // parallel finds a match wherever it happens to be far faster than reading them one at a time in sequence
+  const results=await Promise.all(ARCHIVE_TABS.map(tab=>
+    fetch(`https://docs.google.com/spreadsheets/d/${ARCHIVE_SHEET_ID}/gviz/tq?tqx=out:csv&headers=1&sheet=${encodeURIComponent(tab)}`)
+      .then(r=>r.ok?r.text():null).catch(()=>null)));
   const map={};let tabsOk=0;
-  // newest tab first and stop as soon as every remaining ID is found — an unmatched task is almost always from the
-  // most recent export, so this usually reads only the last tab or two instead of the whole archive every time
-  const order=ARCHIVE_TABS.slice().reverse();
-  for(let t=0;t<order.length&&remaining.size;t++){
-    const tab=order[t];
+  for(let t=0;t<results.length;t++){
+    if(!results[t]){continue;}
     try{
-      const r=await fetch(`https://docs.google.com/spreadsheets/d/${ARCHIVE_SHEET_ID}/gviz/tq?tqx=out:csv&headers=1&sheet=${encodeURIComponent(tab)}`);
-      if(!r.ok){tabsOk++;continue;}
-      const text=await r.text();
-      const table=parseCSV(text).filter(row=>row&&row.length&&!(row.length===1&&String(row[0]||'').trim()===''));
+      const table=parseCSV(results[t]).filter(row=>row&&row.length&&!(row.length===1&&String(row[0]||'').trim()===''));
       if(!table.length){tabsOk++;continue;}
       const h=table[0].map(normHdr);
       // some tabs call it "Task ID", others "ID" — and a tab can even have two (a numeric "ID" and a UUID "Id"), so index every one of them
       const idCols=[];h.forEach((x,i)=>{if(x==='id'||x==='task id'||x==='taskid')idCols.push(i);});
-      if(!idCols.length){console.warn('Archive tab "'+tab+'": no ID / Task ID column');tabsOk++;continue;}
+      if(!idCols.length){console.warn('Archive tab "'+ARCHIVE_TABS[t]+'": no ID / Task ID column');tabsOk++;continue;}
       const emI=h.findIndex(x=>x.startsWith('yubikey email')),nmI=h.indexOf('labeler name'),qtI=h.indexOf('qtc name');
-      for(let i=1;i<table.length&&remaining.size;i++){
+      for(let i=1;i<table.length;i++){
         const row=table[i];if(!row)continue;
         const hits=idCols.map(c=>String(row[c]||'').trim()).filter(v=>v&&remaining.has(v));
         if(!hits.length)continue;
         const em=emI>=0?String(row[emI]||'').trim():'';
         const nm=nmI>=0?String(row[nmI]||'').trim():'';
         const qtc=qtI>=0?String(row[qtI]||'').trim():'';
-        hits.forEach(rid=>{map[rid]={name:nm||em||rid,email:em,qtc,group:qtcShiftGroup(qtc),src:'archive'};remaining.delete(rid);});
+        hits.forEach(rid=>{map[rid]={name:nm||em||rid,email:em,qtc,group:qtcShiftGroup(qtc),src:'archive'};});
       }
       tabsOk++;
-    }catch(err){console.warn('Archive tab "'+tab+'" failed:',err.message);}
-    if(t<order.length-1)await new Promise(res=>setTimeout(res,0)); // let the page breathe between tabs
+    }catch(err){console.warn('Archive tab "'+ARCHIVE_TABS[t]+'" failed:',err.message);}
   }
-  archiveIdInfo=Object.assign({},archiveIdInfo,map); // keep previous finds even if this pass stopped early
+  archiveIdInfo=Object.assign({},archiveIdInfo,map);
   archiveLoaded=true;archiveLoading=false;archiveLastKey=key;
-  archiveStatus=tabsOk+'/'+order.length+' tabs read';
+  archiveStatus=tabsOk+'/'+ARCHIVE_TABS.length+' tabs read';
   if(activeLoc==='__quality__')renderAllSections();
 }
 
@@ -1212,7 +1211,7 @@ function renderQualitySection(mc){
       </div>`;
     }).join('');
     const umSec=document.createElement('div');umSec.className='sec';umSec.style.borderLeft='4px solid var(--danger)';
-    umSec.innerHTML=`<div class="sec-hd"><span class="sec-t">🚫 Unmatched Tasks</span><span class="sec-m">${unmatchedList.length} tasks with no matching ID${archiveHits?` · ${archiveHits} matched via Archive`:''}${ARCHIVE_SHEET_ID&&archiveStatus?` · Archive: ${archiveStatus}`:''}${resolvedCount?` · ${resolvedCount} counted toward a shift via TEAMS sheet`:''} · Teams tab: ${Object.keys(teamsMap).length} Yubikeys${teamsLoaded?'':' (loading…)'}${teamsUsingSnapshot?' · built-in copy':''}</span></div><div class="cgrid">${umCards}</div>`;
+    umSec.innerHTML=`<div class="sec-hd"><span class="sec-t">🚫 Unmatched Tasks</span><span class="sec-m">${unmatchedList.length} tasks with no matching ID${archiveStatus==='searching…'?' · Archive: searching…':archiveHits?` · ${archiveHits} matched via Archive`:''}${ARCHIVE_SHEET_ID&&archiveStatus?` · Archive: ${archiveStatus}`:''}${resolvedCount?` · ${resolvedCount} counted toward a shift via TEAMS sheet`:''} · Teams tab: ${Object.keys(teamsMap).length} Yubikeys${teamsLoaded?'':' (loading…)'}${teamsUsingSnapshot?' · built-in copy':''}</span></div><div class="cgrid">${umCards}</div>`;
     mc.appendChild(umSec);
   }
 
