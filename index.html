@@ -323,6 +323,7 @@ td a{color:var(--info);text-decoration:none;font-weight:700;}
   .meeg-wordmark .sub,.hdr-title p,.meta-blk{display:none;}
   .hdr-title h1{font-size:.78rem;}
   .bdg-info,.bdg-live{display:none;}
+  .user-chip{padding:3px;}.user-chip .uc-name{display:none;}
   .hdr-right{gap:5px;}
   .btn{padding:6px 10px;font-size:.58rem;}
   .fstrip{padding:8px 12px;top:58px;}
@@ -368,6 +369,9 @@ td a{color:var(--info);text-decoration:none;font-weight:700;}
 .login-btn:active{transform:scale(.98);}
 .login-btn.dodging{position:fixed;width:170px;z-index:99999;}
 .login-err-msg{color:#f0899c;font-size:.66rem;font-weight:700;margin-top:10px;min-height:14px;font-family:var(--mono);}
+.user-chip{display:inline-flex;align-items:center;gap:7px;padding:3px 11px 3px 4px;border-radius:999px;border:1px solid var(--border);background:var(--card);max-width:200px;cursor:default;}
+.user-chip .uc-av{width:24px;height:24px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--display);font-size:.68rem;font-weight:700;flex-shrink:0;}
+.user-chip .uc-name{font-family:var(--mono);font-size:.6rem;font-weight:700;color:var(--text);letter-spacing:.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .logout-btn{background:rgba(196,41,63,.12);border-color:rgba(196,41,63,.4);color:var(--danger)}
 </style>
 </head>
@@ -441,6 +445,7 @@ td a{color:var(--info);text-decoration:none;font-weight:700;}
     <button class="btn btn-cmp" id="arBtn" onclick="toggleAutoRefresh()" title="Auto Refresh">🔄 Auto</button>
     <button class="btn btn-c" id="refreshBtn" onclick="loadData()">⟳ Refresh</button>
     <button class="btn btn-d" onclick="clearAll()">✕ Clear</button>
+    <div class="user-chip" id="userChip" style="display:none"><span class="uc-av" id="userAv">?</span><span class="uc-name" id="userName"></span></div>
     <button class="btn logout-btn" onclick="logoutUser()">🚪 Logout</button>
   </div>
 </div>
@@ -504,6 +509,44 @@ function attemptLogin(){
   errEl.textContent='';
   document.getElementById('loginScreen').classList.add('hidden');
   startApp();
+}
+
+
+/* ============ LOGGED-IN USER DISPLAY ============ */
+/* اكتب الاسم الحقيقي لكل إيميل هنا — لو سيبته فاضي هيتاخد الاسم من الإيميل تلقائي */
+const USER_NAMES={
+  "fpdahmed11@gmail.com":"Ahmed Sobhy",
+  "islamyasser424@gmail.com":"Islam Yasser",
+  "mahmoudalnoby22@gmail.com":"ALNoby",
+  "mm0508230@gmail.com":"Mousa",
+  "mohamedfathyy69@gmail.com":"Medo",
+  "mostafaatito11158@gmail.com":"Atito",
+  "oka60284@gmail.com":"Basbosa",
+  "yassinyassen11@gmail.com":"Yassin",
+  "me917993@meti.ai":"Ahmed Sayed",
+  "mahmoudseif589@gmail.com":"Seeif Waleed",
+  "abdallahbarbary39@gmail.com":"Barbary",
+  "eslamkhaled329@gmail.com":"Eslam Khaled",
+  "me370444@meti.ai":"Bahaa",
+  "me817350@meti.ai":"Hassan"
+};
+function getDisplayName(email){
+  if(!email)return '';
+  const custom=(USER_NAMES[email]||'').trim();
+  if(custom)return custom;
+  const local=email.split('@')[0].replace(/\d+/g,' ').replace(/[._-]+/g,' ').trim()||email.split('@')[0];
+  return local.split(/\s+/).map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(' ');
+}
+function renderUserChip(welcome){
+  const email=getLoggedInEmail();
+  const chip=document.getElementById('userChip');
+  if(!email||!chip)return;
+  const name=getDisplayName(email);
+  document.getElementById('userName').textContent=name;
+  document.getElementById('userAv').textContent=(name.charAt(0)||'?').toUpperCase();
+  chip.title=email;
+  chip.style.display='inline-flex';
+  if(welcome&&typeof showToast==='function')setTimeout(()=>showToast('👋 Welcome, '+name),600);
 }
 
 function logoutUser(){
@@ -1826,7 +1869,7 @@ function shootWebScrollTop(){
   setTimeout(()=>{ window.scrollTo({top:0,behavior:'smooth'}); btn.style.transform=''; },140);
   setTimeout(()=>{ web.remove(); },520);
 }
-function startApp(){
+function startApp(){renderUserChip(true);
   const savedTheme=localStorage.getItem('meeg_theme')||'light';document.documentElement.setAttribute('data-theme',savedTheme);const btn=document.getElementById('darkBtn');if(btn){btn.classList.toggle('active',savedTheme==='dark');btn.innerHTML=savedTheme==='dark'?'🌙 Dark':'☀️ Light';}applyAutoRefreshUI();hideSplash();loadData();startVersionPolling();fetchQualityData(true);
 }
 window.addEventListener('load',()=>{
