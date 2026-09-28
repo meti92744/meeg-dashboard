@@ -70,7 +70,8 @@ html[data-theme="dark"] .orb-1,html[data-theme="dark"] .orb-2{opacity:.5;}
 @keyframes splashFade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 .splash-road{position:relative;width:200px;height:22px;animation:splashFade .4s ease .7s both;}
 .splash-road-line{position:absolute;bottom:5px;left:0;right:0;height:6px;background:rgba(255,255,255,.1);border-radius:8px;overflow:hidden;border:1px solid rgba(0,229,212,.3);}
-.splash-road-fill{height:100%;background:linear-gradient(90deg,#00e5d4,#0f8fff);border-radius:8px;animation:splashLoad 1.8s ease .8s both;}
+.splash-road-fill{height:100%;background:linear-gradient(90deg,#00e5d4,#0f8fff);border-radius:8px;animation:swLoad 3s cubic-bezier(.2,.7,.3,1) .8s both;}
+@keyframes swLoad{from{width:0%}to{width:88%}}
 .splash-car{position:absolute;bottom:6px;left:-22px;width:24px;height:24px;animation:splashDrive 1.8s ease .8s both;filter:drop-shadow(0 2px 3px rgba(0,0,0,.4));}
 @keyframes splashDrive{from{left:-22px}to{left:calc(100% - 4px)}}
 @keyframes splashLoad{from{width:0%}to{width:100%}}
@@ -79,6 +80,19 @@ html[data-theme="dark"] .orb-1,html[data-theme="dark"] .orb-2{opacity:.5;}
 .splash-dot:nth-child(1){animation:dotPulse 1.2s ease .9s infinite;}
 .splash-dot:nth-child(2){animation:dotPulse 1.2s ease 1.1s infinite;}
 .splash-dot:nth-child(3){animation:dotPulse 1.2s ease 1.3s infinite;}
+.splash-logo-wrap{position:relative;display:flex;}
+.splash-logo-wrap::after{content:'';position:absolute;inset:-20px;border-radius:50%;border:1px solid rgba(0,229,212,.5);opacity:0;animation:swRing 2.2s ease-out .7s infinite;}
+@keyframes swRing{from{opacity:.75;transform:scale(.65)}to{opacity:0;transform:scale(1.55)}}
+.splash-welcome{display:flex;flex-direction:column;align-items:center;gap:10px;min-height:104px;padding:0 16px;text-align:center;}
+.sw-hello{font-family:var(--mono);font-size:.7rem;font-weight:600;letter-spacing:6px;text-transform:uppercase;color:#7fd8f0;animation:splashFade .6s ease 1s both;}
+.sw-hello::before,.sw-hello::after{content:'';display:inline-block;width:34px;height:1px;vertical-align:middle;margin:0 12px;background:linear-gradient(90deg,transparent,rgba(0,229,212,.75));}
+.sw-hello::after{transform:scaleX(-1);}
+.sw-name{font-family:var(--display);font-size:2.4rem;font-weight:700;letter-spacing:2px;color:#fff;display:flex;flex-wrap:wrap;justify-content:center;text-shadow:0 0 30px rgba(0,229,212,.5);min-height:2.9rem;}
+.sw-name span{display:inline-block;opacity:0;transform:translateY(22px) scale(.8);animation:swLetter .55s cubic-bezier(.34,1.56,.64,1) both;}
+@keyframes swLetter{to{opacity:1;transform:none}}
+.sw-label{font-family:var(--mono);font-size:.66rem;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#00e5d4;padding:4px 16px;border-radius:999px;border:1px solid rgba(0,229,212,.45);background:rgba(0,229,212,.08);animation:splashFade .5s ease 2s both;}
+.sw-label:empty{display:none;}
+@media(max-width:480px){.sw-name{font-size:1.8rem;letter-spacing:1px;}.splash-brand{font-size:1.8rem;}}
 @keyframes dotPulse{0%,100%{background:rgba(0,229,212,.25);transform:scale(1)}50%{background:#0f8fff;transform:scale(1.5)}}
 .hdr{background:var(--chrome-grad);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;position:sticky;top:0;z-index:100;box-shadow:0 1px 0 var(--accent-light),0 4px 16px rgba(10,30,60,.06);}
 html[data-theme="dark"] .hdr{box-shadow:0 1px 0 rgba(0,229,212,.15),0 4px 20px rgba(0,0,0,.4);}
@@ -323,7 +337,7 @@ td a{color:var(--info);text-decoration:none;font-weight:700;}
   .meeg-wordmark .sub,.hdr-title p,.meta-blk{display:none;}
   .hdr-title h1{font-size:.78rem;}
   .bdg-info,.bdg-live{display:none;}
-  .user-chip{padding:3px;}.user-chip .uc-name{display:none;}
+  .user-chip{padding:3px;}.user-chip .uc-txt{display:none;}
   .hdr-right{gap:5px;}
   .btn{padding:6px 10px;font-size:.58rem;}
   .fstrip{padding:8px 12px;top:58px;}
@@ -369,9 +383,12 @@ td a{color:var(--info);text-decoration:none;font-weight:700;}
 .login-btn:active{transform:scale(.98);}
 .login-btn.dodging{position:fixed;width:170px;z-index:99999;}
 .login-err-msg{color:#f0899c;font-size:.66rem;font-weight:700;margin-top:10px;min-height:14px;font-family:var(--mono);}
-.user-chip{display:inline-flex;align-items:center;gap:7px;padding:3px 11px 3px 4px;border-radius:999px;border:1px solid var(--border);background:var(--card);max-width:200px;cursor:default;}
+.user-chip{display:inline-flex;align-items:center;gap:8px;padding:4px 13px 4px 5px;border-radius:999px;border:1px solid var(--border);background:var(--card);max-width:200px;cursor:default;}
 .user-chip .uc-av{width:24px;height:24px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--display);font-size:.68rem;font-weight:700;flex-shrink:0;}
 .user-chip .uc-name{font-family:var(--mono);font-size:.6rem;font-weight:700;color:var(--text);letter-spacing:.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.user-chip .uc-txt{display:flex;flex-direction:column;min-width:0;line-height:1.2;}
+.user-chip .uc-label{display:block;font-family:var(--mono);font-size:.46rem;font-weight:600;color:var(--muted);letter-spacing:.6px;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.user-chip .uc-label:empty{display:none;}
 .logout-btn{background:rgba(196,41,63,.12);border-color:rgba(196,41,63,.4);color:var(--danger)}
 </style>
 </head>
@@ -397,17 +414,18 @@ td a{color:var(--info);text-decoration:none;font-weight:700;}
 <div class="orb orb-1"></div><div class="orb orb-2"></div>
 <div id="splash">
   <div style="display:flex;flex-direction:column;align-items:center;gap:18px;">
-    <svg class="splash-svg" width="86" height="72" viewBox="0 0 54 46" fill="none">
+    <div class="splash-logo-wrap"><svg class="splash-svg" width="86" height="72" viewBox="0 0 54 46" fill="none">
       <defs>
         <linearGradient id="sg1" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#00e5d4"/><stop offset="100%" stop-color="#0f8fff"/></linearGradient>
       </defs>
       <polygon points="0,4 30,4 21,16 0,16" fill="url(#sg1)"/>
       <polygon points="5,19 35,19 26,31 5,31" fill="url(#sg1)"/>
       <polygon points="10,34 40,34 31,46 10,46" fill="url(#sg1)"/>
-    </svg>
+    </svg></div>
     <div class="splash-brand">MEEG</div>
     <div class="splash-sub">METI Company · Productivity</div>
   </div>
+  <div class="splash-welcome"><div class="sw-hello">Welcome</div><div class="sw-name" id="swName"></div><div class="sw-label" id="swLabel"></div></div>
   <div class="splash-road">
     <div class="splash-road-line"><div class="splash-road-fill"></div></div>
   </div>
@@ -445,7 +463,7 @@ td a{color:var(--info);text-decoration:none;font-weight:700;}
     <button class="btn btn-cmp" id="arBtn" onclick="toggleAutoRefresh()" title="Auto Refresh">🔄 Auto</button>
     <button class="btn btn-c" id="refreshBtn" onclick="loadData()">⟳ Refresh</button>
     <button class="btn btn-d" onclick="clearAll()">✕ Clear</button>
-    <div class="user-chip" id="userChip" style="display:none"><span class="uc-av" id="userAv">?</span><span class="uc-name" id="userName"></span></div>
+    <div class="user-chip" id="userChip" style="display:none"><span class="uc-av" id="userAv">?</span><span class="uc-txt"><span class="uc-name" id="userName"></span><span class="uc-label" id="userLabel"></span></span></div>
     <button class="btn logout-btn" onclick="logoutUser()">🚪 Logout</button>
   </div>
 </div>
@@ -530,6 +548,22 @@ const USER_NAMES={
   "me370444@meti.ai":"Bahaa",
   "me817350@meti.ai":"Hassan"
 };
+const USER_LABELS={
+  "fpdahmed11@gmail.com":"QTC",
+  "islamyasser424@gmail.com":"WLA",
+  "mahmoudalnoby22@gmail.com":"SV",
+  "mm0508230@gmail.com":"SV",
+  "mohamedfathyy69@gmail.com":"QTC",
+  "mostafaatito11158@gmail.com":"SV",
+  "oka60284@gmail.com":"QTC",
+  "yassinyassen11@gmail.com":"SSV",
+  "me917993@meti.ai":"QT",
+  "mahmoudseif589@gmail.com":"QT",
+  "abdallahbarbary39@gmail.com":"SV",
+  "eslamkhaled329@gmail.com":"SV",
+  "me370444@meti.ai":"WLA",
+  "me817350@meti.ai":"WLA"
+};
 function getDisplayName(email){
   if(!email)return '';
   const custom=(USER_NAMES[email]||'').trim();
@@ -543,8 +577,10 @@ function renderUserChip(welcome){
   if(!email||!chip)return;
   const name=getDisplayName(email);
   document.getElementById('userName').textContent=name;
+  const lbl=(USER_LABELS[email]||'').trim();
+  document.getElementById('userLabel').textContent=lbl;
   document.getElementById('userAv').textContent=(name.charAt(0)||'?').toUpperCase();
-  chip.title=email;
+  chip.title=lbl?name+' · '+lbl+' · '+email:email;
   chip.style.display='inline-flex';
   if(welcome&&typeof showToast==='function')setTimeout(()=>showToast('👋 Welcome, '+name),600);
 }
@@ -666,7 +702,28 @@ function startVersionPolling(){
 }
 /* ============ END FORCE REFRESH ============ */
 
-function hideSplash(){const s=document.getElementById('splash');if(s){setTimeout(()=>{s.classList.add('fade-out');setTimeout(()=>s.remove(),650);},2200);}}
+/* splash stays until the first data load finishes (min 3.6s so the welcome animation plays fully, max 9s safety) */
+function hideSplash(){
+  const s=document.getElementById('splash');if(!s)return;
+  const t0=Date.now(),MIN=3600,MAX=9000;
+  const iv=setInterval(()=>{
+    const el=Date.now()-t0;
+    if(el<MIN||(!window._firstDataReady&&el<MAX))return;
+    clearInterval(iv);
+    const f=s.querySelector('.splash-road-fill');
+    if(f){const w=getComputedStyle(f).width;f.style.animation='none';f.style.width=w;void f.offsetWidth;f.style.transition='width .3s ease';f.style.width='100%';}
+    setTimeout(()=>{s.classList.add('fade-out');setTimeout(()=>s.remove(),650);},400);
+  },120);
+}
+function fillWelcome(){
+  const email=getLoggedInEmail();const nm=document.getElementById('swName');
+  if(!email||!nm)return;
+  const name=getDisplayName(email);
+  nm.innerHTML='';
+  [...name].forEach((ch,i)=>{const sp=document.createElement('span');sp.textContent=ch===' '?'\u00A0':ch;sp.style.animationDelay=(1.2+i*0.06)+'s';nm.appendChild(sp);});
+  const l=document.getElementById('swLabel');
+  if(l){l.textContent=(USER_LABELS[email]||'').trim();l.style.animationDelay=(1.4+name.length*0.06)+'s';}
+}
 function toggleDark(){const html=document.documentElement;const isDark=html.getAttribute('data-theme')==='dark';const t=isDark?'light':'dark';html.setAttribute('data-theme',t);const btn=document.getElementById('darkBtn');if(btn){btn.classList.toggle('active',t==='dark');btn.innerHTML=t==='dark'?'🌙 Dark':'☀️ Light';}localStorage.setItem('meeg_theme',t);}
 let autoRefreshEnabled=(function(){try{const v=localStorage.getItem('meeg_autorefresh');return v===null?true:v==='1';}catch(e){return true;}})();
 function applyAutoRefreshUI(){const btn=document.getElementById('arBtn');if(!btn)return;btn.classList.toggle('active',autoRefreshEnabled);btn.innerHTML=autoRefreshEnabled?'🔄 Auto':'⏸️ Off';}
@@ -1293,7 +1350,7 @@ function onCsvData(text){
     return;
   }
   _lastCsvHash=newHash;
-  const table=parseCSV(text).filter(r=>r&&r.length&&!(r.length===1&&String(r[0]||'').trim()===''));if(!table.length){showErr('No data returned.');return;}hdrs=table[0].map(h=>String(h||'').trim());const hLower=hdrs.map(h=>h.toLowerCase());sIdx={};["Shift","Unit","Qtc Name","Yubikey Email","Labeler Name","Pc No","Modality","Queue Name","Location","Pass"].forEach(name=>{const i=hLower.indexOf(name.toLowerCase());if(i>=0)sIdx[name]=i;});tsIdx=hLower.findIndex(h=>h==='timestamp');if(tsIdx<0)tsIdx=hLower.findIndex(h=>h==='created at');if(tsIdx<0)tsIdx=hLower.findIndex(h=>h==='date');if(tsIdx<0)tsIdx=hLower.findIndex(h=>h.includes('date'));locColIdx=hLower.findIndex(h=>h==='location');if(locColIdx<0)locColIdx=hLower.findIndex(h=>h==='unit');if(locColIdx<0)locColIdx=hLower.findIndex(h=>h==='site');rawRows=[];for(let ri=1;ri<table.length;ri++){const rowRaw=table[ri];if(!rowRaw||!rowRaw.length)continue;const row=hdrs.map((_,ci)=>rowRaw[ci]!==undefined?String(rowRaw[ci]).trim():'');if(row.every(c=>c===''))continue;const sci=sIdx['Shift'];if(sci!==undefined){const sv=String(row[sci]||'').trim().toLowerCase();if(!ALL_SHIFTS.some(a=>sv===a))continue;}rawRows.push(row);}sOpts={};["Shift","Unit","Qtc Name","Yubikey Email","Labeler Name","Pc No","Modality","Queue Name","Location","Pass"].forEach(name=>{const ci=sIdx[name];if(ci===undefined)return;const set=new Set();rawRows.forEach(r=>{const v=String(r[ci]||'').trim();if(v)set.add(v);});sOpts[name]=[...set].sort();});const dateSet=new Set();rawRows.forEach(r=>{const d=extractDate(r[tsIdx]);if(d)dateSet.add(d);});sOpts['_dates']=[...dateSet].sort().reverse();const locSet=new Set();if(locColIdx>=0)rawRows.forEach(r=>{const v=String(r[locColIdx]||'').trim();if(v)locSet.add(v);});locations=[...locSet].sort();const now=new Date();todayStr=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');document.getElementById('todayLabel').textContent=todayStr;lastUpdateTs=Date.now();updateRelativeTime();setTrafficLight('green');document.getElementById('totalBadge').textContent=rawRows.length+' rows';SC.forEach(s=>{if(!sel[s.key])sel[s.key]=new Set();});if(!_filtersRestored){restoreFilters();_filtersRestored=true;}buildStrip();buildTabs();applyAll();if(autoRefreshTimer)clearInterval(autoRefreshTimer);autoRefreshTimer=null;if(autoRefreshEnabled)autoRefreshTimer=setInterval(loadData,REFRESH_INTERVAL*1000);applyAutoRefreshUI();if(cmpMode)populateCmpSelects();
+  const table=parseCSV(text).filter(r=>r&&r.length&&!(r.length===1&&String(r[0]||'').trim()===''));if(!table.length){showErr('No data returned.');return;}hdrs=table[0].map(h=>String(h||'').trim());const hLower=hdrs.map(h=>h.toLowerCase());sIdx={};["Shift","Unit","Qtc Name","Yubikey Email","Labeler Name","Pc No","Modality","Queue Name","Location","Pass"].forEach(name=>{const i=hLower.indexOf(name.toLowerCase());if(i>=0)sIdx[name]=i;});tsIdx=hLower.findIndex(h=>h==='timestamp');if(tsIdx<0)tsIdx=hLower.findIndex(h=>h==='created at');if(tsIdx<0)tsIdx=hLower.findIndex(h=>h==='date');if(tsIdx<0)tsIdx=hLower.findIndex(h=>h.includes('date'));locColIdx=hLower.findIndex(h=>h==='location');if(locColIdx<0)locColIdx=hLower.findIndex(h=>h==='unit');if(locColIdx<0)locColIdx=hLower.findIndex(h=>h==='site');rawRows=[];for(let ri=1;ri<table.length;ri++){const rowRaw=table[ri];if(!rowRaw||!rowRaw.length)continue;const row=hdrs.map((_,ci)=>rowRaw[ci]!==undefined?String(rowRaw[ci]).trim():'');if(row.every(c=>c===''))continue;const sci=sIdx['Shift'];if(sci!==undefined){const sv=String(row[sci]||'').trim().toLowerCase();if(!ALL_SHIFTS.some(a=>sv===a))continue;}rawRows.push(row);}sOpts={};["Shift","Unit","Qtc Name","Yubikey Email","Labeler Name","Pc No","Modality","Queue Name","Location","Pass"].forEach(name=>{const ci=sIdx[name];if(ci===undefined)return;const set=new Set();rawRows.forEach(r=>{const v=String(r[ci]||'').trim();if(v)set.add(v);});sOpts[name]=[...set].sort();});const dateSet=new Set();rawRows.forEach(r=>{const d=extractDate(r[tsIdx]);if(d)dateSet.add(d);});sOpts['_dates']=[...dateSet].sort().reverse();const locSet=new Set();if(locColIdx>=0)rawRows.forEach(r=>{const v=String(r[locColIdx]||'').trim();if(v)locSet.add(v);});locations=[...locSet].sort();const now=new Date();todayStr=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');document.getElementById('todayLabel').textContent=todayStr;lastUpdateTs=Date.now();updateRelativeTime();setTrafficLight('green');window._firstDataReady=true;document.getElementById('totalBadge').textContent=rawRows.length+' rows';SC.forEach(s=>{if(!sel[s.key])sel[s.key]=new Set();});if(!_filtersRestored){restoreFilters();_filtersRestored=true;}buildStrip();buildTabs();applyAll();if(autoRefreshTimer)clearInterval(autoRefreshTimer);autoRefreshTimer=null;if(autoRefreshEnabled)autoRefreshTimer=setInterval(loadData,REFRESH_INTERVAL*1000);applyAutoRefreshUI();if(cmpMode)populateCmpSelects();
 }
 const _MONTH_NAMES={jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12};
 function extractDate(v){
@@ -1869,7 +1926,9 @@ function shootWebScrollTop(){
   setTimeout(()=>{ window.scrollTo({top:0,behavior:'smooth'}); btn.style.transform=''; },140);
   setTimeout(()=>{ web.remove(); },520);
 }
-function startApp(){renderUserChip(true);
+function startApp(){renderUserChip(false);
+  if(!document.getElementById('splash')&&window._splashTpl)document.body.insertAdjacentHTML('afterbegin',window._splashTpl);
+  fillWelcome();
   const savedTheme=localStorage.getItem('meeg_theme')||'light';document.documentElement.setAttribute('data-theme',savedTheme);const btn=document.getElementById('darkBtn');if(btn){btn.classList.toggle('active',savedTheme==='dark');btn.innerHTML=savedTheme==='dark'?'🌙 Dark':'☀️ Light';}applyAutoRefreshUI();hideSplash();loadData();startVersionPolling();fetchQualityData(true);
 }
 window.addEventListener('load',()=>{
@@ -1877,7 +1936,7 @@ window.addEventListener('load',()=>{
   const isLoggedIn=checkAuthOnLoad();
   const splash=document.getElementById('splash');
   if(!isLoggedIn){
-    if(splash)splash.remove();
+    if(splash){window._splashTpl=splash.outerHTML;splash.remove();}
     return;
   }
   startApp();
