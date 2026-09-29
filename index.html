@@ -1124,7 +1124,10 @@ function renderQualitySection(mc){
         const byEmail={group:teamGrp,email:q.email,name:dbName||q.email};
         const grp=addToBucket(byEmail,q,aid);
         addToTeam(teamsTL[teamsKey(ek)]||dbName||q.email,teamGrp,q);
-        unmatchedList.push({aid,q,resolvedGrp:grp,resolvedName:byEmail.name});
+        // show the TL/QTC team this Yubikey belongs to in the Teams tab (not the labeler's name); drop the (M)/(N)/(ON) tag since the shift is shown separately
+        const tlRaw=String(teamsTL[teamsKey(ek)]||'').trim();
+        const teamLabel=(tlRaw&&tlRaw!=='-')?tlRaw.replace(/\s*\((?:ON|M|N)\)\s*$/i,'').trim():'No TL/QTC listed';
+        unmatchedList.push({aid,q,resolvedGrp:grp,resolvedName:teamLabel});
       }else{
         unmatchedList.push({aid,q});
         shiftIds.Unassigned.push(aid);
@@ -1204,7 +1207,7 @@ function renderQualitySection(mc){
   if(unmatchedList.length){
     const resolvedCount=unmatchedList.filter(u=>u.resolvedGrp).length;
     const umCards=unmatchedList.map(({aid,q,resolvedGrp,resolvedName})=>{
-      const resBadge=!resolvedGrp?`<div class="dc-qs"><span class="qtag" style="font-weight:800">❓ ${q.email?'Not found in Teams':'No email'}</span></div>`:resolvedGrp?`<div class="dc-qs"><span class="qtag" style="background:rgba(23,185,120,.13);color:var(--success);border-color:rgba(23,185,120,.4);font-weight:800">${SHIFT_GROUP_ICON[resolvedGrp]} Counted under ${esc(resolvedName)} — ${esc(resolvedGrp)}</span></div>`:'';
+      const resBadge=!resolvedGrp?`<div class="dc-qs"><span class="qtag" style="font-weight:800">❓ ${q.email?'Not found in Teams':'No email'}</span></div>`:resolvedGrp?`<div class="dc-qs"><span class="qtag" style="background:rgba(23,185,120,.13);color:var(--success);border-color:rgba(23,185,120,.4);font-weight:800">${SHIFT_GROUP_ICON[resolvedGrp]} Counted under Team ${esc(resolvedName)} — ${esc(resolvedGrp)}</span></div>`:'';
       return `<div class="dcard" style="cursor:default;border-color:rgba(255,95,126,.5);background:rgba(255,95,126,.07)">
         <div class="dc-top"><span class="dc-pc" style="color:var(--danger)">🆔 ${esc(aid)}</span></div>
         ${q.email?`<div class="dc-meta"><span class="dc-mi">✉️</span><span class="dc-mt">${esc(q.email)}</span></div>`:''}
