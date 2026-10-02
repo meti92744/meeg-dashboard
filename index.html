@@ -832,7 +832,7 @@ const ARCHIVE_TABS_EXCLUDE=[];
 let archiveIdInfo={},archiveLoading=false,archiveLoaded=false,archiveStatus='',archiveLastKey='',archiveDone=0,archiveFetched=0,archiveTotal=0;
 let archiveRemoteTabs=0,archiveFailedTabs=[],archiveFoundCount=0,archiveRerun=false,archiveOkTabs=new Set(),archiveOkKey='';
 const ARCHIVE_TABS_CACHE_KEY='meeg_archive_tabs_v1';
-let archiveTabList=ARCHIVE_TABS.map(n=>({name:n})),archiveTabsSource='manual list',archiveTabsResolvedAt=0,archiveLastSig='';
+let archiveTabList=ARCHIVE_TABS.map(n=>({name:n})),archiveTabsSource='manual list',archiveTabsResolvedAt=0,archiveLastSig='',archiveSearchedIds=new Set(),archiveSearchedSig='';
 function archiveTabKey(t){return t.gid!=null&&t.gid!==''?'g'+t.gid:'n'+t.name;}
 // works out WHICH tabs to search: auto-discovered (Apps Script or Sheets API) → last saved auto list → manual ARCHIVE_TABS.
 // re-checked at most every 10 minutes, so a tab added during the day is picked up on the next refresh.
@@ -952,6 +952,9 @@ function scanArchiveTab(tab,text,remainingMap,map){
 }
 async function loadArchiveIds(){
   if(!ARCHIVE_SHEET_ID)return;
+  // the "unmatched" set is only meaningful once Data Base has loaded — before that EVERY quality ID looks unmatched (that's how it searched 3292 instead of ~116).
+  // onCsvData() calls this again as soon as Data Base is ready.
+  if(!window._firstDataReady)return;
   if(archiveLoading){archiveRerun=true;return;} // asked again mid-search (e.g. Data Base finished loading) — run once more when this pass ends
   const remaining=computeUnresolvedQualityIds();
   if(!remaining.size){archiveStatus='';return;} // nothing unmatched — no reason to touch the archive at all
@@ -959,8 +962,16 @@ async function loadArchiveIds(){
   archiveLoading=true;
   let tabs;try{tabs=await resolveArchiveTabs();}catch(e){tabs=archiveTabList;}
   const sig=tabs.map(archiveTabKey).join('|');
-  // same unmatched IDs AND same tab list AND every tab read OK last time → nothing new to search
-  if(archiveLoaded&&key===archiveLastKey&&sig===archiveLastSig){archiveLoading=false;return;}
+  // the tab list changed (new tab / renamed) → earlier "already searched" results don't cover it, start that bookkeeping over
+  if(sig!==archiveSearchedSig){archiveSearchedIds=new Set();archiveSearchedSig=sig;}
+  // every unmatched ID was already searched across ALL current tabs (e.g. Data Base refreshed and the set only shrank) → nothing new to search
+  if(archiveLoaded&&![...remaining].some(id=>!archiveSearchedIds.has(id))){
+    archiveLoading=false;
+    archiveFoundCount=[...remaining].filter(id=>archiveIdInfo[id]).length;
+    archiveStatus=archiveOkTabs.size+'/'+tabs.length+' tabs read · '+archiveFoundCount+'/'+remaining.size+' IDs found · tabs: '+archiveTabsSource+(archiveRemoteTabs?' · server read':' · direct read');
+    if(activeLoc==='__quality__')renderAllSections();
+    return;
+  }
   if(key!==archiveOkKey){archiveOkKey=key;archiveOkTabs=new Set();} // new set of IDs → every tab must be searched again
   const remainingMap=new Map();remaining.forEach(id=>remainingMap.set(normId(id),id));
   const todo=tabs.filter(t=>!archiveOkTabs.has(archiveTabKey(t))); // a new tab / a retry only fetches what hasn't been read yet
@@ -1001,6 +1012,7 @@ async function loadArchiveIds(){
   archiveLoading=false;
   archiveLoaded=archiveFailedTabs.length===0; // a pass with failed tabs is NOT cached as done, so it gets retried
   archiveLastKey=key;archiveLastSig=sig;
+  if(!archiveFailedTabs.length)remaining.forEach(id=>archiveSearchedIds.add(id));
   archiveStatus=archiveOkTabs.size+'/'+tabs.length+' tabs read · '+archiveFoundCount+'/'+remaining.size+' IDs found · tabs: '+archiveTabsSource+(archiveRemoteTabs?' · server read':' · direct read');
   if(activeLoc==='__quality__')renderAllSections();
   if(archiveRerun){archiveRerun=false;loadArchiveIds();}
@@ -1547,7 +1559,7 @@ function onCsvData(text){
     return;
   }
   _lastCsvHash=newHash;
-  const table=parseCSV(text).filter(r=>r&&r.length&&!(r.length===1&&String(r[0]||'').trim()===''));if(!table.length){showErr('No data returned.');return;}hdrs=table[0].map(h=>String(h||'').trim());const hLower=hdrs.map(h=>h.toLowerCase());sIdx={};["Shift","Unit","Qtc Name","Yubikey Email","Labeler Name","Pc No","Modality","Queue Name","Location","Pass"].forEach(name=>{const i=hLower.indexOf(name.toLowerCase());if(i>=0)sIdx[name]=i;});tsIdx=hLower.findIndex(h=>h==='timestamp');if(tsIdx<0)tsIdx=hLower.findIndex(h=>h==='created at');if(tsIdx<0)tsIdx=hLower.findIndex(h=>h==='date');if(tsIdx<0)tsIdx=hLower.findIndex(h=>h.includes('date'));locColIdx=hLower.findIndex(h=>h==='location');if(locColIdx<0)locColIdx=hLower.findIndex(h=>h==='unit');if(locColIdx<0)locColIdx=hLower.findIndex(h=>h==='site');rawRows=[];for(let ri=1;ri<table.length;ri++){const rowRaw=table[ri];if(!rowRaw||!rowRaw.length)continue;const row=hdrs.map((_,ci)=>rowRaw[ci]!==undefined?String(rowRaw[ci]).trim():'');if(row.every(c=>c===''))continue;const sci=sIdx['Shift'];if(sci!==undefined){const sv=String(row[sci]||'').trim().toLowerCase();if(!ALL_SHIFTS.some(a=>sv===a))continue;}rawRows.push(row);}sOpts={};["Shift","Unit","Qtc Name","Yubikey Email","Labeler Name","Pc No","Modality","Queue Name","Location","Pass"].forEach(name=>{const ci=sIdx[name];if(ci===undefined)return;const set=new Set();rawRows.forEach(r=>{const v=String(r[ci]||'').trim();if(v)set.add(v);});sOpts[name]=[...set].sort();});const dateSet=new Set();rawRows.forEach(r=>{const d=extractDate(r[tsIdx]);if(d)dateSet.add(d);});sOpts['_dates']=[...dateSet].sort().reverse();const locSet=new Set();if(locColIdx>=0)rawRows.forEach(r=>{const v=String(r[locColIdx]||'').trim();if(v)locSet.add(v);});locations=[...locSet].sort();const now=new Date();todayStr=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');document.getElementById('todayLabel').textContent=todayStr;lastUpdateTs=Date.now();updateRelativeTime();setTrafficLight('green');window._firstDataReady=true;document.getElementById('totalBadge').textContent=rawRows.length+' rows';SC.forEach(s=>{if(!sel[s.key])sel[s.key]=new Set();});if(!_filtersRestored){restoreFilters();_filtersRestored=true;}buildStrip();buildTabs();applyAll();if(autoRefreshTimer)clearInterval(autoRefreshTimer);autoRefreshTimer=null;if(autoRefreshEnabled)autoRefreshTimer=setInterval(loadData,REFRESH_INTERVAL*1000);applyAutoRefreshUI();if(cmpMode)populateCmpSelects();
+  const table=parseCSV(text).filter(r=>r&&r.length&&!(r.length===1&&String(r[0]||'').trim()===''));if(!table.length){showErr('No data returned.');return;}hdrs=table[0].map(h=>String(h||'').trim());const hLower=hdrs.map(h=>h.toLowerCase());sIdx={};["Shift","Unit","Qtc Name","Yubikey Email","Labeler Name","Pc No","Modality","Queue Name","Location","Pass"].forEach(name=>{const i=hLower.indexOf(name.toLowerCase());if(i>=0)sIdx[name]=i;});tsIdx=hLower.findIndex(h=>h==='timestamp');if(tsIdx<0)tsIdx=hLower.findIndex(h=>h==='created at');if(tsIdx<0)tsIdx=hLower.findIndex(h=>h==='date');if(tsIdx<0)tsIdx=hLower.findIndex(h=>h.includes('date'));locColIdx=hLower.findIndex(h=>h==='location');if(locColIdx<0)locColIdx=hLower.findIndex(h=>h==='unit');if(locColIdx<0)locColIdx=hLower.findIndex(h=>h==='site');rawRows=[];for(let ri=1;ri<table.length;ri++){const rowRaw=table[ri];if(!rowRaw||!rowRaw.length)continue;const row=hdrs.map((_,ci)=>rowRaw[ci]!==undefined?String(rowRaw[ci]).trim():'');if(row.every(c=>c===''))continue;const sci=sIdx['Shift'];if(sci!==undefined){const sv=String(row[sci]||'').trim().toLowerCase();if(!ALL_SHIFTS.some(a=>sv===a))continue;}rawRows.push(row);}sOpts={};["Shift","Unit","Qtc Name","Yubikey Email","Labeler Name","Pc No","Modality","Queue Name","Location","Pass"].forEach(name=>{const ci=sIdx[name];if(ci===undefined)return;const set=new Set();rawRows.forEach(r=>{const v=String(r[ci]||'').trim();if(v)set.add(v);});sOpts[name]=[...set].sort();});const dateSet=new Set();rawRows.forEach(r=>{const d=extractDate(r[tsIdx]);if(d)dateSet.add(d);});sOpts['_dates']=[...dateSet].sort().reverse();const locSet=new Set();if(locColIdx>=0)rawRows.forEach(r=>{const v=String(r[locColIdx]||'').trim();if(v)locSet.add(v);});locations=[...locSet].sort();const now=new Date();todayStr=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');document.getElementById('todayLabel').textContent=todayStr;lastUpdateTs=Date.now();updateRelativeTime();setTrafficLight('green');window._firstDataReady=true;document.getElementById('totalBadge').textContent=rawRows.length+' rows';SC.forEach(s=>{if(!sel[s.key])sel[s.key]=new Set();});if(!_filtersRestored){restoreFilters();_filtersRestored=true;}buildStrip();buildTabs();applyAll();if(autoRefreshTimer)clearInterval(autoRefreshTimer);autoRefreshTimer=null;if(autoRefreshEnabled)autoRefreshTimer=setInterval(loadData,REFRESH_INTERVAL*1000);applyAutoRefreshUI();if(cmpMode)populateCmpSelects();try{loadArchiveIds();}catch(e){}
 }
 const _MONTH_NAMES={jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12};
 function extractDate(v){
