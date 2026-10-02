@@ -330,7 +330,8 @@ td a{color:var(--info);text-decoration:none;font-weight:700;}
 .empty{text-align:center;padding:34px;color:var(--muted);font-size:.78rem}
 .empty span{display:block;font-size:1.8rem;margin-bottom:9px;opacity:.5}
 .errbox{background:rgba(196,41,63,.08);border:1px solid rgba(196,41,63,.3);color:var(--danger);border-radius:var(--radius);padding:12px 16px;margin:10px;font-size:.75rem;font-weight:600;}
-.arc-bar{display:inline-block;vertical-align:middle;width:72px;height:6px;border-radius:4px;background:var(--border);overflow:hidden;margin:0 5px 0 2px;}
+.arc-bar{display:inline-block;vertical-align:middle;width:110px;height:6px;border-radius:4px;background:var(--border);overflow:hidden;margin:0 5px 0 2px;}
+.arc-pct{font-family:var(--mono);font-weight:800;color:var(--accent);min-width:34px;display:inline-block;}
 .arc-fill{display:block;height:100%;background:linear-gradient(90deg,#00b8d4,var(--accent));border-radius:4px;transition:width .25s ease;}
 .toast{position:fixed;bottom:18px;right:18px;background:#081722;color:#eafcfb;padding:10px 16px;border-radius:var(--radius);font-size:.68rem;font-weight:600;font-family:var(--mono);box-shadow:var(--shadow-hover);display:flex;align-items:center;gap:6px;z-index:9999;animation:toastin .3s ease-out;border:1px solid rgba(0,229,212,.35);max-width:calc(100vw - 32px);}
 @keyframes toastin{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
@@ -821,7 +822,65 @@ let qualityLoading=false;
         They are never added to rawRows, so dashboard totals/filters don't change. ---- */
 const ARCHIVE_SHEET_ID='1BSeiRLiRTSmH_Et0B8TQAPKsuY98CVSB-gcg6ai51YQ';  // ID of the Archive spreadsheet = the long code between /d/ and /edit in its URL (must be shared "anyone with the link can view")
 const ARCHIVE_TABS=['1/2','March 2026','May 2026','April 2026','June 2026','July 2026','Aug 2026','Sep 1/9 to 3/9']; // exact tab names — add every new tab here
-let archiveIdInfo={},archiveLoading=false,archiveLoaded=false,archiveStatus='',archiveLastKey='',archiveDone=0,archiveTotal=0;
+/* ---- AUTO tab discovery (so a renamed / newly added tab needs NO code change). Fill in ONE of these two; leave both '' to use the manual ARCHIVE_TABS list above.
+   1) ARCHIVE_TABS_URL : the /exec URL of a tiny Apps Script web app that returns the archive spreadsheet's tab list (script is in the chat)
+   2) ARCHIVE_API_KEY  : a Google Cloud API key (Sheets API enabled, restricted to your GitHub Pages domain) — the page then asks Google directly
+   Tabs are fetched by their numeric gid, so even a RENAMED tab keeps working. ARCHIVE_TABS_EXCLUDE = tab names to skip (summaries etc). ---- */
+const ARCHIVE_TABS_URL='https://script.google.com/macros/s/AKfycbzVaowzLTuDz_sN3qLc1W2w1jkoqEATF7t7yPuIDqHOv5N8esq54OrU_luoZ_Ad6CLv/exec';
+const ARCHIVE_API_KEY='';
+const ARCHIVE_TABS_EXCLUDE=[];
+let archiveIdInfo={},archiveLoading=false,archiveLoaded=false,archiveStatus='',archiveLastKey='',archiveDone=0,archiveFetched=0,archiveTotal=0;
+let archiveFailedTabs=[],archiveFoundCount=0,archiveRerun=false,archiveOkTabs=new Set(),archiveOkKey='';
+const ARCHIVE_TABS_CACHE_KEY='meeg_archive_tabs_v1';
+let archiveTabList=ARCHIVE_TABS.map(n=>({name:n})),archiveTabsSource='manual list',archiveTabsResolvedAt=0,archiveLastSig='';
+function archiveTabKey(t){return t.gid!=null&&t.gid!==''?'g'+t.gid:'n'+t.name;}
+// works out WHICH tabs to search: auto-discovered (Apps Script or Sheets API) → last saved auto list → manual ARCHIVE_TABS.
+// re-checked at most every 10 minutes, so a tab added during the day is picked up on the next refresh.
+async function resolveArchiveTabs(){
+  if(archiveTabsResolvedAt&&Date.now()-archiveTabsResolvedAt<10*60*1000)return archiveTabList;
+  let list=null,src='';
+  if(ARCHIVE_TABS_URL){
+    try{
+      const r=await fetch(ARCHIVE_TABS_URL);const j=await r.json();
+      if(Array.isArray(j)&&j.length){list=j.map(x=>typeof x==='string'?{name:x}:{name:String(x.name||x.title||''),gid:x.gid!=null?x.gid:x.sheetId}).filter(x=>x.name);src='auto (Apps Script)';}
+    }catch(e){console.warn('Archive tab list (Apps Script) failed: '+e.message);}
+  }
+  if(!list&&ARCHIVE_API_KEY){
+    try{
+      const r=await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${ARCHIVE_SHEET_ID}?fields=sheets.properties(sheetId,title,hidden)&key=${encodeURIComponent(ARCHIVE_API_KEY)}`);
+      const j=await r.json();
+      if(j.sheets&&j.sheets.length){list=j.sheets.filter(x=>!x.properties.hidden).map(x=>({name:x.properties.title,gid:x.properties.sheetId}));src='auto (Sheets API)';}
+      else console.warn('Archive tab list (Sheets API) failed:',j.error&&j.error.message);
+    }catch(e){console.warn('Archive tab list (Sheets API) failed: '+e.message);}
+  }
+  if(list){
+    list=list.filter(t=>!ARCHIVE_TABS_EXCLUDE.includes(t.name));
+    try{localStorage.setItem(ARCHIVE_TABS_CACHE_KEY,JSON.stringify(list));}catch(e){}
+  }else if(ARCHIVE_TABS_URL||ARCHIVE_API_KEY){
+    // auto-discovery is configured but failed right now — use the last list it returned rather than a stale hand-typed one
+    try{const c=JSON.parse(localStorage.getItem(ARCHIVE_TABS_CACHE_KEY)||'null');if(Array.isArray(c)&&c.length){list=c;src='last saved auto list';}}catch(e){}
+  }
+  if(!list){list=ARCHIVE_TABS.map(n=>({name:n}));src='manual list';}
+  archiveTabList=list;archiveTabsSource=src;archiveTabsResolvedAt=Date.now();
+  return list;
+}
+// normalise an ID so "1,234,567", "1234567.0", " ABC " and "abc" all compare equal
+function normId(v){
+  let t=String(v==null?'':v).trim().replace(/^["']+|["']+$/g,'');
+  if(/^\d{1,3}(,\d{3})+(\.0+)?$/.test(t))t=t.replace(/,/g,'');
+  t=t.replace(/^(\d+)\.0+$/,'$1');
+  return t.toLowerCase();
+}
+// overall % = 60% for "tab downloaded" + 40% for "tab searched", so the bar moves smoothly even with only a few tabs
+function archivePct(){if(!archiveTotal)return 0;return Math.min(100,Math.round((archiveFetched*0.6+archiveDone*0.4)/archiveTotal*100));}
+// updates the bar/percentage in place (no full re-render on every tick)
+function updateArchiveBar(){
+  const pc=archivePct();
+  document.querySelectorAll('.arc-fill').forEach(el=>{el.style.width=pc+'%';});
+  document.querySelectorAll('.arc-pct').forEach(el=>{el.textContent=pc+'%';});
+  document.querySelectorAll('.arc-cnt').forEach(el=>{el.textContent=archiveDone+'/'+archiveTotal+' tabs checked';});
+}
+function retryArchive(){archiveLoaded=false;archiveLastKey='';archiveTabsResolvedAt=0;loadArchiveIds();}
 function normHdr(x){return String(x||'').replace(/\s+/g,' ').trim().toLowerCase();}
 // IDs that came in with the quality export but are NOT already in the current Data Base — the archive lookup can
 // only ever help with these, so searching for just this (small) set instead of every quality row is most of the speedup
@@ -833,49 +892,90 @@ function computeUnresolvedQualityIds(){
   Object.keys(qualityStore||{}).forEach(id=>{if(!dbIds.has(id))out.add(id);});
   return out;
 }
+// downloads ONE archive tab (by gid when known — survives renames — otherwise by name). Retries up to 3 times (Google
+// throttles parallel gviz requests) and treats an HTML answer (login / error page) as a failure, not as an empty tab
+async function fetchArchiveTab(tab){
+  const sel=tab.gid!=null&&tab.gid!==''?`gid=${encodeURIComponent(tab.gid)}`:`sheet=${encodeURIComponent(tab.name)}`;
+  const url=`https://docs.google.com/spreadsheets/d/${ARCHIVE_SHEET_ID}/gviz/tq?tqx=out:csv&headers=1&${sel}`;
+  for(let attempt=1;attempt<=3;attempt++){
+    try{
+      const r=await fetch(url);
+      if(r.ok){
+        const t=await r.text();
+        if(!/^\s*</.test(t))return t;
+        console.warn('Archive tab "'+tab.name+'": got an HTML page instead of CSV (attempt '+attempt+')');
+      }else console.warn('Archive tab "'+tab.name+'": HTTP '+r.status+' (attempt '+attempt+')');
+    }catch(e){console.warn('Archive tab "'+tab.name+'" fetch error (attempt '+attempt+'): '+e.message);}
+    if(attempt<3)await new Promise(res=>setTimeout(res,700*attempt));
+  }
+  return null;
+}
+// searches one downloaded tab for the still-unmatched IDs; returns how many it found
+function scanArchiveTab(tab,text,remainingMap,map){
+  const table=parseCSV(text).filter(row=>row&&row.length&&!(row.length===1&&String(row[0]||'').trim()===''));
+  if(!table.length)return 0;
+  const h=table[0].map(normHdr);
+  // some tabs call it "Task ID", others "ID" — and a tab can even have two (numeric "ID" + UUID "Id"), so index every one of them
+  const idCols=[];h.forEach((x,i)=>{if(x==='id'||x==='task id'||x==='taskid')idCols.push(i);});
+  if(!idCols.length)console.warn('Archive tab "'+tab.name+'": no ID / Task ID column — scanning every cell instead');
+  const emI=h.findIndex(x=>x.startsWith('yubikey email')),nmI=h.indexOf('labeler name'),qtI=h.indexOf('qtc name');
+  let found=0;
+  for(let i=1;i<table.length;i++){
+    const row=table[i];if(!row)continue;
+    const hits=[];
+    if(idCols.length){idCols.forEach(c=>{const o=remainingMap.get(normId(row[c]));if(o)hits.push(o);});}
+    else{row.forEach(cell=>{const n=normId(cell);if(n.length>=6){const o=remainingMap.get(n);if(o)hits.push(o);}});}
+    if(!hits.length)continue;
+    const em=emI>=0?String(row[emI]||'').trim():'';
+    const nm=nmI>=0?String(row[nmI]||'').trim():'';
+    const qtc=qtI>=0?String(row[qtI]||'').trim():'';
+    hits.forEach(rid=>{map[rid]={name:nm||em||rid,email:em,qtc,group:qtcShiftGroup(qtc),src:'archive'};found++;});
+  }
+  return found;
+}
 async function loadArchiveIds(){
-  if(!ARCHIVE_SHEET_ID||archiveLoading)return;
+  if(!ARCHIVE_SHEET_ID)return;
+  if(archiveLoading){archiveRerun=true;return;} // asked again mid-search (e.g. Data Base finished loading) — run once more when this pass ends
   const remaining=computeUnresolvedQualityIds();
   if(!remaining.size){archiveStatus='';return;} // nothing unmatched — no reason to touch the archive at all
   const key=[...remaining].sort().join(',');
-  if(archiveLoaded&&key===archiveLastKey)return; // same still-unmatched IDs as last time (e.g. a re-render) — don't re-fetch
-  archiveLoading=true;archiveStatus='searching…';archiveDone=0;archiveTotal=ARCHIVE_TABS.length;
-  if(activeLoc==='__quality__')renderAllSections(); // show the (real, 0/N) progress bar right away instead of going quiet until it's all done
-  // fetch every tab at once — the sheet is what's slow to read, not the network, so requesting all tabs in
-  // parallel finds a match wherever it happens to be far faster than reading them one at a time in sequence.
-  // each tab ticks archiveDone up and repaints the bar the moment ITS OWN request actually finishes, so the
-  // bar reflects real completed requests, not a guessed duration.
-  const results=await Promise.all(ARCHIVE_TABS.map(tab=>
-    fetch(`https://docs.google.com/spreadsheets/d/${ARCHIVE_SHEET_ID}/gviz/tq?tqx=out:csv&headers=1&sheet=${encodeURIComponent(tab)}`)
-      .then(r=>r.ok?r.text():null).catch(()=>null)
-      .then(text=>{archiveDone++;if(activeLoc==='__quality__')renderAllSections();return text;})));
-  const map={};let tabsOk=0;
-  for(let t=0;t<results.length;t++){
-    if(!results[t]){continue;}
-    try{
-      const table=parseCSV(results[t]).filter(row=>row&&row.length&&!(row.length===1&&String(row[0]||'').trim()===''));
-      if(!table.length){tabsOk++;continue;}
-      const h=table[0].map(normHdr);
-      // some tabs call it "Task ID", others "ID" — and a tab can even have two (a numeric "ID" and a UUID "Id"), so index every one of them
-      const idCols=[];h.forEach((x,i)=>{if(x==='id'||x==='task id'||x==='taskid')idCols.push(i);});
-      if(!idCols.length){console.warn('Archive tab "'+ARCHIVE_TABS[t]+'": no ID / Task ID column');tabsOk++;continue;}
-      const emI=h.findIndex(x=>x.startsWith('yubikey email')),nmI=h.indexOf('labeler name'),qtI=h.indexOf('qtc name');
-      for(let i=1;i<table.length;i++){
-        const row=table[i];if(!row)continue;
-        const hits=idCols.map(c=>String(row[c]||'').trim()).filter(v=>v&&remaining.has(v));
-        if(!hits.length)continue;
-        const em=emI>=0?String(row[emI]||'').trim():'';
-        const nm=nmI>=0?String(row[nmI]||'').trim():'';
-        const qtc=qtI>=0?String(row[qtI]||'').trim():'';
-        hits.forEach(rid=>{map[rid]={name:nm||em||rid,email:em,qtc,group:qtcShiftGroup(qtc),src:'archive'};});
-      }
-      tabsOk++;
-    }catch(err){console.warn('Archive tab "'+ARCHIVE_TABS[t]+'" failed:',err.message);}
-  }
-  archiveIdInfo=Object.assign({},archiveIdInfo,map);
-  archiveLoaded=true;archiveLoading=false;archiveLastKey=key;
-  archiveStatus=tabsOk+'/'+ARCHIVE_TABS.length+' tabs read';
+  archiveLoading=true;
+  let tabs;try{tabs=await resolveArchiveTabs();}catch(e){tabs=archiveTabList;}
+  const sig=tabs.map(archiveTabKey).join('|');
+  // same unmatched IDs AND same tab list AND every tab read OK last time → nothing new to search
+  if(archiveLoaded&&key===archiveLastKey&&sig===archiveLastSig){archiveLoading=false;return;}
+  if(key!==archiveOkKey){archiveOkKey=key;archiveOkTabs=new Set();} // new set of IDs → every tab must be searched again
+  const remainingMap=new Map();remaining.forEach(id=>remainingMap.set(normId(id),id));
+  const todo=tabs.filter(t=>!archiveOkTabs.has(archiveTabKey(t))); // a new tab / a retry only fetches what hasn't been read yet
+  archiveStatus='searching…';archiveTotal=tabs.length;
+  archiveDone=archiveFetched=tabs.length-todo.length;archiveFailedTabs=[];
   if(activeLoc==='__quality__')renderAllSections();
+  const map={};let idx=0;
+  async function worker(){
+    while(idx<todo.length){
+      const tab=todo[idx++];
+      const text=await fetchArchiveTab(tab);
+      archiveFetched++;updateArchiveBar();
+      if(text===null){archiveFailedTabs.push(tab.name);archiveDone++;updateArchiveBar();continue;}
+      try{
+        const n=scanArchiveTab(tab,text,remainingMap,map);
+        archiveOkTabs.add(archiveTabKey(tab));
+        console.info('Archive tab "'+tab.name+'": '+n+' ID(s) found');
+      }catch(err){console.warn('Archive tab "'+tab.name+'" failed:',err.message);archiveFailedTabs.push(tab.name);}
+      archiveDone++;updateArchiveBar();
+      await new Promise(r=>setTimeout(r,0)); // let the browser repaint the bar between tabs
+    }
+  }
+  // 3 tabs at a time — all at once was getting throttled by Google, which is what made tabs fail silently
+  await Promise.all(Array.from({length:Math.min(3,todo.length)},worker));
+  archiveIdInfo=Object.assign({},archiveIdInfo,map);
+  archiveFoundCount=[...remaining].filter(id=>archiveIdInfo[id]).length;
+  archiveLoading=false;
+  archiveLoaded=archiveFailedTabs.length===0; // a pass with failed tabs is NOT cached as done, so it gets retried
+  archiveLastKey=key;archiveLastSig=sig;
+  archiveStatus=archiveOkTabs.size+'/'+tabs.length+' tabs read · '+archiveFoundCount+'/'+remaining.size+' IDs found · tabs: '+archiveTabsSource;
+  if(activeLoc==='__quality__')renderAllSections();
+  if(archiveRerun){archiveRerun=false;loadArchiveIds();}
 }
 
 // the work week runs Monday to the following Monday — this computes the label for the Monday-starting week containing a given date
@@ -1221,7 +1321,7 @@ function renderQualitySection(mc){
       </div>`;
     }).join('');
     const umSec=document.createElement('div');umSec.className='sec';umSec.style.borderLeft='4px solid var(--danger)';
-    umSec.innerHTML=`<div class="sec-hd"><span class="sec-t">🚫 Unmatched Tasks</span><span class="sec-m">${unmatchedList.length} tasks with no matching ID${archiveStatus==='searching…'?` · Archive: <span class="arc-bar"><span class="arc-fill" style="width:${archiveTotal?Math.round(archiveDone/archiveTotal*100):0}%"></span></span> ${archiveDone}/${archiveTotal} tabs checked`:archiveHits?` · ${archiveHits} matched via Archive`:''}${ARCHIVE_SHEET_ID&&archiveStatus?` · Archive: ${archiveStatus}`:''}${resolvedCount?` · ${resolvedCount} counted toward a shift via TEAMS sheet`:''} · Teams tab: ${Object.keys(teamsMap).length} Yubikeys${teamsLoaded?'':' (loading…)'}${teamsUsingSnapshot?' · built-in copy':''}</span></div><div class="cgrid">${umCards}</div>`;
+    umSec.innerHTML=`<div class="sec-hd"><span class="sec-t">🚫 Unmatched Tasks</span><span class="sec-m">${unmatchedList.length} tasks with no matching ID${archiveStatus==='searching…'?` · Archive: <span class="arc-bar"><span class="arc-fill" style="width:${archivePct()}%"></span></span> <b class="arc-pct">${archivePct()}%</b> <span class="arc-cnt">${archiveDone}/${archiveTotal} tabs checked</span>`:`${archiveHits?` · ${archiveHits} matched via Archive`:''}${ARCHIVE_SHEET_ID&&archiveStatus?` · Archive: ${archiveStatus}`:''}${archiveFailedTabs.length?` · ⚠️ failed: ${archiveFailedTabs.map(esc).join(', ')} <button onclick="retryArchive()" style="margin-left:4px;padding:2px 8px;border-radius:6px;border:1px solid var(--danger);background:transparent;color:var(--danger);font-weight:800;cursor:pointer;font-size:inherit;font-family:inherit">↻ Retry</button>`:''}`}${resolvedCount?` · ${resolvedCount} counted toward a shift via TEAMS sheet`:''} · Teams tab: ${Object.keys(teamsMap).length} Yubikeys${teamsLoaded?'':' (loading…)'}${teamsUsingSnapshot?' · built-in copy':''}</span></div><div class="cgrid">${umCards}</div>`;
     mc.appendChild(umSec);
   }
 
