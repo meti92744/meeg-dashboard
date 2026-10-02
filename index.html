@@ -826,11 +826,11 @@ const ARCHIVE_TABS=['1/2','March 2026','May 2026','April 2026','June 2026','July
    1) ARCHIVE_TABS_URL : the /exec URL of a tiny Apps Script web app that returns the archive spreadsheet's tab list (script is in the chat)
    2) ARCHIVE_API_KEY  : a Google Cloud API key (Sheets API enabled, restricted to your GitHub Pages domain) — the page then asks Google directly
    Tabs are fetched by their numeric gid, so even a RENAMED tab keeps working. ARCHIVE_TABS_EXCLUDE = tab names to skip (summaries etc). ---- */
-const ARCHIVE_TABS_URL='https://script.google.com/macros/s/AKfycbzVaowzLTuDz_sN3qLc1W2w1jkoqEATF7t7yPuIDqHOv5N8esq54OrU_luoZ_Ad6CLv/exec';
+const ARCHIVE_TABS_URL='https://script.google.com/macros/s/AKfycbxIqJnT2eX1Ll1S9MY1iSQmS4FLW1p4N_kLNZcdL0xZOCD2OjxOf2ZdkTx-PDjj_dhj/exec';
 const ARCHIVE_API_KEY='';
 const ARCHIVE_TABS_EXCLUDE=[];
 let archiveIdInfo={},archiveLoading=false,archiveLoaded=false,archiveStatus='',archiveLastKey='',archiveDone=0,archiveFetched=0,archiveTotal=0;
-let archiveFailedTabs=[],archiveFoundCount=0,archiveRerun=false,archiveOkTabs=new Set(),archiveOkKey='';
+let archiveRemoteTabs=0,archiveFailedTabs=[],archiveFoundCount=0,archiveRerun=false,archiveOkTabs=new Set(),archiveOkKey='';
 const ARCHIVE_TABS_CACHE_KEY='meeg_archive_tabs_v1';
 let archiveTabList=ARCHIVE_TABS.map(n=>({name:n})),archiveTabsSource='manual list',archiveTabsResolvedAt=0,archiveLastSig='';
 function archiveTabKey(t){return t.gid!=null&&t.gid!==''?'g'+t.gid:'n'+t.name;}
@@ -910,6 +910,23 @@ async function fetchArchiveTab(tab){
   }
   return null;
 }
+// FILTER-PROOF read: asks the Apps Script to search the tab itself. Apps Script reads the raw cells, so a filter someone
+// left switched on in the sheet can't hide rows the way it does for the gviz CSV. Returns the hits, or null if the script
+// doesn't support it yet (old deployment → HTML error page) / the call failed → the caller falls back to the direct gviz read.
+async function remoteScanArchiveTab(tab,remaining){
+  for(let attempt=1;attempt<=2;attempt++){
+    try{
+      const r=await fetch(ARCHIVE_TABS_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({gid:tab.gid,ids:[...remaining]})});
+      const t=await r.text();
+      if(/^\s*</.test(t)){console.warn('Archive tab "'+tab.name+'": script has no doPost yet (re-deploy a New version) — using direct read');return null;}
+      const j=JSON.parse(t);
+      if(j&&j.ok&&Array.isArray(j.hits))return j.hits;
+      console.warn('Archive tab "'+tab.name+'": script said',j&&j.error);
+    }catch(e){console.warn('Archive tab "'+tab.name+'" server read error (attempt '+attempt+'): '+e.message);}
+    if(attempt<2)await new Promise(res=>setTimeout(res,800));
+  }
+  return null;
+}
 // searches one downloaded tab for the still-unmatched IDs; returns how many it found
 function scanArchiveTab(tab,text,remainingMap,map){
   const table=parseCSV(text).filter(row=>row&&row.length&&!(row.length===1&&String(row[0]||'').trim()===''));
@@ -948,20 +965,31 @@ async function loadArchiveIds(){
   const remainingMap=new Map();remaining.forEach(id=>remainingMap.set(normId(id),id));
   const todo=tabs.filter(t=>!archiveOkTabs.has(archiveTabKey(t))); // a new tab / a retry only fetches what hasn't been read yet
   archiveStatus='searching…';archiveTotal=tabs.length;
-  archiveDone=archiveFetched=tabs.length-todo.length;archiveFailedTabs=[];
+  archiveDone=archiveFetched=tabs.length-todo.length;archiveFailedTabs=[];archiveRemoteTabs=0;
   if(activeLoc==='__quality__')renderAllSections();
   const map={};let idx=0;
   async function worker(){
     while(idx<todo.length){
       const tab=todo[idx++];
-      const text=await fetchArchiveTab(tab);
-      archiveFetched++;updateArchiveBar();
-      if(text===null){archiveFailedTabs.push(tab.name);archiveDone++;updateArchiveBar();continue;}
-      try{
-        const n=scanArchiveTab(tab,text,remainingMap,map);
+      // 1st choice: server-side search through the Apps Script (ignores sheet filters); 2nd: direct gviz CSV read
+      let remote=null;
+      if(ARCHIVE_TABS_URL&&tab.gid!=null)remote=await remoteScanArchiveTab(tab,remaining);
+      if(remote){
+        archiveFetched++;archiveRemoteTabs++;updateArchiveBar();
+        remote.forEach(h=>{const em=String(h.email||'').trim(),nm=String(h.name||'').trim(),qtc=String(h.qtc||'').trim();
+          map[h.id]={name:nm||em||h.id,email:em,qtc,group:qtcShiftGroup(qtc),src:'archive'};});
         archiveOkTabs.add(archiveTabKey(tab));
-        console.info('Archive tab "'+tab.name+'": '+n+' ID(s) found');
-      }catch(err){console.warn('Archive tab "'+tab.name+'" failed:',err.message);archiveFailedTabs.push(tab.name);}
+        console.info('Archive tab "'+tab.name+'" (server read): '+remote.length+' ID(s) found');
+      }else{
+        const text=await fetchArchiveTab(tab);
+        archiveFetched++;updateArchiveBar();
+        if(text===null){archiveFailedTabs.push(tab.name);archiveDone++;updateArchiveBar();continue;}
+        try{
+          const n=scanArchiveTab(tab,text,remainingMap,map);
+          archiveOkTabs.add(archiveTabKey(tab));
+          console.info('Archive tab "'+tab.name+'" (direct read): '+n+' ID(s) found');
+        }catch(err){console.warn('Archive tab "'+tab.name+'" failed:',err.message);archiveFailedTabs.push(tab.name);}
+      }
       archiveDone++;updateArchiveBar();
       await new Promise(r=>setTimeout(r,0)); // let the browser repaint the bar between tabs
     }
@@ -973,7 +1001,7 @@ async function loadArchiveIds(){
   archiveLoading=false;
   archiveLoaded=archiveFailedTabs.length===0; // a pass with failed tabs is NOT cached as done, so it gets retried
   archiveLastKey=key;archiveLastSig=sig;
-  archiveStatus=archiveOkTabs.size+'/'+tabs.length+' tabs read · '+archiveFoundCount+'/'+remaining.size+' IDs found · tabs: '+archiveTabsSource;
+  archiveStatus=archiveOkTabs.size+'/'+tabs.length+' tabs read · '+archiveFoundCount+'/'+remaining.size+' IDs found · tabs: '+archiveTabsSource+(archiveRemoteTabs?' · server read':' · direct read');
   if(activeLoc==='__quality__')renderAllSections();
   if(archiveRerun){archiveRerun=false;loadArchiveIds();}
 }
