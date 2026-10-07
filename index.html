@@ -213,6 +213,10 @@ html[data-theme="dark"] .dpanel{background:#0a1a26;}
 .arcs-in:focus{border-color:var(--accent);}
 .arcs-go{padding:8px 16px;border-radius:6px;border:1px solid var(--accent);background:var(--accent);color:#fff;font-family:var(--mono);font-size:.65rem;font-weight:700;cursor:pointer;}
 .arcs-go:disabled{opacity:.5;cursor:default;}
+.arcs-prog{display:flex;align-items:center;gap:10px;padding:0 18px 8px;}
+.arcs-track{flex:1;height:7px;border-radius:5px;background:var(--border);overflow:hidden;}
+.arcs-pfill{display:block;height:100%;width:0;background:linear-gradient(90deg,#00b8d4,var(--accent));border-radius:5px;transition:width .25s ease;}
+.arcs-ppct{font-family:var(--mono);font-weight:800;font-size:.62rem;color:var(--accent);min-width:38px;text-align:right;}
 .arcs-st{padding:8px 18px;font-family:var(--mono);font-size:.6rem;color:var(--muted);}
 .arcs-res{overflow:auto;padding:4px 18px 18px;display:flex;flex-direction:column;gap:10px;}
 .arcs-card{border:1px solid var(--border);border-radius:var(--radius);background:var(--card);padding:12px 14px;}
@@ -420,6 +424,7 @@ td a{color:var(--info);text-decoration:none;font-weight:700;}
 <div class="arcs-hd"><span class="t">📦 SEARCH FROM ARCHIVE</span><span class="arcs-x" onclick="closeArchiveSearch()">✕</span></div>
 <div class="arcs-bar"><input class="arcs-in" id="arcsIn" placeholder="Task ID…" autocomplete="off" onkeydown="if(event.key==='Enter')runArchiveSearch()"/><button class="arcs-go" id="arcsGo" onclick="runArchiveSearch()">Search</button></div>
 <div class="arcs-st" id="arcsSt">Type an ID (3+ characters) and press Search.</div>
+<div class="arcs-prog" id="arcsProg" style="display:none"><div class="arcs-track"><span class="arcs-pfill" id="arcsFill"></span></div><span class="arcs-ppct" id="arcsPct">0%</span></div>
 <div class="arcs-res" id="arcsRes"></div>
 </div></div>
 <div id="loginScreen">
@@ -983,6 +988,9 @@ function scanArchiveTab(tab,text,remainingMap,map){
 /* ---- Search From Archive: look ONE typed ID up in every archive tab (same tabs the unmatched-task lookup uses) ---- */
 const archiveTabCache=new Map(); // tab key -> Promise of {h,raw,rows,keys} (or null if the tab could not be read)
 let _arcsToken=0;
+const _arcP=new Map();      // tab key -> real progress of that tab's load: 0 waiting · .05 started · .7 downloaded · 1 parsed & indexed (or failed)
+let _arcsOnProg=null;       // set by the running search so it can redraw the bar whenever a tab moves forward
+function arcSet(k,v){_arcP.set(k,v);if(_arcsOnProg)_arcsOnProg();}
 // at most 4 tab downloads at once (Google throttles bigger bursts); every extra one waits in line
 let _arcActive=0;const _arcQ=[];
 function arcSlot(){return new Promise(res=>{const go=()=>{_arcActive++;res();};_arcActive<4?go():_arcQ.push(go);});}
@@ -992,19 +1000,23 @@ function arcFree(){_arcActive--;const n=_arcQ.shift();if(n)n();}
 function loadArchiveTabTable(tab){
   const k=archiveTabKey(tab);
   if(archiveTabCache.has(k))return archiveTabCache.get(k);
+  arcSet(k,0);
   const p=(async()=>{
     await arcSlot();
     try{
+      arcSet(k,.05);
       const text=await fetchArchiveTab(tab);
-      if(text==null)return null;
+      if(text==null){arcSet(k,1);return null;}
+      arcSet(k,.7);
       await new Promise(r=>setTimeout(r,0)); // let the page repaint before the heavy CSV parse
       const table=parseCSV(text).filter(row=>row&&row.length&&!(row.length===1&&String(row[0]||'').trim()===''));
-      if(!table.length)return null;
+      if(!table.length){arcSet(k,1);return null;}
       const h=table[0].map(normHdr);
       const idCols=[];h.forEach((x,i)=>{if(x==='id'||x==='task id'||x==='taskid')idCols.push(i);});
       const rows=table.slice(1);
       // normalise every ID ONCE here, so each later search is just a fast string scan (no re-parsing, no re-normalising)
       const keys=idCols.length?rows.map(row=>idCols.map(c=>normId(row[c]))):null;
+      arcSet(k,1);
       return {h,raw:table[0].map(x=>String(x||'').trim()),rows,keys};
     }finally{arcFree();}
   })();
@@ -1025,22 +1037,33 @@ function openArchiveSearch(){
   prefetchArchiveTabs();
   if(inp.value.trim().length>=3&&!document.getElementById('arcsRes').children.length)runArchiveSearch();
 }
-function closeArchiveSearch(){_arcsToken++;const ov=document.getElementById('arcsOv');if(ov)ov.classList.remove('on');const go=document.getElementById('arcsGo');if(go)go.disabled=false;}
+function closeArchiveSearch(){_arcsToken++;_arcsOnProg=null;const ov=document.getElementById('arcsOv');if(ov)ov.classList.remove('on');const go=document.getElementById('arcsGo');if(go)go.disabled=false;}
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){const ov=document.getElementById('arcsOv');if(ov&&ov.classList.contains('on'))closeArchiveSearch();}});
 async function runArchiveSearch(){
   const inp=document.getElementById('arcsIn'),st=document.getElementById('arcsSt'),res=document.getElementById('arcsRes');
   const my=++_arcsToken;            // a new search ALWAYS cancels the one still running (even if this one ends up too short)
   res.innerHTML='';
   const q=normId(inp.value);
-  if(q.length<3){st.textContent='Type at least 3 characters of the ID.';return;}
+  if(q.length<3){st.textContent='Type at least 3 characters of the ID.';_arcsOnProg=null;const pg=document.getElementById('arcsProg');if(pg)pg.style.display='none';return;}
   const MAX=30;let shown=0,total=0,failed=0,done=0;
-  st.textContent='Searching…';
+  const prog=document.getElementById('arcsProg'),fill=document.getElementById('arcsFill'),pctEl=document.getElementById('arcsPct');
+  st.textContent='Searching…';prog.style.display='flex';fill.style.width='0%';pctEl.textContent='0%';
   let tabs;try{tabs=await resolveArchiveTabs();}catch(e){tabs=archiveTabList;}
   if(my!==_arcsToken)return;
+  // REAL progress: every tab counts 90% for its actual load stage (waiting → downloading → downloaded → parsed) + 10% once it has been searched
+  const searched=new Set();let lastPc=0;
+  const draw=()=>{
+    if(my!==_arcsToken)return;
+    let sum=0;tabs.forEach(t=>{const k=archiveTabKey(t);sum+=(_arcP.has(k)?_arcP.get(k):0)*0.9+(searched.has(k)?0.1:0);});
+    const pc=Math.max(lastPc,Math.min(100,Math.round(sum/tabs.length*100)));lastPc=pc; // never goes backwards (e.g. when a failed tab is retried)
+    fill.style.width=pc+'%';pctEl.textContent=pc+'%';
+    if(searched.size<tabs.length)st.textContent='Searching… '+pc+'% · '+searched.size+'/'+tabs.length+' tabs'+(total?' · '+total+' found':'');
+  };
+  _arcsOnProg=draw;draw();
   const scan=async tab=>{
     const t=await loadArchiveTabTable(tab);
     if(my!==_arcsToken)return;
-    done++;
+    done++;searched.add(archiveTabKey(tab));
     if(!t){failed++;}
     else{
       for(let i=0;i<t.rows.length;i++){
@@ -1056,10 +1079,11 @@ async function runArchiveSearch(){
         res.insertAdjacentHTML('beforeend',`<div class="arcs-card"><span class="arcs-tab">📦 ${esc(tab.name)}</span><div class="arcs-grid">${kv}</div></div>`);
       }
     }
-    if(done<tabs.length)st.textContent='Searching… '+done+'/'+tabs.length+' tabs'+(total?' · '+total+' found':'');
+    draw();
   };
   await Promise.all(tabs.map(scan));
   if(my!==_arcsToken)return;
+  _arcsOnProg=null;fill.style.width='100%';pctEl.textContent='100%';
   st.textContent=(total?total+' match'+(total>1?'es':'')+' in the archive'+(total>shown?' (showing first '+shown+')':''):'Not found in the archive')+' · '+(tabs.length-failed)+'/'+tabs.length+' tabs read'+(failed?' — '+failed+' tab(s) could not be read, press Search again to retry':'');
 }
 async function loadArchiveIds(){
