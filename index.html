@@ -1051,7 +1051,8 @@ async function runArchiveSearch(){
   let tabs;try{tabs=await resolveArchiveTabs();}catch(e){tabs=archiveTabList;}
   if(my!==_arcsToken)return;
   // REAL progress: every tab counts 90% for its actual load stage (waiting → downloading → downloaded → parsed) + 10% once it has been searched
-  const searched=new Set();let lastPc=0;
+  const searched=new Set();let lastPc=0,stopped=false,exactTab='',finishEarly;
+  const early=new Promise(r=>{finishEarly=r;}); // resolves the moment the ID typed is found as a COMPLETE match
   const draw=()=>{
     if(my!==_arcsToken)return;
     let sum=0;tabs.forEach(t=>{const k=archiveTabKey(t);sum+=(_arcP.has(k)?_arcP.get(k):0)*0.9+(searched.has(k)?0.1:0);});
@@ -1062,14 +1063,14 @@ async function runArchiveSearch(){
   _arcsOnProg=draw;draw();
   const scan=async tab=>{
     const t=await loadArchiveTabTable(tab);
-    if(my!==_arcsToken)return;
+    if(my!==_arcsToken||stopped)return;
     done++;searched.add(archiveTabKey(tab));
     if(!t){failed++;}
     else{
       for(let i=0;i<t.rows.length;i++){
         let hit=false;
-        if(t.keys){const ks=t.keys[i];for(let j=0;j<ks.length;j++){if(ks[j]&&ks[j].includes(q)){hit=true;break;}}}
-        else{for(const cell of t.rows[i]){if(normId(cell)===q){hit=true;break;}}}
+        if(t.keys){const ks=t.keys[i];for(let j=0;j<ks.length;j++){if(ks[j]&&ks[j].includes(q)){hit=true;if(ks[j]===q&&!exactTab)exactTab=tab.name;break;}}}
+        else{for(const cell of t.rows[i]){if(normId(cell)===q){hit=true;if(!exactTab)exactTab=tab.name;break;}}}
         if(!hit)continue;
         total++;
         if(shown>=MAX)continue;
@@ -1079,11 +1080,14 @@ async function runArchiveSearch(){
         res.insertAdjacentHTML('beforeend',`<div class="arcs-card"><span class="arcs-tab">📦 ${esc(tab.name)}</span><div class="arcs-grid">${kv}</div></div>`);
       }
     }
-    draw();
+    if(exactTab)finishEarly();else draw();
   };
-  await Promise.all(tabs.map(scan));
+  // the full ID was found → no need to wait for the remaining tabs (they keep loading in the background for the next search)
+  await Promise.race([Promise.all(tabs.map(scan)),early]);
   if(my!==_arcsToken)return;
+  stopped=true;
   _arcsOnProg=null;fill.style.width='100%';pctEl.textContent='100%';
+  if(exactTab&&searched.size<tabs.length){st.textContent='Found in '+exactTab+' · '+total+' match'+(total>1?'es':'')+' · stopped early ('+searched.size+'/'+tabs.length+' tabs searched, the rest keep loading in the background)';return;}
   st.textContent=(total?total+' match'+(total>1?'es':'')+' in the archive'+(total>shown?' (showing first '+shown+')':''):'Not found in the archive')+' · '+(tabs.length-failed)+'/'+tabs.length+' tabs read'+(failed?' — '+failed+' tab(s) could not be read, press Search again to retry':'');
 }
 async function loadArchiveIds(){
