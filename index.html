@@ -981,17 +981,40 @@ function scanArchiveTab(tab,text,remainingMap,map){
 }
 
 /* ---- Search From Archive: look ONE typed ID up in every archive tab (same tabs the unmatched-task lookup uses) ---- */
-const archiveTabCache=new Map(); // tab key -> {h:[normalised headers], raw:[original headers], rows:[...]}
+const archiveTabCache=new Map(); // tab key -> Promise of {h,raw,rows,keys} (or null if the tab could not be read)
 let _arcsToken=0;
-async function loadArchiveTabTable(tab){
+// at most 4 tab downloads at once (Google throttles bigger bursts); every extra one waits in line
+let _arcActive=0;const _arcQ=[];
+function arcSlot(){return new Promise(res=>{const go=()=>{_arcActive++;res();};_arcActive<4?go():_arcQ.push(go);});}
+function arcFree(){_arcActive--;const n=_arcQ.shift();if(n)n();}
+// The promise itself is cached, so a second search (or the background prefetch) that asks for a tab that is still
+// downloading JOINS that download instead of starting a duplicate one. A failed tab is dropped so it is retried next time.
+function loadArchiveTabTable(tab){
   const k=archiveTabKey(tab);
   if(archiveTabCache.has(k))return archiveTabCache.get(k);
-  const text=await fetchArchiveTab(tab);
-  if(text==null)return null;
-  const table=parseCSV(text).filter(row=>row&&row.length&&!(row.length===1&&String(row[0]||'').trim()===''));
-  if(!table.length)return null;
-  const t={h:table[0].map(normHdr),raw:table[0].map(x=>String(x||'').trim()),rows:table.slice(1)};
-  archiveTabCache.set(k,t);return t;
+  const p=(async()=>{
+    await arcSlot();
+    try{
+      const text=await fetchArchiveTab(tab);
+      if(text==null)return null;
+      await new Promise(r=>setTimeout(r,0)); // let the page repaint before the heavy CSV parse
+      const table=parseCSV(text).filter(row=>row&&row.length&&!(row.length===1&&String(row[0]||'').trim()===''));
+      if(!table.length)return null;
+      const h=table[0].map(normHdr);
+      const idCols=[];h.forEach((x,i)=>{if(x==='id'||x==='task id'||x==='taskid')idCols.push(i);});
+      const rows=table.slice(1);
+      // normalise every ID ONCE here, so each later search is just a fast string scan (no re-parsing, no re-normalising)
+      const keys=idCols.length?rows.map(row=>idCols.map(c=>normId(row[c]))):null;
+      return {h,raw:table[0].map(x=>String(x||'').trim()),rows,keys};
+    }finally{arcFree();}
+  })();
+  archiveTabCache.set(k,p);
+  p.then(t=>{if(!t&&archiveTabCache.get(k)===p)archiveTabCache.delete(k);},()=>{if(archiveTabCache.get(k)===p)archiveTabCache.delete(k);});
+  return p;
+}
+// start downloading every archive tab in the background as soon as the search window opens, so by the time the ID is typed the data is ready
+function prefetchArchiveTabs(){
+  resolveArchiveTabs().catch(()=>archiveTabList).then(tabs=>{(tabs||[]).forEach(t=>{loadArchiveTabTable(t);});});
 }
 function openArchiveSearch(){
   const ov=document.getElementById('arcsOv');if(!ov)return;
@@ -999,46 +1022,45 @@ function openArchiveSearch(){
   const inp=document.getElementById('arcsIn');
   if(idFilter&&!inp.value)inp.value=idFilter;
   inp.focus();inp.select();
+  prefetchArchiveTabs();
   if(inp.value.trim().length>=3&&!document.getElementById('arcsRes').children.length)runArchiveSearch();
 }
 function closeArchiveSearch(){_arcsToken++;const ov=document.getElementById('arcsOv');if(ov)ov.classList.remove('on');const go=document.getElementById('arcsGo');if(go)go.disabled=false;}
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){const ov=document.getElementById('arcsOv');if(ov&&ov.classList.contains('on'))closeArchiveSearch();}});
 async function runArchiveSearch(){
-  const inp=document.getElementById('arcsIn'),st=document.getElementById('arcsSt'),res=document.getElementById('arcsRes'),go=document.getElementById('arcsGo');
-  const q=normId(inp.value);
+  const inp=document.getElementById('arcsIn'),st=document.getElementById('arcsSt'),res=document.getElementById('arcsRes');
+  const my=++_arcsToken;            // a new search ALWAYS cancels the one still running (even if this one ends up too short)
   res.innerHTML='';
+  const q=normId(inp.value);
   if(q.length<3){st.textContent='Type at least 3 characters of the ID.';return;}
-  const my=++_arcsToken;go.disabled=true;
   const MAX=30;let shown=0,total=0,failed=0,done=0;
-  st.textContent='Reading archive tabs…';
+  st.textContent='Searching…';
   let tabs;try{tabs=await resolveArchiveTabs();}catch(e){tabs=archiveTabList;}
   if(my!==_arcsToken)return;
   const scan=async tab=>{
     const t=await loadArchiveTabTable(tab);
     if(my!==_arcsToken)return;
     done++;
-    if(!t){failed++;st.textContent='Searching… '+done+'/'+tabs.length+' tabs';return;}
-    const idCols=[];t.h.forEach((x,i)=>{if(x==='id'||x==='task id'||x==='taskid')idCols.push(i);});
-    for(const row of t.rows){
-      let hit=false;
-      if(idCols.length){for(const c of idCols){const n=normId(row[c]);if(n&&n.includes(q)){hit=true;break;}}}
-      else{for(const cell of row){if(normId(cell)===q){hit=true;break;}}}
-      if(!hit)continue;
-      total++;
-      if(shown>=MAX)continue;
-      shown++;
-      const kv=t.raw.map((name,i)=>{const v=String(row[i]==null?'':row[i]).trim();return v?`<div class="arcs-kv"><div class="k">${esc(name||('col '+(i+1)))}</div><div class="v">${esc(v)}</div></div>`:'';}).join('');
-      res.insertAdjacentHTML('beforeend',`<div class="arcs-card"><span class="arcs-tab">📦 ${esc(tab.name)}</span><div class="arcs-grid">${kv}</div></div>`);
+    if(!t){failed++;}
+    else{
+      for(let i=0;i<t.rows.length;i++){
+        let hit=false;
+        if(t.keys){const ks=t.keys[i];for(let j=0;j<ks.length;j++){if(ks[j]&&ks[j].includes(q)){hit=true;break;}}}
+        else{for(const cell of t.rows[i]){if(normId(cell)===q){hit=true;break;}}}
+        if(!hit)continue;
+        total++;
+        if(shown>=MAX)continue;
+        shown++;
+        const row=t.rows[i];
+        const kv=t.raw.map((name,c)=>{const v=String(row[c]==null?'':row[c]).trim();return v?`<div class="arcs-kv"><div class="k">${esc(name||('col '+(c+1)))}</div><div class="v">${esc(v)}</div></div>`:'';}).join('');
+        res.insertAdjacentHTML('beforeend',`<div class="arcs-card"><span class="arcs-tab">📦 ${esc(tab.name)}</span><div class="arcs-grid">${kv}</div></div>`);
+      }
     }
-    st.textContent='Searching… '+done+'/'+tabs.length+' tabs · '+total+' found';
+    if(done<tabs.length)st.textContent='Searching… '+done+'/'+tabs.length+' tabs'+(total?' · '+total+' found':'');
   };
-  // 3 tabs at a time — Google throttles bigger parallel bursts
-  let next=0;
-  const worker=async()=>{while(next<tabs.length&&my===_arcsToken){const tab=tabs[next++];await scan(tab);}};
-  await Promise.all([worker(),worker(),worker()]);
+  await Promise.all(tabs.map(scan));
   if(my!==_arcsToken)return;
-  go.disabled=false;
-  st.textContent=(total?total+' match'+(total>1?'es':'')+' in the archive'+(total>shown?' (showing first '+shown+')':''):'Not found in the archive')+' · '+(tabs.length-failed)+'/'+tabs.length+' tabs read'+(failed?' — '+failed+' tab(s) could not be read, try again':'');
+  st.textContent=(total?total+' match'+(total>1?'es':'')+' in the archive'+(total>shown?' (showing first '+shown+')':''):'Not found in the archive')+' · '+(tabs.length-failed)+'/'+tabs.length+' tabs read'+(failed?' — '+failed+' tab(s) could not be read, press Search again to retry':'');
 }
 async function loadArchiveIds(){
   if(!ARCHIVE_SHEET_ID)return;
