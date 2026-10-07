@@ -201,6 +201,26 @@ html[data-theme="dark"] .dpanel{background:#0a1a26;}
 .id-filter-input::placeholder{color:var(--muted);}
 .id-filter-x{cursor:pointer;opacity:.6;font-size:.75rem;padding:0 4px;transition:opacity .15s;}
 .id-filter-x:hover{opacity:1;}
+/* ---- Search From Archive (modal) ---- */
+.arcs-ov{position:fixed;inset:0;z-index:9000;display:none;align-items:flex-start;justify-content:center;padding:6vh 16px 16px;background:rgba(3,8,14,.55);backdrop-filter:blur(3px);}
+.arcs-ov.on{display:flex;}
+.arcs-box{width:min(920px,100%);max-height:86vh;display:flex;flex-direction:column;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-hover);overflow:hidden;}
+.arcs-hd{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--border-light);}
+.arcs-hd .t{font-family:var(--display);font-weight:700;font-size:.8rem;color:var(--text);letter-spacing:.04em;flex:1;}
+.arcs-x{cursor:pointer;opacity:.6;font-size:1rem;padding:0 4px;}.arcs-x:hover{opacity:1;}
+.arcs-bar{display:flex;gap:8px;padding:12px 18px;border-bottom:1px solid var(--border-light);}
+.arcs-in{flex:1;padding:8px 13px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:.7rem;font-family:var(--mono);outline:none;}
+.arcs-in:focus{border-color:var(--accent);}
+.arcs-go{padding:8px 16px;border-radius:6px;border:1px solid var(--accent);background:var(--accent);color:#fff;font-family:var(--mono);font-size:.65rem;font-weight:700;cursor:pointer;}
+.arcs-go:disabled{opacity:.5;cursor:default;}
+.arcs-st{padding:8px 18px;font-family:var(--mono);font-size:.6rem;color:var(--muted);}
+.arcs-res{overflow:auto;padding:4px 18px 18px;display:flex;flex-direction:column;gap:10px;}
+.arcs-card{border:1px solid var(--border);border-radius:var(--radius);background:var(--card);padding:12px 14px;}
+.arcs-tab{display:inline-block;font-family:var(--mono);font-size:.58rem;font-weight:700;color:var(--accent);background:var(--accent-light);border-radius:5px;padding:2px 8px;margin-bottom:8px;}
+.arcs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:6px 16px;}
+.arcs-kv{min-width:0;}.arcs-kv .k{font-family:var(--mono);font-size:.52rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;}
+.arcs-kv .v{font-size:.68rem;color:var(--text);word-break:break-all;}
+
 .pills-row{padding:8px 18px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-height:34px;background:var(--elevated);border-bottom:1px solid var(--border);backdrop-filter:blur(10px);}
 .pill{display:inline-flex;align-items:center;gap:4px;padding:4px 11px;border-radius:var(--radius);font-size:.62rem;font-weight:700;border:1px solid var(--accent);background:var(--accent-light);color:var(--accent)}
 .pill-x{cursor:pointer;opacity:.6;font-size:.62rem;transition:opacity .15s}
@@ -396,6 +416,12 @@ td a{color:var(--info);text-decoration:none;font-weight:700;}
 </style>
 </head>
 <body>
+<div class="arcs-ov" id="arcsOv" onclick="if(event.target===this)closeArchiveSearch()"><div class="arcs-box">
+<div class="arcs-hd"><span class="t">📦 SEARCH FROM ARCHIVE</span><span class="arcs-x" onclick="closeArchiveSearch()">✕</span></div>
+<div class="arcs-bar"><input class="arcs-in" id="arcsIn" placeholder="Task ID…" autocomplete="off" onkeydown="if(event.key==='Enter')runArchiveSearch()"/><button class="arcs-go" id="arcsGo" onclick="runArchiveSearch()">Search</button></div>
+<div class="arcs-st" id="arcsSt">Type an ID (3+ characters) and press Search.</div>
+<div class="arcs-res" id="arcsRes"></div>
+</div></div>
 <div id="loginScreen">
   <div class="login-card" id="loginCard">
     <div class="login-logo">
@@ -952,6 +978,67 @@ function scanArchiveTab(tab,text,remainingMap,map){
     hits.forEach(rid=>{map[rid]={name:nm||em||rid,email:em,qtc,group:qtcShiftGroup(qtc),src:'archive'};found++;});
   }
   return found;
+}
+
+/* ---- Search From Archive: look ONE typed ID up in every archive tab (same tabs the unmatched-task lookup uses) ---- */
+const archiveTabCache=new Map(); // tab key -> {h:[normalised headers], raw:[original headers], rows:[...]}
+let _arcsToken=0;
+async function loadArchiveTabTable(tab){
+  const k=archiveTabKey(tab);
+  if(archiveTabCache.has(k))return archiveTabCache.get(k);
+  const text=await fetchArchiveTab(tab);
+  if(text==null)return null;
+  const table=parseCSV(text).filter(row=>row&&row.length&&!(row.length===1&&String(row[0]||'').trim()===''));
+  if(!table.length)return null;
+  const t={h:table[0].map(normHdr),raw:table[0].map(x=>String(x||'').trim()),rows:table.slice(1)};
+  archiveTabCache.set(k,t);return t;
+}
+function openArchiveSearch(){
+  const ov=document.getElementById('arcsOv');if(!ov)return;
+  ov.classList.add('on');
+  const inp=document.getElementById('arcsIn');
+  if(idFilter&&!inp.value)inp.value=idFilter;
+  inp.focus();inp.select();
+  if(inp.value.trim().length>=3&&!document.getElementById('arcsRes').children.length)runArchiveSearch();
+}
+function closeArchiveSearch(){_arcsToken++;const ov=document.getElementById('arcsOv');if(ov)ov.classList.remove('on');const go=document.getElementById('arcsGo');if(go)go.disabled=false;}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){const ov=document.getElementById('arcsOv');if(ov&&ov.classList.contains('on'))closeArchiveSearch();}});
+async function runArchiveSearch(){
+  const inp=document.getElementById('arcsIn'),st=document.getElementById('arcsSt'),res=document.getElementById('arcsRes'),go=document.getElementById('arcsGo');
+  const q=normId(inp.value);
+  res.innerHTML='';
+  if(q.length<3){st.textContent='Type at least 3 characters of the ID.';return;}
+  const my=++_arcsToken;go.disabled=true;
+  const MAX=30;let shown=0,total=0,failed=0,done=0;
+  st.textContent='Reading archive tabs…';
+  let tabs;try{tabs=await resolveArchiveTabs();}catch(e){tabs=archiveTabList;}
+  if(my!==_arcsToken)return;
+  const scan=async tab=>{
+    const t=await loadArchiveTabTable(tab);
+    if(my!==_arcsToken)return;
+    done++;
+    if(!t){failed++;st.textContent='Searching… '+done+'/'+tabs.length+' tabs';return;}
+    const idCols=[];t.h.forEach((x,i)=>{if(x==='id'||x==='task id'||x==='taskid')idCols.push(i);});
+    for(const row of t.rows){
+      let hit=false;
+      if(idCols.length){for(const c of idCols){const n=normId(row[c]);if(n&&n.includes(q)){hit=true;break;}}}
+      else{for(const cell of row){if(normId(cell)===q){hit=true;break;}}}
+      if(!hit)continue;
+      total++;
+      if(shown>=MAX)continue;
+      shown++;
+      const kv=t.raw.map((name,i)=>{const v=String(row[i]==null?'':row[i]).trim();return v?`<div class="arcs-kv"><div class="k">${esc(name||('col '+(i+1)))}</div><div class="v">${esc(v)}</div></div>`:'';}).join('');
+      res.insertAdjacentHTML('beforeend',`<div class="arcs-card"><span class="arcs-tab">📦 ${esc(tab.name)}</span><div class="arcs-grid">${kv}</div></div>`);
+    }
+    st.textContent='Searching… '+done+'/'+tabs.length+' tabs · '+total+' found';
+  };
+  // 3 tabs at a time — Google throttles bigger parallel bursts
+  let next=0;
+  const worker=async()=>{while(next<tabs.length&&my===_arcsToken){const tab=tabs[next++];await scan(tab);}};
+  await Promise.all([worker(),worker(),worker()]);
+  if(my!==_arcsToken)return;
+  go.disabled=false;
+  st.textContent=(total?total+' match'+(total>1?'es':'')+' in the archive'+(total>shown?' (showing first '+shown+')':''):'Not found in the archive')+' · '+(tabs.length-failed)+'/'+tabs.length+' tabs read'+(failed?' — '+failed+' tab(s) could not be read, try again':'');
 }
 async function loadArchiveIds(){
   if(!ARCHIVE_SHEET_ID)return;
@@ -1617,7 +1704,7 @@ function getMondayStr(d){if(!d||!d.match(/^\d{4}-\d{2}-\d{2}$/))return'';const d
 function getWeekLabel(d){const m=getMondayStr(d);return m?'Week of Mon '+m:d;}
 function buildStrip(){const s=document.getElementById('fstrip');const dates=sOpts._dates||[];let h='';if(dates.length){window._weekList=[];const weekMap={};dates.forEach(d=>{const lbl=getWeekLabel(d);if(!weekMap[lbl]){weekMap[lbl]=[];window._weekList.push(lbl);}weekMap[lbl].push(d);});window._weekList.sort().reverse();window._weekMap=weekMap;const wCnt=selWeeks.size;h+=`<div class="fg" id="fg___week"><div class="fchip${wCnt?' has-sel':''}" id="fc___week" onclick="tgDrop('__week')">📅 Week${wCnt?` <span class="chk-cnt">${wCnt}</span>`:''} <span class="chk-arr">▾</span></div><div class="dpanel" id="dp___week">${window._weekList.length>5?`<input class="dp-srch" placeholder="Search week…" oninput="rdropWeek()" id="ds___week"/>`:''}<div class="dp-list" id="dl___week"></div><div class="dp-foot"><button onclick="clrWeeks();event.stopPropagation()">✕ Clear</button><button onclick="closeDr('__week');event.stopPropagation()">✓ Done</button></div></div></div>`;const dCnt=selD.size;h+=`<div class="fg" id="fg___date"><div class="fchip${dCnt?' has-sel':''}" id="fc___date" onclick="tgDrop('__date')">📆 Date${dCnt?` <span class="chk-cnt">${dCnt}</span>`:''} <span class="chk-arr">▾</span></div><div class="dpanel" id="dp___date"><input class="dp-srch" placeholder="Search date…" oninput="rdropDate()" id="ds___date"/><div class="dp-list" id="dl___date"></div><div class="dp-foot"><button onclick="clrDates();event.stopPropagation()">✕ Clear</button><button onclick="closeDr('__date');event.stopPropagation()">✓ Done</button></div></div></div>`;if(SC.some(c=>(sOpts[c.key]||[]).length))h+=`<div class="fsep"></div>`;}
 if(idUnlocked){
-  h+=`<div class="id-filter-box"><input class="id-filter-input" id="idFilterInput" placeholder="🔎 ID…" value="${esc(idFilter)}" oninput="setIdFilter(this.value)"/>${idFilter?`<span class="id-filter-x" onclick="setIdFilter('');document.getElementById('idFilterInput').value=''">✕</span>`:''}<span class="id-filter-x" title="Lock filter" onclick="lockIdFilter()">🔒</span></div><div class="fsep"></div>`;
+  h+=`<div class="id-filter-box"><input class="id-filter-input" id="idFilterInput" placeholder="🔎 ID…" value="${esc(idFilter)}" oninput="setIdFilter(this.value)"/>${idFilter?`<span class="id-filter-x" onclick="setIdFilter('');document.getElementById('idFilterInput').value=''">✕</span>`:''}<span class="id-filter-x" title="Lock filter" onclick="lockIdFilter()">🔒</span><div class="fchip arc-search-btn" title="Search this ID in the Archive" onclick="openArchiveSearch()">📦 Archive</div></div><div class="fsep"></div>`;
 }else if(idPassBoxOpen){
   h+=`<div class="id-filter-box"><input type="${idPassVisible?'text':'password'}" class="id-filter-input" id="idPassInput" placeholder="Password…" style="width:110px;${idPassErr?'border-color:rgba(220,38,38,.6)':''}" onkeydown="if(event.key==='Enter'){checkIdPassword();}else if(event.key==='Escape'){cancelIdPassBox();}"/><span class="id-filter-x" title="${idPassVisible?'Hide':'Show'}" onclick="toggleIdPassVisible()">${idPassVisible?'🙈':'👁️'}</span><span class="id-filter-x" title="Confirm" onclick="checkIdPassword()">✔️</span><span class="id-filter-x" title="Cancel" onclick="cancelIdPassBox()">✕</span></div><div class="fsep"></div>`;
 }else{
