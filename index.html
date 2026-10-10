@@ -439,9 +439,6 @@ td a{color:var(--info);text-decoration:none;font-weight:700;}
 <div class="arcs-bar"><input class="arcs-in" id="arcsIn" placeholder="Task ID (optional)…" autocomplete="off" onkeydown="if(event.key==='Enter')runArchiveSearch()"/><button class="arcs-go" id="arcsGo" onclick="runArchiveSearch()">Search</button><button class="arcs-clear" onclick="clearArchiveFilters()" title="Clear all fields">Clear</button></div>
 <div class="arcs-filters" id="arcsFilters"></div>
 <div class="arcs-st" id="arcsSt">Type an ID (3+ characters) and press Search.</div>
-<div class="arcs-tools"><div class="fg exp-fg" id="arcExpFg"><div class="fchip" onclick="expToggle('arc')" title="Export every match found">⬇ Export results <span class="chk-arr">▾</span></div>
-  <div class="dpanel" style="min-width:170px"><div class="dp-list"><div class="dp-item" onclick="expArc('csv');event.stopPropagation()">📄 CSV</div><div class="dp-item" onclick="expArc('xlsx');event.stopPropagation()">📗 Excel (.xlsx)</div></div></div></div>
-  <div class="fchip" onclick="shareView(true)" title="Copy a link that re-runs this archive search">🔗 Share search</div></div>
 <div class="arcs-prog" id="arcsProg" style="display:none"><div class="arcs-track"><span class="arcs-pfill" id="arcsFill"></span></div><span class="arcs-ppct" id="arcsPct">0%</span></div>
 <div class="arcs-res" id="arcsRes"></div>
 </div></div>
@@ -541,11 +538,7 @@ td a{color:var(--info);text-decoration:none;font-weight:700;}
 </div>
 <div class="fstrip" id="fstrip"><div style="display:flex;align-items:center;gap:6px"><div class="spin" style="width:16px;height:16px;border-width:3px"></div><span class="ltxt" style="font-size:.62rem">Loading…</span></div></div>
 <div class="pills-row pills-wrap"><div id="pillsRow" class="pills-inner"><span class="pill pill-all">All Data — No Filters Active</span></div>
-<div class="pills-actions">
-  <div class="fg exp-fg" id="expFg"><div class="fchip" onclick="expToggle('main')" title="Export the current view">⬇ Export <span class="chk-arr">▾</span></div>
-    <div class="dpanel" style="left:auto;right:0;min-width:170px"><div class="dp-list"><div class="dp-item" onclick="expMain('csv');event.stopPropagation()">📄 CSV</div><div class="dp-item" onclick="expMain('xlsx');event.stopPropagation()">📗 Excel (.xlsx)</div></div></div></div>
-  <div class="fchip" onclick="shareView(false)" title="Copy a link that opens this exact view">🔗 Share view</div>
-</div></div>
+</div>
 <div class="loc-tabs" id="locTabs"><div class="spin" style="width:14px;height:14px;border-width:3px;margin:9px 0"></div></div>
 <div class="content" id="mainContent"><div class="loader"><div class="spin"></div><span class="ltxt">Loading data…</span></div></div>
 <button class="scroll-top-car" id="scrollTopBtn" onclick="shootWebScrollTop()" title="Back to top">▲</button>
@@ -556,14 +549,9 @@ const AUTH_KEY='meeg_auth_email';
 const AUTH_VER=(document.querySelector('meta[name="app-version"]')||{}).content||'v2'; /* tied to the <meta name="app-version"> tag at the top of the file — bump that ONE number on deploy and it both force-reloads open tabs (see FORCE REFRESH below) AND logs everyone out, no second edit needed */
 const AUTH_VER_KEY='meeg_auth_ver';
 
-function mHash(str){let h1=0xdeadbeef,h2=0x41c6ce57;for(let i=0;i<str.length;i++){const c=str.charCodeAt(i);h1=Math.imul(h1^c,2654435761);h2=Math.imul(h2^c,1597334677);}h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);return (4294967296*(2097151&h2)+(h1>>>0)).toString(36);}
 function isValidEmailFormat(e){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);}
 
 function getLoggedInEmail(){
-  try{
-    const g=sessionStorage.getItem('meeg_share_guest');
-    if(g&&ALLOWED_EMAILS.includes(g))return g;
-  }catch(e){}
   try{
     if(localStorage.getItem(AUTH_VER_KEY)!==AUTH_VER){
       localStorage.removeItem(AUTH_KEY);
@@ -650,7 +638,6 @@ function renderUserChip(welcome){
 }
 
 function logoutUser(){
-  try{sessionStorage.removeItem('meeg_share_guest');}catch(e){}
   try{
     localStorage.removeItem(AUTH_KEY);
     localStorage.removeItem(AUTH_VER_KEY);
@@ -658,15 +645,7 @@ function logoutUser(){
   window.location.reload();
 }
 
-function tryShareGuest(){
-  try{
-    const m=(location.hash||'').match(/[#&]v=([^&]+)/);if(!m)return;
-    const st=decShare(m[1]);
-    if(st&&st.u){const hit=ALLOWED_EMAILS.find(e=>mHash(e)===String(st.u));if(hit)sessionStorage.setItem('meeg_share_guest',hit);}
-  }catch(e){}
-}
 function checkAuthOnLoad(){
-  tryShareGuest();
   const email=getLoggedInEmail();
   if(email&&ALLOWED_EMAILS.includes(email)){
     document.getElementById('loginScreen').classList.add('hidden');
@@ -1894,7 +1873,7 @@ function onCsvData(text){
     return;
   }
   _lastCsvHash=newHash;
-  const table=parseCSV(text).filter(r=>r&&r.length&&!(r.length===1&&String(r[0]||'').trim()===''));if(!table.length){showErr('No data returned.');return;}hdrs=table[0].map(h=>String(h||'').trim());const hLower=hdrs.map(h=>h.toLowerCase());sIdx={};["Shift","Unit","Qtc Name","Yubikey Email","Labeler Name","Pc No","Modality","Queue Name","Location","Pass"].forEach(name=>{const i=hLower.indexOf(name.toLowerCase());if(i>=0)sIdx[name]=i;});tsIdx=hLower.findIndex(h=>h==='timestamp');if(tsIdx<0)tsIdx=hLower.findIndex(h=>h==='created at');if(tsIdx<0)tsIdx=hLower.findIndex(h=>h==='date');if(tsIdx<0)tsIdx=hLower.findIndex(h=>h.includes('date'));locColIdx=hLower.findIndex(h=>h==='location');if(locColIdx<0)locColIdx=hLower.findIndex(h=>h==='unit');if(locColIdx<0)locColIdx=hLower.findIndex(h=>h==='site');rawRows=[];for(let ri=1;ri<table.length;ri++){const rowRaw=table[ri];if(!rowRaw||!rowRaw.length)continue;const row=hdrs.map((_,ci)=>rowRaw[ci]!==undefined?String(rowRaw[ci]).trim():'');if(row.every(c=>c===''))continue;const sci=sIdx['Shift'];if(sci!==undefined){const sv=String(row[sci]||'').trim().toLowerCase();if(!ALL_SHIFTS.some(a=>sv===a))continue;}rawRows.push(row);}sOpts={};["Shift","Unit","Qtc Name","Yubikey Email","Labeler Name","Pc No","Modality","Queue Name","Location","Pass"].forEach(name=>{const ci=sIdx[name];if(ci===undefined)return;const set=new Set();rawRows.forEach(r=>{const v=String(r[ci]||'').trim();if(v)set.add(v);});sOpts[name]=[...set].sort();});const dateSet=new Set();rawRows.forEach(r=>{const d=extractDate(r[tsIdx]);if(d)dateSet.add(d);});sOpts['_dates']=[...dateSet].sort().reverse();const locSet=new Set();if(locColIdx>=0)rawRows.forEach(r=>{const v=String(r[locColIdx]||'').trim();if(v)locSet.add(v);});locations=[...locSet].sort();const now=new Date();todayStr=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');document.getElementById('todayLabel').textContent=todayStr;lastUpdateTs=Date.now();updateRelativeTime();setTrafficLight('green');window._firstDataReady=true;document.getElementById('totalBadge').textContent=rawRows.length+' rows';SC.forEach(s=>{if(!sel[s.key])sel[s.key]=new Set();});if(!_filtersRestored){restoreFilters();_filtersRestored=true;try{applyShareHash();}catch(e){}}buildStrip();buildTabs();applyAll();if(autoRefreshTimer)clearInterval(autoRefreshTimer);autoRefreshTimer=null;if(autoRefreshEnabled)autoRefreshTimer=setInterval(loadData,REFRESH_INTERVAL*1000);applyAutoRefreshUI();if(cmpMode)populateCmpSelects();try{loadArchiveIds();}catch(e){}
+  const table=parseCSV(text).filter(r=>r&&r.length&&!(r.length===1&&String(r[0]||'').trim()===''));if(!table.length){showErr('No data returned.');return;}hdrs=table[0].map(h=>String(h||'').trim());const hLower=hdrs.map(h=>h.toLowerCase());sIdx={};["Shift","Unit","Qtc Name","Yubikey Email","Labeler Name","Pc No","Modality","Queue Name","Location","Pass"].forEach(name=>{const i=hLower.indexOf(name.toLowerCase());if(i>=0)sIdx[name]=i;});tsIdx=hLower.findIndex(h=>h==='timestamp');if(tsIdx<0)tsIdx=hLower.findIndex(h=>h==='created at');if(tsIdx<0)tsIdx=hLower.findIndex(h=>h==='date');if(tsIdx<0)tsIdx=hLower.findIndex(h=>h.includes('date'));locColIdx=hLower.findIndex(h=>h==='location');if(locColIdx<0)locColIdx=hLower.findIndex(h=>h==='unit');if(locColIdx<0)locColIdx=hLower.findIndex(h=>h==='site');rawRows=[];for(let ri=1;ri<table.length;ri++){const rowRaw=table[ri];if(!rowRaw||!rowRaw.length)continue;const row=hdrs.map((_,ci)=>rowRaw[ci]!==undefined?String(rowRaw[ci]).trim():'');if(row.every(c=>c===''))continue;const sci=sIdx['Shift'];if(sci!==undefined){const sv=String(row[sci]||'').trim().toLowerCase();if(!ALL_SHIFTS.some(a=>sv===a))continue;}rawRows.push(row);}sOpts={};["Shift","Unit","Qtc Name","Yubikey Email","Labeler Name","Pc No","Modality","Queue Name","Location","Pass"].forEach(name=>{const ci=sIdx[name];if(ci===undefined)return;const set=new Set();rawRows.forEach(r=>{const v=String(r[ci]||'').trim();if(v)set.add(v);});sOpts[name]=[...set].sort();});const dateSet=new Set();rawRows.forEach(r=>{const d=extractDate(r[tsIdx]);if(d)dateSet.add(d);});sOpts['_dates']=[...dateSet].sort().reverse();const locSet=new Set();if(locColIdx>=0)rawRows.forEach(r=>{const v=String(r[locColIdx]||'').trim();if(v)locSet.add(v);});locations=[...locSet].sort();const now=new Date();todayStr=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');document.getElementById('todayLabel').textContent=todayStr;lastUpdateTs=Date.now();updateRelativeTime();setTrafficLight('green');window._firstDataReady=true;document.getElementById('totalBadge').textContent=rawRows.length+' rows';SC.forEach(s=>{if(!sel[s.key])sel[s.key]=new Set();});if(!_filtersRestored){restoreFilters();_filtersRestored=true;}buildStrip();buildTabs();applyAll();if(autoRefreshTimer)clearInterval(autoRefreshTimer);autoRefreshTimer=null;if(autoRefreshEnabled)autoRefreshTimer=setInterval(loadData,REFRESH_INTERVAL*1000);applyAutoRefreshUI();if(cmpMode)populateCmpSelects();try{loadArchiveIds();}catch(e){}
 }
 const _MONTH_NAMES={jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12};
 function extractDate(v){
@@ -2512,159 +2491,8 @@ function downloadBlob(blob,name){
   document.body.appendChild(a);a.click();
   setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1500);
 }
-function csvCell(v){
-  let s=v==null?'':String(v);
-  if(/^[=+\-@\t\r]/.test(s)&&!/^-?\d+(\.\d+)?$/.test(s))s="'"+s;   // stops a cell from being run as a formula when the file is opened in Excel
-  return /[",\n\r]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;
-}
-function exportCSV(headers,rows,name){
-  const lines=[headers.map(csvCell).join(',')];
-  rows.forEach(r=>lines.push(headers.map((_,i)=>csvCell(r[i])).join(',')));
-  downloadBlob(new Blob(['\ufeff'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'}),name+'.csv'); // BOM so Excel reads Arabic/UTF-8 correctly
-}
-function xlsxVal(v){
-  if(v==null)return '';
-  if(typeof v==='number')return v;
-  const s=String(v).trim();
-  return /^-?(0|[1-9]\d{0,14})(\.\d+)?$/.test(s)?Number(s):s;   // plain numbers become real numbers; long IDs / leading zeros stay text
-}
-async function exportXLSX(sheets,name){
-  await loadLib('xlsx');
-  const wb=XLSX.utils.book_new();
-  sheets.forEach(sh=>{
-    const aoa=[sh.headers].concat(sh.rows.map(r=>sh.headers.map((_,i)=>xlsxVal(r[i]))));
-    const ws=XLSX.utils.aoa_to_sheet(aoa);
-    ws['!cols']=sh.headers.map((h,i)=>{let w=String(h).length;for(let k=0;k<Math.min(sh.rows.length,300);k++){const l=String(sh.rows[k][i]==null?'':sh.rows[k][i]).length;if(l>w)w=l;}return{wch:Math.min(42,w+2)};});
-    if(ws['!ref'])ws['!autofilter']={ref:ws['!ref']};
-    XLSX.utils.book_append_sheet(wb,ws,String(sh.name).replace(/[\[\]:*?\/\\]/g,' ').slice(0,31)||'Sheet');
-  });
-  XLSX.writeFile(wb,name+'.xlsx');
-}
 function expStamp(){const n=new Date(),p=x=>String(x).padStart(2,'0');return n.getFullYear()+'-'+p(n.getMonth()+1)+'-'+p(n.getDate())+'_'+p(n.getHours())+p(n.getMinutes());}
 function expSafe(s){return String(s||'').replace(/[^\w\u0600-\u06FF.\-]+/g,'_').replace(/^_+|_+$/g,'');}
-// one place that knows what "the current view" is, for whichever tab is open
-function viewExportData(){
-  if(activeLoc==='__quality__'&&window._qExport&&window._qExport.rows.length){
-    const q=window._qExport;
-    const sheets=[{name:'Quality',headers:['Shift','Rank','Labeler','Email','Tasks','Artifacts %','Attribute %','TVA F1 %','Total Accuracy %'],rows:q.rows}];
-    if(q.totShift.length)sheets.push({name:'Totals - Shift',headers:['Week','Shift','NO. Tasks','Artifacts %','Attribute %','TVA F1 %','Total Accuracy %'],rows:q.totShift});
-    if(q.totWf)sheets.push({name:'Totals - Workforce',headers:['Week','Total NO. Tasks','Artifacts %','Attribute %','TVA F1 %','Total Accuracy %'],rows:[q.totWf]});
-    return{sheets,label:'Quality'};
-  }
-  let rows=fcache;
-  if(activeLoc&&activeLoc.slice(0,2)!=='__'&&locColIdx>=0)rows=rows.filter(r=>String(r[locColIdx]||'').trim()===activeLoc);
-  const label=activeLoc==='__all__'?'All':activeLoc==='__totalsubmit__'?'TotalSubmit':activeLoc==='__topperf__'?'TopPerformers':activeLoc==='__quality__'?'Quality':activeLoc;
-  return{sheets:[{name:'Data',headers:hdrs.slice(),rows}],label};
-}
-function viewFileName(label){
-  let part='';
-  if(selD.size===1)part=[...selD][0];else if(selD.size>1)part=selD.size+'days';else if(selWeeks.size===1)part=[...selWeeks][0].replace('Week of Mon ','wk_');else if(selWeeks.size>1)part=selWeeks.size+'weeks';
-  return 'MEEG_'+expSafe(label)+(part?'_'+expSafe(part):'')+'_'+expStamp();
-}
-async function expRun(kind,data,fname,n,doneMsg){
-  if(!data||!n){showToast('⚠️ Nothing to export');return;}
-  try{
-    if(kind==='xlsx'){showToast('⏳ Building Excel file…');await exportXLSX(data.sheets,fname);}
-    else exportCSV(data.sheets[0].headers,data.sheets[0].rows,fname);
-    showToast(doneMsg||('✅ Exported '+n.toLocaleString()+' rows'));
-  }catch(e){
-    // Excel library could not be loaded (offline / blocked) → fall back to CSV so the export never fails
-    exportCSV(data.sheets[0].headers,data.sheets[0].rows,fname);
-    showToast('⚠️ Excel library unavailable — exported CSV instead');
-  }
-}
-function expMain(kind){
-  expCloseAll();
-  const d=viewExportData();
-  const n=d.sheets[0].rows.length;
-  expRun(kind,d,viewFileName(d.label),n);
-}
-// ---- archive search results ----
-function arcExportData(){
-  const hits=window._arcHits||[];if(!hits.length)return null;
-  const headers=['Archive Tab'],idx=new Map();
-  const per=hits.map(h=>{const seen={};return h.t.raw.map((n,c)=>{let nm=n||('col '+(c+1));if(seen[nm]){seen[nm]++;nm=nm+' ('+seen[nm]+')';}else seen[nm]=1;return nm;});});
-  per.forEach(names=>names.forEach(nm=>{if(!idx.has(nm)){idx.set(nm,headers.length);headers.push(nm);}}));
-  const rows=hits.map((h,k)=>{const r=new Array(headers.length).fill('');r[0]=h.tab;per[k].forEach((nm,c)=>{const v=h.t.rows[h.i][c];r[idx.get(nm)]=v==null?'':String(v).trim();});return r;});
-  return{sheets:[{name:'Archive',headers,rows}],label:'Archive'};
-}
-function expArc(kind){
-  expCloseAll();
-  const d=arcExportData();
-  if(!d){showToast('⚠️ Search first — there are no results to export');return;}
-  const idv=((document.getElementById('arcsIn')||{}).value||'').trim();
-  expRun(kind,d,'MEEG_Archive_'+(idv?expSafe(idv)+'_':'')+expStamp(),d.sheets[0].rows.length);
-}
-// ---- dropdown open/close for the two Export menus (same look as the filter dropdowns) ----
-function expToggle(which){
-  const fg=document.getElementById(which==='arc'?'arcExpFg':'expFg');if(!fg)return;
-  const p=fg.querySelector('.dpanel'),c=fg.querySelector('.fchip');
-  const open=p.classList.contains('open');expCloseAll();
-  if(!open){p.classList.add('open');c.classList.add('open');}
-}
-function expCloseAll(){document.querySelectorAll('.exp-fg .dpanel.open').forEach(p=>p.classList.remove('open'));document.querySelectorAll('.exp-fg .fchip.open').forEach(c=>c.classList.remove('open'));}
-document.addEventListener('click',e=>{if(!e.target.closest('.exp-fg'))expCloseAll();});
-
-/* ---------- SHARE LINK: the current view travels in the URL (#v=…), so "look at this view" is one click ---------- */
-function encShare(o){return btoa(unescape(encodeURIComponent(JSON.stringify(o)))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');}
-function decShare(t){try{t=t.replace(/-/g,'+').replace(/_/g,'/');while(t.length%4)t+='=';return JSON.parse(decodeURIComponent(escape(atob(t))));}catch(e){return null;}}
-function shareState(withArchive){
-  const st={};
-  try{const me=localStorage.getItem(AUTH_KEY)||sessionStorage.getItem('meeg_share_guest')||'';if(me)st.u=mHash(me);}catch(e){}
-  if(selWeeks.size)st.w=[...selWeeks];
-  if(selD.size)st.d=[...selD];
-  const s={};Object.entries(sel).forEach(([k,ss])=>{if(ss&&ss.size)s[k]=[...ss];});if(Object.keys(s).length)st.s=s;
-  const on=Object.keys(shiftState).filter(k=>shiftState[k].on);if(on.length)st.sh=on;
-  if(activeLoc&&activeLoc!=='__all__')st.t=activeLoc;
-  if(withArchive){
-    const a={q:((document.getElementById('arcsIn')||{}).value||'').trim(),s:{}};
-    ARC_KEYS.forEach(k=>{if(arcSel[k].size)a.s[k]=[...arcSel[k]];});
-    if(a.q||Object.keys(a.s).length)st.a=a;
-  }
-  return st;
-}
-function shareLink(withArchive){return location.origin+location.pathname+location.search+'#v='+encShare(shareState(withArchive));}
-async function copyText(txt){
-  try{await navigator.clipboard.writeText(txt);return true;}catch(e){}
-  try{const ta=document.createElement('textarea');ta.value=txt;ta.style.cssText='position:fixed;left:-9999px;top:0';document.body.appendChild(ta);ta.select();const ok=document.execCommand('copy');ta.remove();return ok;}catch(e){}
-  return false;
-}
-async function shareView(withArchive){
-  const link=shareLink(!!withArchive);
-  const ok=await copyText(link);
-  if(ok)showToast('🔗 Link copied — send it, it opens this exact view');
-  else window.prompt('Copy this link:',link);
-}
-function applyShareHash(){
-  const m=(location.hash||'').match(/[#&]v=([^&]+)/);if(!m)return;
-  const st=decShare(m[1]);
-  try{history.replaceState(null,'',location.pathname+location.search);}catch(e){}   // one-time: later reloads go back to the user's own saved filters
-  if(!st||typeof st!=='object')return;
-  selWeeks.clear();selD.clear();SC.forEach(sc=>{sel[sc.key]=new Set();});
-  (st.w||[]).forEach(w=>selWeeks.add(String(w)));
-  (st.d||[]).forEach(d=>selD.add(String(d)));
-  Object.entries(st.s||{}).forEach(([k,arr])=>{if(SC.some(sc=>sc.key===k)&&Array.isArray(arr))sel[k]=new Set(arr.map(String));});
-  const on=new Set(st.sh||[]);
-  Object.keys(shiftState).forEach(k=>{
-    shiftState[k].on=on.has(k);
-    const btn=document.getElementById('btn_'+k);
-    if(btn){btn.classList.toggle('on',shiftState[k].on);const dot=btn.querySelector('.dot');if(dot)dot.textContent=shiftState[k].on?'●':'○';}
-  });
-  const special=['__all__','__totalsubmit__','__topperf__','__quality__'];
-  activeLoc=(st.t&&(special.includes(st.t)||locations.includes(st.t)))?st.t:'__all__';
-  if(st.a)setTimeout(()=>applyArchiveShare(st.a),900);
-  setTimeout(()=>showToast('🔗 Shared view applied'),500);
-}
-function applyArchiveShare(a){
-  try{
-    openArchiveSearch();
-    const i=document.getElementById('arcsIn');if(i)i.value=a.q||'';
-    ARC_KEYS.forEach(k=>arcSel[k].clear());
-    Object.entries(a.s||{}).forEach(([k,arr])=>{if(arcSel[k]&&Array.isArray(arr))arr.forEach(v=>arcSel[k].add(String(v)));});
-    buildArchiveFilters();
-    runArchiveSearch();
-  }catch(e){}
-}
 
 /* ---------- SCREENSHOT of the Quality "Totals" (Shift + Workforce) — rendered off-screen at high resolution ---------- */
 async function shotQualityTotals(btn){
