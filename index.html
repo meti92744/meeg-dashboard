@@ -239,15 +239,15 @@ html[data-theme="dark"] .dpanel{background:#0a1a26;}
 .shot-sub{font-family:var(--mono);font-size:.62rem;color:var(--muted);margin-top:4px;}
 .shot-stage .qtot-wrap{flex-direction:column!important;}
 .shot-stage .qtot-wrap>div{flex:none!important;width:100%;min-width:0!important;}
-.pills-row{padding:8px 18px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-height:34px;background:var(--elevated);border-bottom:1px solid var(--border);backdrop-filter:blur(10px);}
+.pills-row{position:relative;z-index:300;padding:8px 18px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-height:34px;background:var(--elevated);border-bottom:1px solid var(--border);backdrop-filter:blur(10px);}
 .pill{display:inline-flex;align-items:center;gap:4px;padding:4px 11px;border-radius:var(--radius);font-size:.62rem;font-weight:700;border:1px solid var(--accent);background:var(--accent-light);color:var(--accent)}
 .pill-x{cursor:pointer;opacity:.6;font-size:.62rem;transition:opacity .15s}
 .pill-x:hover{opacity:1}
 .pill-all{border-color:var(--border);background:transparent;color:var(--muted)}
 .clr-btn{padding:4px 11px;border-radius:6px;border:2px solid rgba(255,95,126,.4);background:rgba(255,95,126,.12);color:var(--danger);font-size:.6rem;font-weight:700;cursor:pointer;transition:all .15s}
 .clr-btn:hover{background:rgba(255,95,126,.22)}
-.loc-tabs{display:flex;gap:6px;flex-wrap:wrap;padding:12px 18px 0;border-bottom:3px dashed var(--border);background:var(--elevated);backdrop-filter:blur(10px);overflow-x:auto;}
-.loc-tab{padding:9px 16px;border-radius:6px 6px 0 0;font-size:.68rem;font-weight:700;cursor:pointer;border:1px solid var(--border);border-bottom:none;background:var(--card);color:var(--text-soft);transition:all .2s;position:relative;bottom:-2px;white-space:nowrap;flex-shrink:0;}
+.loc-tabs{display:flex;gap:6px;flex-wrap:nowrap;align-items:flex-end;padding:24px 18px 0;border-bottom:3px dashed var(--border);background:var(--elevated);backdrop-filter:blur(10px);overflow-x:auto;overflow-y:hidden;position:relative;z-index:1;}
+.loc-tab{padding:9px 16px;border-radius:6px 6px 0 0;font-size:.68rem;font-weight:700;cursor:pointer;border:1px solid var(--border);border-bottom:none;background:var(--card);color:var(--text-soft);transition:all .2s;position:relative;bottom:0;white-space:nowrap;flex-shrink:0;}
 .loc-tab:hover{border-color:var(--accent);color:var(--accent);transform:translateY(-2px);}
 .loc-tab.act{background:var(--accent);border-color:transparent;color:#fff;box-shadow:0 -4px 16px rgba(15,143,255,.3);font-weight:800;}
 .loc-tab.act::after{content:'📍';position:absolute;top:-13px;left:50%;transform:translateX(-50%);font-size:.65rem;filter:drop-shadow(0 1px 1px rgba(0,0,0,.3));}
@@ -385,7 +385,7 @@ td a{color:var(--info);text-decoration:none;font-weight:700;}
   .shift-banner{padding:7px 12px;}
   .opt-shift-btn{padding:4px 9px;font-size:.56rem;}
   .pills-row{padding:6px 12px;}
-  .loc-tabs{padding:9px 12px 0;gap:4px;}
+  .loc-tabs{padding:20px 12px 0;gap:4px;}
   .loc-tab{padding:7px 12px;font-size:.62rem;}
   .content{padding:12px 12px;gap:12px;}
   .cgrid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;padding:10px;}
@@ -560,6 +560,10 @@ function isValidEmailFormat(e){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);}
 
 function getLoggedInEmail(){
   try{
+    const g=sessionStorage.getItem('meeg_share_guest');
+    if(g&&ALLOWED_EMAILS.includes(g))return g;
+  }catch(e){}
+  try{
     if(localStorage.getItem(AUTH_VER_KEY)!==AUTH_VER){
       localStorage.removeItem(AUTH_KEY);
       localStorage.removeItem(AUTH_VER_KEY);
@@ -652,7 +656,15 @@ function logoutUser(){
   window.location.reload();
 }
 
+function tryShareGuest(){
+  try{
+    const m=(location.hash||'').match(/[#&]v=([^&]+)/);if(!m)return;
+    const st=decShare(m[1]);
+    if(st&&st.u&&ALLOWED_EMAILS.includes(String(st.u).toLowerCase()))sessionStorage.setItem('meeg_share_guest',String(st.u).toLowerCase());
+  }catch(e){}
+}
 function checkAuthOnLoad(){
+  tryShareGuest();
   const email=getLoggedInEmail();
   if(email&&ALLOWED_EMAILS.includes(email)){
     document.getElementById('loginScreen').classList.add('hidden');
@@ -2154,7 +2166,7 @@ function renderTopLabelerTotalSection(mc,rows,labIdx){
 
   const sec=document.createElement('div');
   sec.className='sec';
-  sec.innerHTML=`<div class="sec-hd"><span class="sec-t">👤 Top Labeler — Total Submit (All Modality × Pass)</span><span class="sec-m">${sorted.length} Labelers · ${grandTotal} total</span></div>
+  sec.innerHTML=`<div class="sec-hd"><span class="sec-t">👤 Top Labeler — Total Submit (All Modality × Pass)</span><span class="sec-m">${sorted.length} Labelers · ${grandTotal} total<span class="fchip no-shot" style="margin-left:8px" onclick="shotTopPerf('labeler',this)" title="Screenshot split by Lidar / Lane Line × FP / QA">📸 Screenshot</span></span></div>
   ${podiumHtml}
   ${rest.length?`<div style="overflow-x:auto;max-height:360px;overflow-y:auto"><table style="width:100%;border-collapse:collapse;font-size:.68rem">${mkThead()}<tbody>${bodyRows}</tbody><tfoot><tr style="border-top:1px solid var(--border);background:var(--elevated)"><td style="padding:8px 10px;font-size:.72rem;font-weight:800;color:var(--text)">🏆 Grand Total</td>${footCells}<td style="padding:8px 10px;text-align:right;font-size:.75rem;font-weight:900;color:var(--accent);font-family:var(--mono)">${grandTotal}</td></tr></tfoot></table></div>`:''}`;
   mc.appendChild(sec);
@@ -2211,7 +2223,7 @@ function renderTopQtcTotalSection(mc,rows,qtcIdx){
 
   const sec=document.createElement('div');
   sec.className='sec';
-  sec.innerHTML=`<div class="sec-hd"><span class="sec-t">🏷️ Top QTC — Total Submit (All Modality × Pass)</span><span class="sec-m">${sorted.length} QTC · ${grandTotal} total</span></div>
+  sec.innerHTML=`<div class="sec-hd"><span class="sec-t">🏷️ Top QTC — Total Submit (All Modality × Pass)</span><span class="sec-m">${sorted.length} QTC · ${grandTotal} total<span class="fchip no-shot" style="margin-left:8px" onclick="shotTopPerf('qtc',this)" title="Screenshot split by Lidar / Lane Line × FP / QA">📸 Screenshot</span></span></div>
   ${podiumHtml}
   ${rest.length?`<div style="overflow-x:auto;max-height:360px;overflow-y:auto"><table style="width:100%;border-collapse:collapse;font-size:.68rem">${mkThead()}<tbody>${bodyRows}</tbody><tfoot><tr style="border-top:1px solid var(--border);background:var(--elevated)"><td style="padding:8px 10px;font-size:.72rem;font-weight:800;color:var(--text)">🏆 Grand Total</td>${footCells}<td style="padding:8px 10px;text-align:right;font-size:.75rem;font-weight:900;color:var(--accent);font-family:var(--mono)">${grandTotal}</td></tr></tfoot></table></div>`:''}`;
   mc.appendChild(sec);
@@ -2596,6 +2608,7 @@ function encShare(o){return btoa(unescape(encodeURIComponent(JSON.stringify(o)))
 function decShare(t){try{t=t.replace(/-/g,'+').replace(/_/g,'/');while(t.length%4)t+='=';return JSON.parse(decodeURIComponent(escape(atob(t))));}catch(e){return null;}}
 function shareState(withArchive){
   const st={};
+  try{const me=localStorage.getItem(AUTH_KEY)||sessionStorage.getItem('meeg_share_guest')||'';if(me)st.u=me;}catch(e){}
   if(selWeeks.size)st.w=[...selWeeks];
   if(selD.size)st.d=[...selD];
   const s={};Object.entries(sel).forEach(([k,ss])=>{if(ss&&ss.size)s[k]=[...ss];});if(Object.keys(s).length)st.s=s;
@@ -2676,6 +2689,57 @@ async function shotQualityTotals(btn){
     if(!blob)throw new Error('empty image');
     const wk=(src.getAttribute('data-week')||'').replace('Week of Mon ','wk_');
     downloadBlob(blob,'MEEG_Quality_Totals_'+expSafe(wk)+(wk?'_':'')+expStamp()+'.png');
+    let copied=false;
+    try{if(navigator.clipboard&&window.ClipboardItem){await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);copied=true;}}catch(e){}
+    showToast(copied?'📸 Screenshot saved & copied to clipboard':'📸 Screenshot saved');
+  }catch(e){
+    showToast('⚠️ Screenshot failed'+(e&&e.message?' — '+e.message:''));
+  }finally{
+    if(stage)stage.remove();
+    if(btn){btn.innerHTML=old;btn.style.pointerEvents='';}
+  }
+}
+
+/* ---------- SCREENSHOT of Top QTC / Top Labelers — split into Lidar FP · Lidar QA · Lane Line FP · Lane Line QA ---------- */
+async function shotTopPerf(kind,btn){
+  const isQ=kind==='qtc';
+  const nameIdx=hdrs.findIndex(h=>h.toLowerCase()===(isQ?'qtc name':'labeler name'));
+  const mIdx=hdrs.findIndex(h=>h.toLowerCase()==='modality');
+  const pIdx=hdrs.findIndex(h=>h.toLowerCase()==='pass');
+  if(nameIdx<0||mIdx<0||pIdx<0){showToast('⚠️ Missing columns for this screenshot');return;}
+  const CATS=[{mod:'Lidar',pass:'FP',ic:'📡',col:'#16a34a'},{mod:'Lidar',pass:'QA',ic:'📡',col:'#8b5cf6'},{mod:'Lane Line',pass:'FP',ic:'🛣️',col:'#f59e0b'},{mod:'Lane Line',pass:'QA',ic:'🛣️',col:'#0891b2'}];
+  const maps=CATS.map(()=>({}));
+  fcache.forEach(r=>{
+    const n=String(r[nameIdx]||'').trim(),m=String(r[mIdx]||'').trim(),pv=String(r[pIdx]||'').trim();
+    if(!n)return;
+    const i=CATS.findIndex(c=>c.mod.toLowerCase()===m.toLowerCase()&&c.pass.toLowerCase()===pv.toLowerCase());
+    if(i>=0)maps[i][n]=(maps[i][n]||0)+1;
+  });
+  const old=btn?btn.innerHTML:'';
+  if(btn){btn.innerHTML='⏳ Rendering…';btn.style.pointerEvents='none';}
+  let stage=null;
+  try{
+    await loadLib('h2c');
+    if(document.fonts&&document.fonts.ready)await document.fonts.ready;
+    const bg=(getComputedStyle(document.documentElement).getPropertyValue('--bg')||'').trim()||'#eef2f7';
+    const LIMIT=10,medals=['🥇','🥈','🥉'];
+    const cards=CATS.map((c,i)=>{
+      const sorted=Object.entries(maps[i]).sort((a,b)=>b[1]-a[1]);
+      const total=sorted.reduce((t,[,v])=>t+v,0),max=sorted.length?sorted[0][1]:0;
+      const rowsH=sorted.slice(0,LIMIT).map(([n,v],k)=>`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border-light)"><span style="width:26px;text-align:center;font-size:.8rem;color:var(--muted);font-family:var(--mono)">${k<3?medals[k]:'#'+(k+1)}</span><span style="flex:1;min-width:0;font-size:.74rem;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(n)}</span><div style="width:90px;height:6px;background:var(--border);border-radius:3px;overflow:hidden"><div style="width:${max?Math.round(v/max*100):0}%;height:100%;background:${c.col}"></div></div><span style="width:42px;text-align:right;font-size:.8rem;font-weight:800;color:${c.col};font-family:var(--mono)">${v}</span></div>`).join('');
+      return `<div style="background:var(--card);border:1px solid var(--border);border-top:4px solid ${c.col};border-radius:10px;padding:12px 14px;min-width:0"><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span style="font-size:1.1rem">${c.ic}</span><span style="font-weight:800;font-size:.9rem;color:var(--text)">${c.mod}</span><span style="background:${c.col}22;color:${c.col};border:1.5px solid ${c.col}66;border-radius:6px;padding:1px 8px;font-size:.7rem;font-weight:800">${c.pass}</span><span style="margin-left:auto;font-family:var(--mono);font-size:.68rem;color:var(--muted)">${sorted.length} · ${total} total</span></div>${rowsH||'<div style="padding:18px 0;text-align:center;color:var(--muted);font-size:.72rem">No data</div>'}</div>`;
+    }).join('');
+    const wk=selWeeks.size===1?[...selWeeks][0]:(selD.size===1?[...selD][0]:'');
+    stage=document.createElement('div');stage.className='shot-stage';stage.style.background=bg;stage.style.width='980px';
+    stage.innerHTML=`<div class="shot-head"><div class="shot-title">${isQ?'🏷️ Top QTC':'👤 Top Labelers'} — Lidar &amp; Lane Line · FP / QA</div><div class="shot-sub">${esc(wk)}${wk?' · ':''}${esc(new Date().toLocaleString())} · Top ${LIMIT} per category</div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">${cards}</div>`;
+    document.body.appendChild(stage);
+    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+    const scale=Math.min(4,Math.max(2.5,(window.devicePixelRatio||1)*2));
+    const canvas=await html2canvas(stage,{scale,backgroundColor:bg,useCORS:true,logging:false,scrollX:0,scrollY:0,
+      onclone:d=>{const x=d.querySelector('.shot-stage');if(x){x.style.left='0';x.style.top='0';}}});
+    const blob=await new Promise(r=>canvas.toBlob(r,'image/png'));
+    if(!blob)throw new Error('empty image');
+    downloadBlob(blob,'MEEG_Top_'+(isQ?'QTC':'Labelers')+'_'+expSafe(wk)+(wk?'_':'')+expStamp()+'.png');
     let copied=false;
     try{if(navigator.clipboard&&window.ClipboardItem){await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);copied=true;}}catch(e){}
     showToast(copied?'📸 Screenshot saved & copied to clipboard':'📸 Screenshot saved');
