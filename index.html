@@ -204,7 +204,7 @@ html[data-theme="dark"] .dpanel{background:#0a1a26;}
 /* ---- Search From Archive (modal) ---- */
 .arcs-ov{position:fixed;inset:0;z-index:9000;display:none;align-items:flex-start;justify-content:center;padding:6vh 16px 16px;background:rgba(3,8,14,.55);backdrop-filter:blur(3px);}
 .arcs-ov.on{display:flex;}
-.arcs-box{width:min(920px,100%);max-height:86vh;display:flex;flex-direction:column;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-hover);overflow:hidden;}
+.arcs-box{width:min(920px,100%);max-height:86vh;display:flex;flex-direction:column;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-hover);overflow:visible;}
 .arcs-hd{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--border-light);}
 .arcs-hd .t{font-family:var(--display);font-weight:700;font-size:.8rem;color:var(--text);letter-spacing:.04em;flex:1;}
 .arcs-x{cursor:pointer;opacity:.6;font-size:1rem;padding:0 4px;}.arcs-x:hover{opacity:1;}
@@ -215,10 +215,7 @@ html[data-theme="dark"] .dpanel{background:#0a1a26;}
 .arcs-go:disabled{opacity:.5;cursor:default;}
 .arcs-clear{padding:8px 12px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--muted);font-family:var(--mono);font-size:.62rem;font-weight:700;cursor:pointer;}
 .arcs-clear:hover{border-color:var(--accent);color:var(--accent);}
-.arcs-filters{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px 10px;padding:10px 18px 12px;border-bottom:1px solid var(--border-light);}
-.arcs-filters label{display:flex;flex-direction:column;gap:3px;font-family:var(--mono);font-size:.5rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;}
-.arcs-filters input{padding:6px 9px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:.64rem;font-family:var(--mono);outline:none;min-width:0;}
-.arcs-filters input:focus{border-color:var(--accent);}
+.arcs-filters{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 18px 12px;border-bottom:1px solid var(--border-light);position:relative;z-index:30;}
 .arcs-prog{display:flex;align-items:center;gap:10px;padding:0 18px 8px;}
 .arcs-track{flex:1;height:7px;border-radius:5px;background:var(--border);overflow:hidden;}
 .arcs-pfill{display:block;height:100%;width:0;background:linear-gradient(90deg,#00b8d4,var(--accent));border-radius:5px;transition:width .25s ease;}
@@ -429,7 +426,7 @@ td a{color:var(--info);text-decoration:none;font-weight:700;}
 <div class="arcs-ov" id="arcsOv" onclick="if(event.target===this)closeArchiveSearch()"><div class="arcs-box">
 <div class="arcs-hd"><span class="t">📦 SEARCH FROM ARCHIVE</span><span class="arcs-x" onclick="closeArchiveSearch()">✕</span></div>
 <div class="arcs-bar"><input class="arcs-in" id="arcsIn" placeholder="Task ID (optional)…" autocomplete="off" onkeydown="if(event.key==='Enter')runArchiveSearch()"/><button class="arcs-go" id="arcsGo" onclick="runArchiveSearch()">Search</button><button class="arcs-clear" onclick="clearArchiveFilters()" title="Clear all fields">Clear</button></div>
-<div class="arcs-filters" id="arcsFilters"><label>📅 Week<input type="date" id="arcsWeek" title="Pick any day inside the week (weeks start on Monday)" onkeydown="if(event.key==='Enter')runArchiveSearch()"/></label><label>🗓️ Date<input type="date" id="arcsDate" onkeydown="if(event.key==='Enter')runArchiveSearch()"/></label><label>🏷️ QTC<input id="arcsQtc" autocomplete="off" placeholder="" onkeydown="if(event.key==='Enter')runArchiveSearch()"/></label><label>👤 Labeler<input id="arcsLab" autocomplete="off" placeholder="" onkeydown="if(event.key==='Enter')runArchiveSearch()"/></label><label>✉️ Email<input id="arcsEmail" autocomplete="off" placeholder="" onkeydown="if(event.key==='Enter')runArchiveSearch()"/></label><label>🖥️ Device<input id="arcsDev" autocomplete="off" placeholder="exact PC no" onkeydown="if(event.key==='Enter')runArchiveSearch()"/></label><label>🔬 Modality<input id="arcsMod" autocomplete="off" placeholder="" onkeydown="if(event.key==='Enter')runArchiveSearch()"/></label><label>📋 Queue<input id="arcsQueue" autocomplete="off" placeholder="" onkeydown="if(event.key==='Enter')runArchiveSearch()"/></label><label>✅ Pass<input id="arcsPass" autocomplete="off" placeholder="exact, e.g. FP" onkeydown="if(event.key==='Enter')runArchiveSearch()"/></label></div>
+<div class="arcs-filters" id="arcsFilters"></div>
 <div class="arcs-st" id="arcsSt">Type an ID (3+ characters) and press Search.</div>
 <div class="arcs-prog" id="arcsProg" style="display:none"><div class="arcs-track"><span class="arcs-pfill" id="arcsFill"></span></div><span class="arcs-ppct" id="arcsPct">0%</span></div>
 <div class="arcs-res" id="arcsRes"></div>
@@ -993,6 +990,7 @@ function scanArchiveTab(tab,text,remainingMap,map){
 }
 
 /* ---- Search From Archive: look ONE typed ID up in every archive tab (same tabs the unmatched-task lookup uses) ---- */
+const archiveTabData=new Map();  // tab key -> parsed table, filled as each tab finishes loading (the dropdowns list real archive values from here)
 const archiveTabCache=new Map(); // tab key -> Promise of {h,raw,rows,keys} (or null if the tab could not be read)
 let _arcsToken=0;
 const _arcP=new Map();      // tab key -> real progress of that tab's load: 0 waiting · .05 started · .7 downloaded · 1 parsed & indexed (or failed)
@@ -1024,8 +1022,11 @@ function loadArchiveTabTable(tab,urgent){
       const rows=table.slice(1);
       // normalise every ID ONCE here, so each later search is just a fast string scan (no re-parsing, no re-normalising)
       const keys=idCols.length?rows.map(row=>idCols.map(c=>normId(row[c]))):null;
+      const obj={h,raw:table[0].map(x=>String(x||'').trim()),rows,keys};
+      archiveTabData.set(k,obj);
       arcSet(k,1);
-      return {h,raw:table[0].map(x=>String(x||'').trim()),rows,keys};
+      arcOnTabLoaded();
+      return obj;
     }finally{arcFree();}
   })();
   archiveTabCache.set(k,p);
@@ -1034,30 +1035,112 @@ function loadArchiveTabTable(tab,urgent){
 }
 // start downloading every archive tab in the background as soon as the search window opens, so by the time the ID is typed the data is ready
 function prefetchArchiveTabs(){
-  resolveArchiveTabs().catch(()=>archiveTabList).then(tabs=>{(tabs||[]).forEach(t=>{loadArchiveTabTable(t);});});
+  resolveArchiveTabs().catch(()=>archiveTabList).then(tabs=>{window._arcTabsTotal=(tabs||[]).length;(tabs||[]).forEach(t=>{loadArchiveTabTable(t);});});
 }
 function openArchiveSearch(){
   const ov=document.getElementById('arcsOv');if(!ov)return;
   ov.classList.add('on');
+  buildArchiveFilters();
   const inp=document.getElementById('arcsIn');
   if(idFilter&&!inp.value)inp.value=idFilter;
   inp.focus();inp.select();
   prefetchArchiveTabs();
   if(inp.value.trim().length>=3&&!document.getElementById('arcsRes').children.length)runArchiveSearch();
 }
-function closeArchiveSearch(){_arcsToken++;_arcsOnProg=null;const ov=document.getElementById('arcsOv');if(ov)ov.classList.remove('on');const go=document.getElementById('arcsGo');if(go)go.disabled=false;}
+function closeArchiveSearch(){_arcsToken++;_arcsOnProg=null;if(arcOpenK)arcCloseDr(arcOpenK);const ov=document.getElementById('arcsOv');if(ov)ov.classList.remove('on');const go=document.getElementById('arcsGo');if(go)go.disabled=false;}
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){const ov=document.getElementById('arcsOv');if(ov&&ov.classList.contains('on'))closeArchiveSearch();}});
-// filters that map straight to a column of the archive tabs (header names are compared lower-cased)
-const ARC_FILTERS=[
-  {id:'arcsQtc',col:'qtc name',exact:false},{id:'arcsLab',col:'labeler name',exact:false},{id:'arcsEmail',col:'yubikey email',exact:false},
-  {id:'arcsDev',col:'pc no',exact:true},{id:'arcsMod',col:'modality',exact:false},{id:'arcsQueue',col:'queue name',exact:false},{id:'arcsPass',col:'pass',exact:true}
-];
+// ===== Archive filters: dropdowns that look & behave like the dashboard's own filter strip (same chips, panels, checkboxes, counts) =====
+const ARC_FILTERS=SC.map(sc=>({key:sc.key,col:sc.key.toLowerCase(),lbl:sc.lbl,ic:sc.ic})); // QTC / Email / Labeler / Device / Modality / Queue / Pass → archive column of the same name
+const ARC_KEYS=['__week','__date'].concat(ARC_FILTERS.map(f=>f.key));
+const arcSel={};ARC_KEYS.forEach(k=>{arcSel[k]=new Set();});
+let arcOpenK=null;
+function arcIx(k){return ARC_KEYS.indexOf(k);}
+function arcMeta(k){if(k==='__week')return{lbl:'Week',ic:'📅'};if(k==='__date')return{lbl:'Date',ic:'📆'};const f=ARC_FILTERS.find(x=>x.key===k);return{lbl:f.lbl,ic:f.ic};}
+// per-tab helpers, computed once and kept on the table object
+function arcPrep(t){
+  if(t.cidx)return;
+  t.cidx={};ARC_FILTERS.forEach(f=>{t.cidx[f.key]=t.h.indexOf(f.col);});
+  let ts=t.h.indexOf('timestamp');if(ts<0)ts=t.h.indexOf('created at');
+  t.dates=ts<0?null:t.rows.map(r=>extractDate(r[ts])||'');
+  t.wks=t.dates?t.dates.map(d=>d?getWeekLabel(d):''):null;
+}
+function arcVal(t,i,k){
+  if(k==='__date')return t.dates?t.dates[i]:'';
+  if(k==='__week')return t.wks?t.wks[i]:'';
+  const c=t.cidx[k];return c>=0?String(t.rows[i][c]==null?'':t.rows[i][c]).trim():'';
+}
+// distinct values of one filter with their row counts, with every OTHER selected filter applied (same behaviour as the dashboard dropdowns)
+function arcCollect(k){
+  const cnt={};
+  archiveTabData.forEach(t=>{
+    arcPrep(t);
+    for(let i=0;i<t.rows.length;i++){
+      let ok=true;
+      for(const o of ARC_KEYS){if(o===k||!arcSel[o].size)continue;if(!arcSel[o].has(arcVal(t,i,o))){ok=false;break;}}
+      if(!ok)continue;
+      const v=arcVal(t,i,k);if(v)cnt[v]=(cnt[v]||0)+1;
+    }
+  });
+  return cnt;
+}
+function buildArchiveFilters(){
+  const box=document.getElementById('arcsFilters');if(!box)return;
+  box.innerHTML=ARC_KEYS.map(k=>{const m=arcMeta(k),n=arcIx(k),c=arcSel[k].size;
+    return `<div class="fg" id="arcs_fg_${n}"><div class="fchip${c?' has-sel':''}" id="arcs_fc_${n}" onclick="arcTgDrop('${k}')">${m.ic} ${m.lbl}${c?` <span class="chk-cnt">${c}</span>`:''} <span class="chk-arr">▾</span></div><div class="dpanel" id="arcs_dp_${n}"><input class="dp-srch" placeholder="Search ${m.lbl}…" oninput="arcDrop('${k}')" id="arcs_ds_${n}"/><div class="dp-list" id="arcs_dl_${n}"></div><div class="dp-foot"><button onclick="arcClrSl('${k}');event.stopPropagation()">✕ Clear</button><button onclick="arcDone('${k}');event.stopPropagation()">✓ Done</button></div></div></div>`;
+  }).join('');
+  arcOpenK=null;
+}
+function arcUpdChip(k){
+  const fc=document.getElementById('arcs_fc_'+arcIx(k));if(!fc)return;
+  const m=arcMeta(k),c=arcSel[k].size,open=fc.classList.contains('open');
+  fc.className='fchip'+(c?' has-sel':'')+(open?' open':'');
+  fc.innerHTML=`${m.ic} ${m.lbl}${c?` <span class="chk-cnt">${c}</span>`:''} <span class="chk-arr">▾</span>`;
+}
+function arcDrop(k){
+  const n=arcIx(k),listEl=document.getElementById('arcs_dl_'+n);if(!listEl)return;
+  const q=((document.getElementById('arcs_ds_'+n)||{}).value||'').toLowerCase();
+  const cnt=arcCollect(k);let opts=Object.keys(cnt);
+  arcSel[k].forEach(v=>{if(!(v in cnt)){cnt[v]=0;opts.push(v);}}); // a ticked value with no rows right now stays listed so it can be un-ticked
+  if(k==='__week'||k==='__date')opts.sort().reverse();else opts.sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));
+  const vis=q?opts.filter(v=>v.toLowerCase().includes(q)):opts;
+  window._arcVis=window._arcVis||{};window._arcVis[k]=vis;
+  const loaded=archiveTabData.size,total=window._arcTabsTotal||0;
+  const note=(total&&loaded<total)?`<div style="padding:8px;font-size:.6rem;color:var(--muted)">Loading archive tabs… ${loaded}/${total}</div>`:'';
+  const mono=k==='__date'?' style="flex:1;font-family:var(--mono);font-size:.65rem"':' style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1"';
+  listEl.innerHTML=note+(vis.map((v,i)=>{const on=arcSel[k].has(v);return`<div class="dp-item${on?' on':''}" onclick="arcTg('${k}',${i});event.stopPropagation()"><div class="dp-cb">${on?'✓':''}</div><span${mono}>${esc(v)}</span><span class="dp-cnt">${cnt[v]||0}</span></div>`;}).join('')||(note?'':'<div style="padding:8px;font-size:.62rem;color:var(--muted)">No results</div>'));
+}
+function arcTg(k,i){
+  const v=(window._arcVis&&window._arcVis[k]||[])[i];if(v===undefined)return;
+  if(arcSel[k].has(v))arcSel[k].delete(v);else arcSel[k].add(v);
+  if(k==='__week'&&arcSel.__week.size){arcSel.__date.forEach(d=>{if(!arcSel.__week.has(getWeekLabel(d)))arcSel.__date.delete(d);});arcUpdChip('__date');} // same rule as the dashboard: dates follow the chosen weeks
+  arcUpdChip(k);arcDrop(k);
+}
+function arcClrSl(k){
+  arcSel[k].clear();
+  if(k==='__week'){arcSel.__date.clear();arcUpdChip('__date');}
+  arcUpdChip(k);arcDrop(k);
+}
+function arcTgDrop(k){
+  if(arcOpenK&&arcOpenK!==k)arcCloseDr(arcOpenK);
+  const n=arcIx(k),p=document.getElementById('arcs_dp_'+n),fc=document.getElementById('arcs_fc_'+n);if(!p)return;
+  if(p.classList.contains('open')){arcCloseDr(k);return;}
+  p.classList.add('open');fc.classList.add('open');arcOpenK=k;arcDrop(k);
+}
+function arcCloseDr(k){
+  const n=arcIx(k),p=document.getElementById('arcs_dp_'+n),fc=document.getElementById('arcs_fc_'+n);
+  if(p)p.classList.remove('open');if(fc)fc.classList.remove('open');if(arcOpenK===k)arcOpenK=null;
+}
+function arcDone(k){arcCloseDr(k);const hasAny=ARC_KEYS.some(x=>arcSel[x].size)||(document.getElementById('arcsIn')||{}).value;if(hasAny)runArchiveSearch();}
+function arcOnTabLoaded(){if(arcOpenK)arcDrop(arcOpenK);}
+document.addEventListener('click',e=>{if(arcOpenK&&!e.target.closest('.fg'))arcCloseDr(arcOpenK);});
 function clearArchiveFilters(){
-  ['arcsIn','arcsWeek','arcsDate'].concat(ARC_FILTERS.map(f=>f.id)).forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  const i=document.getElementById('arcsIn');if(i)i.value='';
+  ARC_KEYS.forEach(k=>arcSel[k].clear());
   _arcsToken++;_arcsOnProg=null;
+  buildArchiveFilters();
   const res=document.getElementById('arcsRes'),st=document.getElementById('arcsSt'),pg=document.getElementById('arcsProg');
   if(res)res.innerHTML='';if(st)st.textContent='Type an ID or pick a filter, then press Search.';if(pg)pg.style.display='none';
-  const i=document.getElementById('arcsIn');if(i)i.focus();
+  if(i)i.focus();
 }
 // archive tabs are named by month ("May 2026"), so a Date / Week filter only needs the tab(s) of that month
 function arcTabMonth(name){const m=String(name||'').match(/([A-Za-z]{3,9})\W*(\d{4})/);if(!m)return null;const mm=_MONTH_NAMES[m[1].slice(0,3).toLowerCase()];return mm?m[2]+'-'+String(mm).padStart(2,'0'):null;}
@@ -1068,23 +1151,26 @@ async function runArchiveSearch(){
   const prog=document.getElementById('arcsProg'),fill=document.getElementById('arcsFill'),pctEl=document.getElementById('arcsPct');
   const my=++_arcsToken;            // a new search ALWAYS cancels the one still running
   res.innerHTML='';
-  const get=id=>{const e=document.getElementById(id);return e?String(e.value||'').trim():'';};
-  const idq=normId(get('arcsIn'));
-  const dateF=get('arcsDate'),weekIn=get('arcsWeek');
-  const weekMon=weekIn?getMondayStr(weekIn):'';
-  const tf=ARC_FILTERS.map(f=>({col:f.col,exact:f.exact,v:get(f.id).toLowerCase()})).filter(f=>f.v);
-  const hasOther=!!(dateF||weekMon||tf.length);
+  if(arcOpenK)arcCloseDr(arcOpenK);
+  const idq=normId((document.getElementById('arcsIn')||{}).value);
+  const sels=ARC_KEYS.filter(k=>arcSel[k].size);       // every filter that has ticked values; they combine with AND, ticked values inside one filter with OR
+  const hasOther=sels.length>0;
   const fail=msg=>{st.textContent=msg;_arcsOnProg=null;prog.style.display='none';};
-  if(!idq&&!hasOther){fail('Type an ID (3+ characters) or fill at least one filter, then press Search.');return;}
+  if(!idq&&!hasOther){fail('Type an ID (3+ characters) or pick at least one filter, then press Search.');return;}
   if(idq&&idq.length<3&&!hasOther){fail('Type at least 3 characters of the ID.');return;}
   const MAX=50;let shown=0,total=0,failed=0,done=0;
   st.textContent='Searching…';prog.style.display='flex';fill.style.width='0%';pctEl.textContent='0%';
   let tabs;try{tabs=await resolveArchiveTabs();}catch(e){tabs=archiveTabList;}
   if(my!==_arcsToken)return;
+  window._arcTabsTotal=tabs.length;
   // Date / Week filters: only the tabs of those months are needed (±1 day so month borders are never missed)
   let need=null;
-  if(dateF)need=arcMonthsFor(arcAddDays(dateF,-1),arcAddDays(dateF,1));
-  if(weekMon){const w=arcMonthsFor(arcAddDays(weekMon,-1),arcAddDays(weekMon,7));need=need?new Set([...need].filter(x=>w.has(x))):w;}
+  if(arcSel.__date.size){need=new Set();arcSel.__date.forEach(d=>arcMonthsFor(arcAddDays(d,-1),arcAddDays(d,1)).forEach(m=>need.add(m)));}
+  if(arcSel.__week.size){
+    const w=new Set();
+    arcSel.__week.forEach(lbl=>{const mon=String(lbl).replace('Week of Mon ','');if(/^\d{4}-\d{2}-\d{2}$/.test(mon))arcMonthsFor(arcAddDays(mon,-1),arcAddDays(mon,7)).forEach(m=>w.add(m));});
+    need=need?new Set([...need].filter(x=>w.has(x))):w;
+  }
   if(need)tabs=tabs.filter(t=>{const m=arcTabMonth(t.name);return !m||need.has(m);});
   if(!tabs.length){fail('No archive tab covers that date / week.');return;}
   // REAL progress: every tab counts 90% for its actual load stage (waiting → downloading → downloaded → parsed) + 10% once it has been searched
@@ -1104,23 +1190,15 @@ async function runArchiveSearch(){
     done++;searched.add(archiveTabKey(tab));
     if(!t){failed++;}
     else{
-      // locate the columns this tab has; a tab that lacks a filtered column simply cannot match
-      const fc=tf.map(f=>({idx:t.h.indexOf(f.col),exact:f.exact,v:f.v}));
-      let tsC=-1;
-      if(dateF||weekMon){tsC=t.h.indexOf('timestamp');if(tsC<0)tsC=t.h.indexOf('created at');}
-      const usable=!fc.some(f=>f.idx<0)&&!((dateF||weekMon)&&tsC<0);
+      arcPrep(t);
+      // a tab that lacks one of the filtered columns simply cannot match
+      const usable=sels.every(k=>(k==='__week'||k==='__date')?!!t.dates:t.cidx[k]>=0);
       if(usable){
-        if(dateF||weekMon){ // dates are worked out once per tab and kept
-          if(!t.dates)t.dates=t.rows.map(r=>extractDate(r[tsC])||'');
-          if(weekMon&&!t.mons)t.mons=t.dates.map(d=>getMondayStr(d));
-        }
         for(let i=0;i<t.rows.length;i++){
-          if(dateF&&t.dates[i]!==dateF)continue;
-          if(weekMon&&t.mons[i]!==weekMon)continue;
-          const row=t.rows[i];
           let ok=true;
-          for(const f of fc){const cell=String(row[f.idx]==null?'':row[f.idx]).trim().toLowerCase();if(f.exact?cell!==f.v:!cell.includes(f.v)){ok=false;break;}}
+          for(const k of sels){if(!arcSel[k].has(arcVal(t,i,k))){ok=false;break;}}
           if(!ok)continue;
+          const row=t.rows[i];
           let isExactId=false;
           if(idq){
             let hit=false;
