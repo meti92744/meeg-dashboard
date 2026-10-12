@@ -1735,7 +1735,8 @@ function renderQualitySection(mc){
   const teamSec=document.createElement('div');teamSec.className='sec';
   const TS_SHORT={Morning:'M',Night:'N',Overnight:'ON'};
   const tsBtns=SHIFT_GROUPS.map(grp=>`<button type="button" id="tsBtn_${grp}" onclick="setTeamSheetShift('${grp}')" style="cursor:pointer;font-family:var(--display);font-weight:800;font-size:.62rem;padding:4px 12px;border-radius:6px;border:2px solid ${SHIFT_GROUP_COLORS[grp]};background:transparent;color:${SHIFT_GROUP_COLORS[grp]}">${SHIFT_GROUP_ICON[grp]} ${TS_SHORT[grp]}</button>`).join('');
-  teamSec.innerHTML=`<div class="sec-hd"><span class="sec-t">👥 Teams</span><span style="display:flex;gap:8px;align-items:center;margin-left:12px">${tsBtns}</span><span class="sec-m" id="teamSheetMeta"></span></div><div id="teamSheetBody" style="overflow-x:auto"></div>`;
+  teamSec.innerHTML=`<div class="sec-hd"><span class="sec-t">👥 Teams</span><span style="display:flex;gap:8px;align-items:center;margin-left:12px">${tsBtns}</span><span class="sec-m" id="teamSheetMeta"></span><div class="fchip no-shot" onclick="shotTeamSheet(this)" title="High-quality screenshot of the Teams table (respects the shift filter)">📸 Screenshot</div></div><div id="teamSheetBody" style="overflow-x:auto"></div>`;
+  teamSec.id='qTeamsBox';teamSec.setAttribute('data-week',curWeekLbl);
   mc.appendChild(teamSec);
   renderTeamSheet();
 
@@ -2559,6 +2560,48 @@ async function shotQualityTotals(btn){
     if(!blob)throw new Error('empty image');
     const wk=(src.getAttribute('data-week')||'').replace('Week of Mon ','wk_');
     downloadBlob(blob,'MEEG_Quality_Totals_'+expSafe(wk)+(wk?'_':'')+expStamp()+'.png');
+    let copied=false;
+    try{if(navigator.clipboard&&window.ClipboardItem){await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);copied=true;}}catch(e){}
+    showToast(copied?'📸 Screenshot saved & copied to clipboard':'📸 Screenshot saved');
+  }catch(e){
+    showToast('⚠️ Screenshot failed'+(e&&e.message?' — '+e.message:''));
+  }finally{
+    if(stage)stage.remove();
+    if(btn){btn.innerHTML=old;btn.style.pointerEvents='';}
+  }
+}
+
+/* ---------- SCREENSHOT of the Quality "👥 Teams" table — full table (no scroll limit), follows the M / N / ON filter ---------- */
+async function shotTeamSheet(btn){
+  const src=document.getElementById('qTeamsBox');
+  if(!src||!(window._teamSheetData||[]).length){showToast('⚠️ Nothing to capture');return;}
+  const old=btn?btn.innerHTML:'';
+  if(btn){btn.innerHTML='⏳ Rendering…';btn.style.pointerEvents='none';}
+  let stage=null;
+  try{
+    await loadLib('h2c');
+    if(document.fonts&&document.fonts.ready)await document.fonts.ready;
+    const bg=(getComputedStyle(document.documentElement).getPropertyValue('--bg')||'').trim()||'#eef2f7';
+    const SN={Morning:'Morning',Night:'Night',Overnight:'Overnight'};
+    const filt=teamSheetShift?SN[teamSheetShift]:'All shifts';
+    stage=document.createElement('div');stage.className='shot-stage';stage.style.background=bg;stage.style.width='900px';
+    stage.innerHTML=`<div class="shot-head"><div class="shot-title">👥 MEEG Quality — Teams (${esc(filt)})</div><div class="shot-sub">${esc(src.getAttribute('data-week')||'')} · ${esc(new Date().toLocaleString())}</div></div>`;
+    const clone=src.cloneNode(true);clone.removeAttribute('id');
+    clone.querySelectorAll('.no-shot').forEach(e=>e.remove());
+    clone.querySelectorAll('button').forEach(e=>e.remove());   // M / N / ON filter buttons aren't needed in the image
+    // show EVERY row: drop the scroll box + sticky headers
+    clone.querySelectorAll('div').forEach(d=>{if(d.style.maxHeight){d.style.maxHeight='none';d.style.overflow='visible';}if(d.style.overflowX){d.style.overflowX='visible';}});
+    clone.querySelectorAll('th').forEach(t=>{t.style.position='static';});
+    stage.appendChild(clone);
+    document.body.appendChild(stage);
+    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+    const scale=Math.min(4,Math.max(3,(window.devicePixelRatio||1)*2));
+    const canvas=await html2canvas(stage,{scale,backgroundColor:bg,useCORS:true,logging:false,scrollX:0,scrollY:0,
+      onclone:d=>{const x=d.querySelector('.shot-stage');if(x){x.style.left='0';x.style.top='0';}}});
+    const blob=await new Promise(r=>canvas.toBlob(r,'image/png'));
+    if(!blob)throw new Error('empty image');
+    const wk=(src.getAttribute('data-week')||'').replace('Week of Mon ','wk_');
+    downloadBlob(blob,'MEEG_Quality_Teams_'+(teamSheetShift?teamSheetShift+'_':'')+expSafe(wk)+(wk?'_':'')+expStamp()+'.png');
     let copied=false;
     try{if(navigator.clipboard&&window.ClipboardItem){await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);copied=true;}}catch(e){}
     showToast(copied?'📸 Screenshot saved & copied to clipboard':'📸 Screenshot saved');
