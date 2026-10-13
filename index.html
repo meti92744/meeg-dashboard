@@ -550,12 +550,87 @@ td a{color:var(--info);text-decoration:none;font-weight:700;}
 <button class="scroll-top-car" id="scrollTopBtn" onclick="shootWebScrollTop()" title="Back to top">▲</button>
 <script>
 /* ============ AUTH GATE ============ */
-const ALLOWED_EMAILS=["fpdahmed11@gmail.com","heshamnaser996@gmail.com","islamyasser424@gmail.com","mahmoudalnoby22@gmail.com","mm0508230@gmail.com","mohamedfathyy69@gmail.com","mostafaatito11158@gmail.com","oka60284@gmail.com","yassinyassen11@gmail.com","me917993@meti.ai","mahmoudseif589@gmail.com","abdallahbarbary39@gmail.com","eslamkhaled329@gmail.com","me370444@meti.ai","me817350@meti.ai"];
 const AUTH_KEY='meeg_auth_email';
 const AUTH_VER=(document.querySelector('meta[name="app-version"]')||{}).content||'v2'; /* tied to the <meta name="app-version"> tag at the top of the file — bump that ONE number on deploy and it both force-reloads open tabs (see FORCE REFRESH below) AND logs everyone out, no second edit needed */
 const AUTH_VER_KEY='meeg_auth_ver';
 
 function isValidEmailFormat(e){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);}
+
+/* ============ USERS DIRECTORY (read from the "Users" tab of the main Google Sheet) ============
+   Columns: Display Name | Role | Email.  Add / remove / rename people there — no code change needed.
+   - Works even if the tab is HIDDEN (gviz-by-name and export-by-gid both read hidden tabs).
+   - Optional: paste the Users tab's gid below to read it by gid (keeps working even if the tab is renamed).
+   - The last good list is cached in the browser, so a temporary network/Google hiccup never locks people out. */
+const USERS_SHEET_NAME='Users';
+const USERS_GID=''; // optional — the number after gid= in the URL while you're on the Users tab
+const USERS_CACHE_KEY='meeg_users_v1';
+let usersMap={};            // email (lowercase) -> {name, role}
+let usersLoaded=false,_usersPromise=null;
+(function(){try{const raw=localStorage.getItem(USERS_CACHE_KEY);if(raw){const m=JSON.parse(raw);if(m&&typeof m==='object'&&Object.keys(m).length){usersMap=m;usersLoaded=true;}}}catch(e){}})();
+function isAllowedEmail(e){return !!e&&Object.prototype.hasOwnProperty.call(usersMap,String(e).trim().toLowerCase());}
+function fetchUsersCsv(){
+  const base='https://docs.google.com/spreadsheets/d/'+SHEET_ID;
+  const urls=[];
+  if(USERS_GID)urls.push(base+'/export?format=csv&gid='+encodeURIComponent(USERS_GID));
+  urls.push(base+'/gviz/tq?tqx=out:csv&headers=1&sheet='+encodeURIComponent(USERS_SHEET_NAME));
+  const tryAt=i=>{
+    const u=urls[i]+(urls[i].indexOf('?')>=0?'&':'?')+'_='+Date.now();
+    return fetch(u,{cache:'no-store'})
+      .then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.text();})
+      .then(t=>{if(/^\s*<(!doctype|html)/i.test(t))throw new Error('Users tab not readable (is the sheet shared as "anyone with the link can view"?)');return t;})
+      .catch(err=>{if(i+1<urls.length)return tryAt(i+1);throw err;});
+  };
+  return tryAt(0);
+}
+function parseUsers(txt){
+  const table=parseCSV(txt)||[];
+  if(!table.length)return {};
+  const h=table[0].map(c=>String(c||'').trim().toLowerCase());
+  let ei=h.findIndex(c=>c.indexOf('email')>=0),ni=h.findIndex(c=>c.indexOf('name')>=0),ri=h.findIndex(c=>c.indexOf('role')>=0);
+  if(ei<0)ei=2; if(ni<0)ni=0; if(ri<0)ri=1; // fall back to the standard column order: Display Name | Role | Email
+  const m={};
+  for(let i=1;i<table.length;i++){
+    const r=table[i]||[];
+    const em=String(r[ei]||'').trim().toLowerCase();
+    if(!em||!isValidEmailFormat(em))continue;
+    m[em]={name:String(r[ni]||'').trim(),role:String(r[ri]||'').trim()};
+  }
+  return m;
+}
+function loadUsers(force){
+  if(_usersPromise)return _usersPromise;
+  if(usersLoaded&&!force)return Promise.resolve(usersMap);
+  _usersPromise=fetchUsersCsv().then(parseUsers).then(m=>{
+    if(!Object.keys(m).length)throw new Error('Users tab is empty'); // never replace a good list with an empty one
+    usersMap=m;usersLoaded=true;
+    try{localStorage.setItem(USERS_CACHE_KEY,JSON.stringify(m));}catch(e){}
+    return m;
+  }).finally(()=>{_usersPromise=null;});
+  return _usersPromise;
+}
+/* ---- live access check: while the dashboard is open, re-read the Users tab; if this person's email was removed → sign out automatically ---- */
+const USERS_WATCH_MS=30000; // how often an open dashboard re-checks the Users tab
+let _usersWatchTimer=null,_usersLastCheck=0;
+function checkUsersAccess(){
+  const em=getLoggedInEmail();
+  if(!em)return;
+  _usersLastCheck=Date.now();
+  loadUsers(true).then(()=>{
+    if(!isAllowedEmail(em)){
+      try{sessionStorage.setItem('meeg_kicked','1');}catch(e){}
+      logoutUser(); // clears the session and reloads → login screen
+    }else{
+      renderUserChip(false); // picks up renamed users / role changes too
+    }
+  }).catch(()=>{}); // Google hiccup / offline → keep the current session, try again next time
+}
+function startUsersWatch(){
+  if(_usersWatchTimer)return;
+  _usersWatchTimer=setInterval(checkUsersAccess,USERS_WATCH_MS);
+  document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'&&Date.now()-_usersLastCheck>5000)checkUsersAccess(); });
+  window.addEventListener('online',checkUsersAccess);
+}
+/* ============ END USERS DIRECTORY ============ */
 
 function getLoggedInEmail(){
   try{
@@ -568,14 +643,17 @@ function getLoggedInEmail(){
   }catch(e){return '';}
 }
 
-function attemptLogin(){
+async function attemptLogin(){
   const input=document.getElementById('loginEmailInput');
   const errEl=document.getElementById('loginErrMsg');
   const raw=(input.value||'').trim().toLowerCase();
   input.classList.remove('err');
   if(!raw){errEl.textContent='Please enter your email';input.classList.add('err');input.focus();return;}
   if(!isValidEmailFormat(raw)){errEl.textContent='Invalid email format';input.classList.add('err');input.focus();return;}
-  if(!ALLOWED_EMAILS.includes(raw)){errEl.textContent='You Are Not Allowed 🚫';input.classList.add('err');input.focus();return;}
+  errEl.textContent='Checking…';
+  try{await loadUsers(true);}catch(e){ /* offline / Google hiccup → fall back to the last cached list if there is one */ }
+  if(!usersLoaded){errEl.textContent='Could not load the users list — check your connection and try again';return;}
+  if(!isAllowedEmail(raw)){errEl.textContent='You Are Not Allowed 🚫';input.classList.add('err');input.focus();return;}
   try{
     localStorage.setItem(AUTH_KEY,raw);
     localStorage.setItem(AUTH_VER_KEY,AUTH_VER);
@@ -587,44 +665,11 @@ function attemptLogin(){
 
 
 /* ============ LOGGED-IN USER DISPLAY ============ */
-/* اكتب الاسم الحقيقي لكل إيميل هنا — لو سيبته فاضي هيتاخد الاسم من الإيميل تلقائي */
-const USER_NAMES={
-  "fpdahmed11@gmail.com":"Ahmed Sobhy",
-  "islamyasser424@gmail.com":"Islam Yasser",
-  "mahmoudalnoby22@gmail.com":"ALNoby",
-  "mm0508230@gmail.com":"Mousa",
-  "mohamedfathyy69@gmail.com":"Medo",
-  "mostafaatito11158@gmail.com":"Atito",
-  "oka60284@gmail.com":"Basbosa",
-  "yassinyassen11@gmail.com":"Yassin",
-  "me917993@meti.ai":"Ahmed Sayed",
-  "mahmoudseif589@gmail.com":"Seeif Waleed",
-  "abdallahbarbary39@gmail.com":"Barbary",
-  "eslamkhaled329@gmail.com":"Eslam Khaled",
-  "me370444@meti.ai":"Bahaa",
-  "me817350@meti.ai":"Hassan",
-  "heshamnaser996@gmail.com":"Hesham"
-};
-const USER_LABELS={
-  "fpdahmed11@gmail.com":"QTC",
-  "islamyasser424@gmail.com":"WLA",
-  "mahmoudalnoby22@gmail.com":"SV",
-  "mm0508230@gmail.com":"SV",
-  "mohamedfathyy69@gmail.com":"QTC",
-  "mostafaatito11158@gmail.com":"SV",
-  "oka60284@gmail.com":"QTC",
-  "yassinyassen11@gmail.com":"SSV",
-  "me917993@meti.ai":"QT",
-  "mahmoudseif589@gmail.com":"QT",
-  "abdallahbarbary39@gmail.com":"SV",
-  "eslamkhaled329@gmail.com":"SV",
-  "me370444@meti.ai":"WLA",
-  "heshamnaser996@gmail.com":"SV",
-  "me817350@meti.ai":"WLA"
-};
+/* الاسم والـ Role بييجوا من تاب Users في الشيت (Display Name | Role | Email) */
+function getUserRole(email){const u=usersMap[String(email||'').trim().toLowerCase()];return u?String(u.role||'').trim():'';}
 function getDisplayName(email){
   if(!email)return '';
-  const custom=(USER_NAMES[email]||'').trim();
+  const _u=usersMap[String(email||'').trim().toLowerCase()];const custom=_u?String(_u.name||'').trim():'';
   if(custom)return custom;
   const local=email.split('@')[0].replace(/\d+/g,' ').replace(/[._-]+/g,' ').trim()||email.split('@')[0];
   return local.split(/\s+/).map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(' ');
@@ -635,7 +680,7 @@ function renderUserChip(welcome){
   if(!email||!chip)return;
   const name=getDisplayName(email);
   document.getElementById('userName').textContent=name;
-  const lbl=(USER_LABELS[email]||'').trim();
+  const lbl=getUserRole(email);
   document.getElementById('userLabel').textContent=lbl;
   document.getElementById('userAv').textContent=(name.charAt(0)||'?').toUpperCase();
   chip.title=lbl?name+' · '+lbl+' · '+email:email;
@@ -654,7 +699,7 @@ function logoutUser(){
 
 function checkAuthOnLoad(){
   const email=getLoggedInEmail();
-  if(email&&ALLOWED_EMAILS.includes(email)){
+  if(email&&isAllowedEmail(email)){
     document.getElementById('loginScreen').classList.add('hidden');
     return true;
   }
@@ -666,7 +711,7 @@ function checkAuthOnLoad(){
 /* if the session was invalidated (logout from another tab / new auth version) — show the login screen immediately */
 function enforceAuthLive(){
   const email=getLoggedInEmail();
-  if(email&&ALLOWED_EMAILS.includes(email))return;
+  if(email&&isAllowedEmail(email))return;
   if(typeof autoRefreshTimer!=='undefined'&&autoRefreshTimer){clearInterval(autoRefreshTimer);autoRefreshTimer=null;}
   if(typeof _versionCheckTimer!=='undefined'&&_versionCheckTimer){clearInterval(_versionCheckTimer);_versionCheckTimer=null;}
   const ls=document.getElementById('loginScreen');
@@ -784,7 +829,7 @@ function fillWelcome(){
   nm.innerHTML='';
   [...name].forEach((ch,i)=>{const sp=document.createElement('span');sp.textContent=ch===' '?'\u00A0':ch;sp.style.animationDelay=(1.2+i*0.06)+'s';nm.appendChild(sp);});
   const l=document.getElementById('swLabel');
-  if(l){l.textContent=(USER_LABELS[email]||'').trim();l.style.animationDelay=(1.4+name.length*0.06)+'s';}
+  if(l){l.textContent=getUserRole(email);l.style.animationDelay=(1.4+name.length*0.06)+'s';}
 }
 function toggleDark(){const html=document.documentElement;const isDark=html.getAttribute('data-theme')==='dark';const t=isDark?'light':'dark';html.setAttribute('data-theme',t);const btn=document.getElementById('darkBtn');if(btn){btn.classList.toggle('active',t==='dark');btn.innerHTML=t==='dark'?'🌙 Dark':'☀️ Light';}localStorage.setItem('meeg_theme',t);}
 let autoRefreshEnabled=(function(){try{const v=localStorage.getItem('meeg_autorefresh');return v===null?true:v==='1';}catch(e){return true;}})();
@@ -817,24 +862,10 @@ let locations=[],activeLoc='__all__';
 let sel={},selD=new Set(),selWeeks=new Set();
 let idFilter='';
 let sortC=-1,sortDr=1,fcache=[],openK=null,locSearch={};
-const ID_FILTER_PASSWORD='MEEG2025'; // change the password here to anything you like
-let idUnlocked=(function(){try{return localStorage.getItem('meeg_id_unlocked')==='1';}catch(e){return false;}})();
-let idPassBoxOpen=false,idPassVisible=false,idPassErr=false;
-function toggleIdPassBox(){idPassBoxOpen=!idPassBoxOpen;idPassErr=false;buildStrip();if(idPassBoxOpen)focusIdPassInput();}
-function focusIdPassInput(){setTimeout(()=>{const i=document.getElementById('idPassInput');if(i)i.focus();},30);}
-function toggleIdPassVisible(){idPassVisible=!idPassVisible;const i=document.getElementById('idPassInput');const val=i?i.value:'';buildStrip();focusIdPassInput();setTimeout(()=>{const ni=document.getElementById('idPassInput');if(ni){ni.value=val;const l=ni.value.length;ni.setSelectionRange(l,l);}},40);}
-function checkIdPassword(){const i=document.getElementById('idPassInput');const p=i?i.value:'';if(p===ID_FILTER_PASSWORD){idUnlocked=true;idPassBoxOpen=false;idPassErr=false;try{localStorage.setItem('meeg_id_unlocked','1');}catch(e){}buildStrip();showToast('✅ ID filter unlocked');}else{idPassErr=true;buildStrip();focusIdPassInput();showToast('⚠️ Wrong password');}}
-function cancelIdPassBox(){idPassBoxOpen=false;idPassErr=false;buildStrip();}
-function lockIdFilter(){
-  idUnlocked=false;
-  try{localStorage.removeItem('meeg_id_unlocked');}catch(e){}
-  setIdFilter('');
-  buildStrip();
-  showToast('🔒 ID filter locked');
-}
 let autoRefreshTimer=null,_filtersRestored=false;
 document.addEventListener('click',e=>{if(!e.target.closest('.fg'))closeAll();});
 function toggleShift(id,btn){shiftState[id].on=!shiftState[id].on;btn.classList.toggle('on',shiftState[id].on);btn.querySelector('.dot').textContent=shiftState[id].on?'●':'○';applyAll();}
+function setShiftsUI(map){Object.keys(shiftState).forEach(k=>{const on=!!(map&&map[k]);shiftState[k].on=on;const b=document.getElementById('btn_'+k);if(b){b.classList.toggle('on',on);const d=b.querySelector('.dot');if(d)d.textContent=on?'●':'○';}});}
 function isRowAllowed(r){const ci=sIdx['Shift'];if(ci===undefined)return true;const sv=String(r[ci]||'').trim().toLowerCase();const anyOn=Object.values(shiftState).some(c=>c.on);if(!anyOn)return true;return Object.values(shiftState).some(c=>c.on&&sv===c.key);}
 function parseCSV(text){
   const rows=[];let row=[];let field='';let inQuotes=false;
@@ -1973,13 +2004,7 @@ function setTrafficLight(state){['tlRed','tlYellow','tlGreen'].forEach(id=>{cons
 function getMondayStr(d){if(!d||!d.match(/^\d{4}-\d{2}-\d{2}$/))return'';const dt=new Date(d+'T12:00:00');const day=dt.getDay();const diff=day===0?-6:1-day;const mon=new Date(dt);mon.setDate(dt.getDate()+diff);return mon.toISOString().substring(0,10);}
 function getWeekLabel(d){const m=getMondayStr(d);return m?'Week of Mon '+m:d;}
 function buildStrip(){const s=document.getElementById('fstrip');const dates=sOpts._dates||[];let h='';if(dates.length){window._weekList=[];const weekMap={};dates.forEach(d=>{const lbl=getWeekLabel(d);if(!weekMap[lbl]){weekMap[lbl]=[];window._weekList.push(lbl);}weekMap[lbl].push(d);});window._weekList.sort().reverse();window._weekMap=weekMap;const wCnt=selWeeks.size;h+=`<div class="fg" id="fg___week"><div class="fchip${wCnt?' has-sel':''}" id="fc___week" onclick="tgDrop('__week')">📅 Week${wCnt?` <span class="chk-cnt">${wCnt}</span>`:''} <span class="chk-arr">▾</span></div><div class="dpanel" id="dp___week">${window._weekList.length>5?`<input class="dp-srch" placeholder="Search week…" oninput="rdropWeek()" id="ds___week"/>`:''}<div class="dp-list" id="dl___week"></div><div class="dp-foot"><button onclick="clrWeeks();event.stopPropagation()">✕ Clear</button><button onclick="closeDr('__week');event.stopPropagation()">✓ Done</button></div></div></div>`;const dCnt=selD.size;h+=`<div class="fg" id="fg___date"><div class="fchip${dCnt?' has-sel':''}" id="fc___date" onclick="tgDrop('__date')">📆 Date${dCnt?` <span class="chk-cnt">${dCnt}</span>`:''} <span class="chk-arr">▾</span></div><div class="dpanel" id="dp___date"><input class="dp-srch" placeholder="Search date…" oninput="rdropDate()" id="ds___date"/><div class="dp-list" id="dl___date"></div><div class="dp-foot"><button onclick="clrDates();event.stopPropagation()">✕ Clear</button><button onclick="closeDr('__date');event.stopPropagation()">✓ Done</button></div></div></div>`;if(SC.some(c=>(sOpts[c.key]||[]).length))h+=`<div class="fsep"></div>`;}
-if(idUnlocked){
-  h+=`<div class="id-filter-box"><input class="id-filter-input" id="idFilterInput" placeholder="🔎 ID…" value="${esc(idFilter)}" oninput="setIdFilter(this.value)"/>${idFilter?`<span class="id-filter-x" onclick="setIdFilter('');document.getElementById('idFilterInput').value=''">✕</span>`:''}<span class="id-filter-x" title="Lock filter" onclick="lockIdFilter()">🔒</span><div class="fchip arc-search-btn" title="Search this ID in the Archive" onclick="openArchiveSearch()">📦 Archive</div></div><div class="fsep"></div>`;
-}else if(idPassBoxOpen){
-  h+=`<div class="id-filter-box"><input type="${idPassVisible?'text':'password'}" class="id-filter-input" id="idPassInput" placeholder="Password…" style="width:110px;${idPassErr?'border-color:rgba(220,38,38,.6)':''}" onkeydown="if(event.key==='Enter'){checkIdPassword();}else if(event.key==='Escape'){cancelIdPassBox();}"/><span class="id-filter-x" title="${idPassVisible?'Hide':'Show'}" onclick="toggleIdPassVisible()">${idPassVisible?'🙈':'👁️'}</span><span class="id-filter-x" title="Confirm" onclick="checkIdPassword()">✔️</span><span class="id-filter-x" title="Cancel" onclick="cancelIdPassBox()">✕</span></div><div class="fsep"></div>`;
-}else{
-  h+=`<div class="id-filter-box"><div class="fchip" onclick="toggleIdPassBox()">🔒 ID</div></div><div class="fsep"></div>`;
-}
+h+=`<div class="id-filter-box"><input class="id-filter-input" id="idFilterInput" placeholder="🔎 ID…" value="${esc(idFilter)}" oninput="setIdFilter(this.value)"/>${idFilter?`<span class="id-filter-x" onclick="setIdFilter('');document.getElementById('idFilterInput').value=''">✕</span>`:''}<div class="fchip arc-search-btn" title="Search this ID in the Archive" onclick="openArchiveSearch()">📦 Archive</div></div><div class="fsep"></div>`;
 SC.forEach(sc=>{const opts=sOpts[sc.key];if(!opts||!opts.length)return;const cnt=(sel[sc.key]||new Set()).size;h+=`<div class="fg" id="fg_${sid(sc.key)}"><div class="fchip${cnt?' has-sel':''}" id="fc_${sid(sc.key)}" onclick="tgDrop('${sc.key}')">${sc.ic} ${sc.lbl}${cnt?` <span class="chk-cnt">${cnt}</span>`:''} <span class="chk-arr">▾</span></div><div class="dpanel" id="dp_${sid(sc.key)}">${opts.length>7?`<input class="dp-srch" placeholder="Search ${sc.lbl}…" oninput="rdrop('${sc.key}')" id="ds_${sid(sc.key)}"/>`:''}<div class="dp-list" id="dl_${sid(sc.key)}"></div><div class="dp-foot"><button onclick="clrSl('${sc.key}');event.stopPropagation()">✕ Clear</button><button onclick="closeDr('${sc.key}');event.stopPropagation()">✓ Done</button></div></div></div>`;});s.innerHTML=h;injectPresets();rdropWeek();rdropDate();SC.forEach(sc=>rdrop(sc.key));}
 function rdropWeek(){const listEl=document.getElementById('dl___week');if(!listEl)return;const q=(document.getElementById('ds___week')||{}).value||'';const weeks=window._weekList||[];const vis=q?weeks.filter(w=>w.toLowerCase().includes(q.toLowerCase())):weeks;listEl.innerHTML=vis.map(w=>{const on=selWeeks.has(w);const cnt=((window._weekMap||{})[w]||[]).reduce((s,d)=>s+rawRows.filter(r=>isRowAllowed(r)&&rDate(r)===d).length,0);return`<div class="dp-item${on?' on':''}" onclick="tgWeek('${esc(w)}');event.stopPropagation()"><div class="dp-cb">${on?'✓':''}</div><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(w)}</span><span class="dp-cnt">${cnt}</span></div>`;}).join('')||'<div style="padding:8px;font-size:.62rem;color:var(--muted)">No results</div>';}
 function rdropDate(){const listEl=document.getElementById('dl___date');if(!listEl)return;const q=(document.getElementById('ds___date')||{}).value||'';const allDates=sOpts._dates||[];const visDates=selWeeks.size?allDates.filter(d=>selWeeks.has(getWeekLabel(d))):allDates;const vis=q?visDates.filter(d=>d.includes(q)):visDates;listEl.innerHTML=vis.map(d=>{const on=selD.has(d);const cnt=rawRows.filter(r=>isRowAllowed(r)&&rDate(r)===d).length;const star=d===todayStr?' ⭐':'';return`<div class="dp-item${on?' on':''}" onclick="tgDate('${d}');event.stopPropagation()"><div class="dp-cb">${on?'✓':''}</div><span style="flex:1;font-family:var(--mono);font-size:.65rem">${d}${star}</span><span class="dp-cnt">${cnt}</span></div>`;}).join('')||'<div style="padding:8px;font-size:.62rem;color:var(--muted)">No results</div>';}
@@ -2005,8 +2030,10 @@ function clearAll(){
     sel:Object.fromEntries(Object.entries(sel).map(([k,v])=>[k,[...v]])),
     selD:[...selD],
     selWeeks:[...selWeeks],
-    idFilter
+    idFilter,
+    shifts:Object.fromEntries(Object.entries(shiftState).map(([k,v])=>[k,v.on]))
   };
+  setShiftsUI(null);
   selD.clear();selWeeks.clear();idFilter='';Object.keys(sel).forEach(k=>sel[k].clear());
   document.querySelectorAll('.dp-srch').forEach(e=>e.value='');
   locSearch={};saveFilters();buildStrip();applyAll();
@@ -2018,6 +2045,7 @@ function undoClearAll(){
   selD=new Set(_lastClearedState.selD);
   selWeeks=new Set(_lastClearedState.selWeeks);
   idFilter=_lastClearedState.idFilter;
+  setShiftsUI(_lastClearedState.shifts);
   const idInput=document.getElementById('idFilterInput');if(idInput)idInput.value=idFilter;
   saveFilters();buildStrip();applyAll();
   showToast('↩️ Filters restored');
@@ -2456,17 +2484,30 @@ function shootWebScrollTop(){
 function startApp(){renderUserChip(false);
   if(!document.getElementById('splash')&&window._splashTpl)document.body.insertAdjacentHTML('afterbegin',window._splashTpl);
   fillWelcome();
-  const savedTheme=localStorage.getItem('meeg_theme')||'light';document.documentElement.setAttribute('data-theme',savedTheme);const btn=document.getElementById('darkBtn');if(btn){btn.classList.toggle('active',savedTheme==='dark');btn.innerHTML=savedTheme==='dark'?'🌙 Dark':'☀️ Light';}applyAutoRefreshUI();hideSplash();loadData();startVersionPolling();fetchQualityData(true);
+  const savedTheme=localStorage.getItem('meeg_theme')||'light';document.documentElement.setAttribute('data-theme',savedTheme);const btn=document.getElementById('darkBtn');if(btn){btn.classList.toggle('active',savedTheme==='dark');btn.innerHTML=savedTheme==='dark'?'🌙 Dark':'☀️ Light';}applyAutoRefreshUI();hideSplash();loadData();startVersionPolling();fetchQualityData(true);startUsersWatch();
 }
 window.addEventListener('load',()=>{
   initLoginDodge();
-  const isLoggedIn=checkAuthOnLoad();
   const splash=document.getElementById('splash');
-  if(!isLoggedIn){
-    if(splash){window._splashTpl=splash.outerHTML;splash.remove();}
-    return;
-  }
-  startApp();
+  const email=getLoggedInEmail();
+  const showLogin=(msg)=>{
+    if(splash&&splash.parentNode){window._splashTpl=splash.outerHTML;splash.remove();}
+    document.getElementById('loginScreen').classList.remove('hidden');
+    const em=document.getElementById('loginErrMsg');let kicked=false;try{kicked=sessionStorage.getItem('meeg_kicked')==='1';sessionStorage.removeItem('meeg_kicked');}catch(e){}if(em)em.textContent=kicked?'Your access has been removed 🚫':(msg||'');
+    setTimeout(()=>{const i=document.getElementById('loginEmailInput');if(i)i.focus();},80);
+  };
+  if(!email){showLogin();loadUsers().catch(()=>{});return;} // not signed in — warm the users list while they type
+  const enter=()=>{
+    if(!isAllowedEmail(email)){ // this email was removed from the Users tab
+      try{localStorage.removeItem(AUTH_KEY);localStorage.removeItem(AUTH_VER_KEY);}catch(e){}
+      showLogin();return;
+    }
+    document.getElementById('loginScreen').classList.add('hidden');
+    startApp();
+    checkUsersAccess(); // immediate re-check against the Users tab (startApp keeps re-checking every 30s)
+  };
+  if(usersLoaded)enter();
+  else loadUsers().then(enter).catch(()=>showLogin('Could not load the users list — check your connection and try again'));
 });
 
 /* =====================================================================
