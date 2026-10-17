@@ -468,6 +468,7 @@ td a{color:var(--info);text-decoration:none;font-weight:700;}
     <div class="login-hint" id="loginHint" style="display:none"></div>
     <input type="password" id="loginPassInput" class="login-input stack" placeholder="Password" autocomplete="current-password" style="display:none" onkeydown="if(event.key==='Enter')attemptLogin()"/>
     <input type="password" id="loginPass2Input" class="login-input stack" placeholder="Confirm password" autocomplete="new-password" style="display:none" onkeydown="if(event.key==='Enter')attemptLogin()"/>
+    <div class="login-link" id="loginShowPass" style="display:none" onclick="toggleLoginPass()">👁 Show password</div>
     <div class="login-btn-zone" id="loginBtnZone">
       <button class="login-btn" id="loginSubmitBtn" onclick="attemptLogin()">Continue →</button>
     </div>
@@ -680,7 +681,16 @@ function goLoginStep(step,msg){
   btn.textContent=isEmail?'Continue →':(step==='setup'?'Create password →':'Login →');
   pIn.autocomplete=step==='setup'?'new-password':'current-password';
   pIn.value='';p2In.value='';
+  pIn.type='password';p2In.type='password';
+  const sp=$('loginShowPass');sp.textContent='👁 Show password';sp.style.display=isEmail?'none':'';
   setTimeout(()=>(isEmail?eIn:pIn).focus(),50);
+}
+function toggleLoginPass(){
+  const pIn=document.getElementById('loginPassInput'),p2In=document.getElementById('loginPass2Input'),sp=document.getElementById('loginShowPass');
+  const show=pIn.type==='password';
+  pIn.type=p2In.type=show?'text':'password';
+  sp.textContent=show?'🙈 Hide password':'👁 Show password';
+  pIn.focus();
 }
 
 async function attemptLogin(){
