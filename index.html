@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
 <title>MEEG Productivity</title>
-<meta name="app-version" content="6"/>
+<meta name="app-version" content="7"/>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 54 46'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%2300e5d4'/%3E%3Cstop offset='100%25' stop-color='%230f8fff'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpolygon points='0,4 30,4 21,16 0,16' fill='url(%23g)'/%3E%3Cpolygon points='5,19 35,19 26,31 5,31' fill='url(%23g)'/%3E%3Cpolygon points='10,34 40,34 31,46 10,46' fill='url(%23g)'/%3E%3C/svg%3E"/>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -430,6 +430,11 @@ td a{color:var(--info);text-decoration:none;font-weight:700;}
 .login-btn:active{transform:scale(.98);}
 .login-btn.dodging{position:absolute;width:150px;z-index:5;}
 .login-err-msg{color:#f0899c;font-size:.66rem;font-weight:700;margin-top:10px;min-height:14px;font-family:var(--mono);}
+.login-input.stack{margin-top:10px;}
+.login-input[readonly]{opacity:.65;cursor:default;}
+.login-hint{color:#9fe9f2;font-size:.64rem;font-family:var(--mono);margin-top:12px;line-height:1.5;}
+.login-link{color:#7fd8f0;font-size:.62rem;font-family:var(--mono);margin-top:12px;cursor:pointer;text-decoration:underline;opacity:.85;}
+.login-link:hover{opacity:1;}
 .user-chip{display:inline-flex;align-items:center;gap:8px;padding:4px 13px 4px 5px;border-radius:999px;border:1px solid var(--border);background:var(--card);max-width:200px;cursor:default;}
 .user-chip .uc-av{width:24px;height:24px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--display);font-size:.68rem;font-weight:700;flex-shrink:0;}
 .user-chip .uc-name{font-family:var(--mono);font-size:.6rem;font-weight:700;color:var(--text);letter-spacing:.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -460,10 +465,14 @@ td a{color:var(--info);text-decoration:none;font-weight:700;}
     <div class="login-title">MEEG</div>
     <div class="login-sub">Productivity · Sign In</div>
     <input type="email" id="loginEmailInput" class="login-input" placeholder="you@example.com" autocomplete="email" onkeydown="if(event.key==='Enter')attemptLogin()"/>
+    <div class="login-hint" id="loginHint" style="display:none"></div>
+    <input type="password" id="loginPassInput" class="login-input stack" placeholder="Password" autocomplete="current-password" style="display:none" onkeydown="if(event.key==='Enter')attemptLogin()"/>
+    <input type="password" id="loginPass2Input" class="login-input stack" placeholder="Confirm password" autocomplete="new-password" style="display:none" onkeydown="if(event.key==='Enter')attemptLogin()"/>
     <div class="login-btn-zone" id="loginBtnZone">
-      <button class="login-btn" id="loginSubmitBtn" onclick="attemptLogin()">Login →</button>
+      <button class="login-btn" id="loginSubmitBtn" onclick="attemptLogin()">Continue →</button>
     </div>
     <div class="login-err-msg" id="loginErrMsg"></div>
+    <div class="login-link" id="loginBackLink" style="display:none" onclick="goLoginStep('email')">← Use a different email</div>
   </div>
 </div>
 <div class="orb orb-1"></div><div class="orb orb-2"></div>
@@ -615,14 +624,14 @@ function checkUsersAccess(){
   const em=getLoggedInEmail();
   if(!em)return;
   _usersLastCheck=Date.now();
-  loadUsers(true).then(()=>{
-    if(!isAllowedEmail(em)){
-      try{sessionStorage.setItem('meeg_kicked','1');}catch(e){}
-      logoutUser(); // clears the session and reloads → login screen
+  authCall({action:'verify',token:getAuthToken()}).then(r=>{
+    if(r&&r.ok){
+      loadUsers(true).then(()=>renderUserChip(false)).catch(()=>{}); // picks up renamed users / role changes too
     }else{
-      renderUserChip(false); // picks up renamed users / role changes too
+      try{sessionStorage.setItem('meeg_login_msg',r&&r.error==='not_allowed'?'Your access has been removed 🚫':'Session ended — please sign in again');}catch(e){}
+      logoutUser(); // clears the session and reloads → login screen
     }
-  }).catch(()=>{}); // Google hiccup / offline → keep the current session, try again next time
+  }).catch(()=>{}); // server hiccup / offline → keep the current session, try again next time
 }
 function startUsersWatch(){
   if(_usersWatchTimer)return;
@@ -632,35 +641,100 @@ function startUsersWatch(){
 }
 /* ============ END USERS DIRECTORY ============ */
 
+/* ============ PASSWORD AUTH (server = Google Apps Script web app, see auth-server.gs) ============
+   Paste the web-app /exec URL below. Until it is set, nobody can sign in (fails closed). */
+const AUTH_API_URL='https://script.google.com/macros/s/AKfycbw6nGRvLNj059v6Ew_s1-vHP1JnXsRKTTaR2Irdev4xfBeTdmklsE7QveRZBvIbFryP/exec';
+const AUTH_TOKEN_KEY='meeg_auth_token';
+function getAuthToken(){try{return localStorage.getItem(AUTH_TOKEN_KEY)||'';}catch(e){return '';}}
+function authCall(body){
+  if(!AUTH_API_URL)return Promise.reject(new Error('AUTH_API_URL is not set'));
+  return fetch(AUTH_API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body),cache:'no-store'}).then(r=>r.json());
+}
+function clearSession(){
+  try{localStorage.removeItem(AUTH_KEY);localStorage.removeItem(AUTH_VER_KEY);localStorage.removeItem(AUTH_TOKEN_KEY);}catch(e){}
+}
 function getLoggedInEmail(){
   try{
-    if(localStorage.getItem(AUTH_VER_KEY)!==AUTH_VER){
-      localStorage.removeItem(AUTH_KEY);
-      localStorage.removeItem(AUTH_VER_KEY);
+    if(localStorage.getItem(AUTH_VER_KEY)!==AUTH_VER||!localStorage.getItem(AUTH_TOKEN_KEY)){
+      clearSession();
       return '';
     }
     return localStorage.getItem(AUTH_KEY)||'';
   }catch(e){return '';}
 }
 
+let _loginStep='email',_loginBusy=false;
+function goLoginStep(step,msg){
+  _loginStep=step;
+  const $=id=>document.getElementById(id);
+  const eIn=$('loginEmailInput'),pIn=$('loginPassInput'),p2In=$('loginPass2Input'),btn=$('loginSubmitBtn'),hint=$('loginHint'),back=$('loginBackLink');
+  [eIn,pIn,p2In].forEach(x=>x.classList.remove('err'));
+  $('loginErrMsg').textContent=msg||'';
+  const isEmail=step==='email';
+  eIn.readOnly=!isEmail;
+  pIn.style.display=isEmail?'none':'';
+  p2In.style.display=step==='setup'?'':'none';
+  back.style.display=isEmail?'none':'';
+  const h=step==='setup'?'First time here — create your own password (at least 8 characters).':(step==='login'?'Enter your password.':'');
+  hint.textContent=h;hint.style.display=h?'':'none';
+  btn.textContent=isEmail?'Continue →':(step==='setup'?'Create password →':'Login →');
+  pIn.autocomplete=step==='setup'?'new-password':'current-password';
+  pIn.value='';p2In.value='';
+  setTimeout(()=>(isEmail?eIn:pIn).focus(),50);
+}
+
 async function attemptLogin(){
-  const input=document.getElementById('loginEmailInput');
-  const errEl=document.getElementById('loginErrMsg');
-  const raw=(input.value||'').trim().toLowerCase();
-  input.classList.remove('err');
-  if(!raw){errEl.textContent='Please enter your email';input.classList.add('err');input.focus();return;}
-  if(!isValidEmailFormat(raw)){errEl.textContent='Invalid email format';input.classList.add('err');input.focus();return;}
-  errEl.textContent='Checking…';
-  try{await loadUsers(true);}catch(e){ /* offline / Google hiccup → fall back to the last cached list if there is one */ }
-  if(!usersLoaded){errEl.textContent='Could not load the users list — check your connection and try again';return;}
-  if(!isAllowedEmail(raw)){errEl.textContent='You Are Not Allowed 🚫';input.classList.add('err');input.focus();return;}
+  if(_loginBusy)return;
+  const eIn=document.getElementById('loginEmailInput'),pIn=document.getElementById('loginPassInput'),p2In=document.getElementById('loginPass2Input');
+  const errEl=document.getElementById('loginErrMsg'),btn=document.getElementById('loginSubmitBtn');
+  const raw=(eIn.value||'').trim().toLowerCase();
+  [eIn,pIn,p2In].forEach(x=>x.classList.remove('err'));
+  const fail=(m,el)=>{errEl.textContent=m;if(el){el.classList.add('err');el.focus();}};
+  if(!raw)return fail('Please enter your email',eIn);
+  if(!isValidEmailFormat(raw))return fail('Invalid email format',eIn);
+  if(!AUTH_API_URL)return fail('Sign-in server is not configured yet');
+  _loginBusy=true;btn.disabled=true;
   try{
-    localStorage.setItem(AUTH_KEY,raw);
-    localStorage.setItem(AUTH_VER_KEY,AUTH_VER);
-  }catch(e){}
-  errEl.textContent='';
-  document.getElementById('loginScreen').classList.add('hidden');
-  startApp();
+    /* ---- step 1: is this email allowed, and does it already have a password? ---- */
+    if(_loginStep==='email'){
+      errEl.textContent='Checking…';
+      let r;
+      try{r=await authCall({action:'status',email:raw});}catch(e){return fail('Could not reach the server — check your connection and try again');}
+      if(!r||!r.ok)return fail('Something went wrong — try again');
+      if(!r.allowed)return fail('You Are Not Allowed 🚫',eIn);
+      goLoginStep(r.hasPassword?'login':'setup');
+      return;
+    }
+    /* ---- step 2: password (create or enter) ---- */
+    const pass=pIn.value;
+    if(!pass)return fail('Please enter your password',pIn);
+    if(_loginStep==='setup'){
+      if(pass.length<8)return fail('Password must be at least 8 characters',pIn);
+      if(pass!==p2In.value)return fail('Passwords do not match',p2In);
+    }
+    errEl.textContent=_loginStep==='setup'?'Creating password…':'Signing in…';
+    let r;
+    try{r=await authCall({action:_loginStep,email:raw,password:pass});}catch(e){return fail('Could not reach the server — check your connection and try again');}
+    if(!r||!r.ok){
+      const er=r&&r.error;
+      if(er==='bad_password')return fail('Wrong password',pIn);
+      if(er==='locked')return fail('Too many wrong attempts — try again in 10 minutes');
+      if(er==='not_allowed')return fail('You Are Not Allowed 🚫');
+      if(er==='already_set')return goLoginStep('login','A password already exists for this email — enter it to sign in');
+      if(er==='no_password')return goLoginStep('setup');
+      if(er==='weak')return fail('Password must be at least 8 characters',pIn);
+      return fail('Something went wrong — try again');
+    }
+    try{
+      localStorage.setItem(AUTH_KEY,raw);
+      localStorage.setItem(AUTH_VER_KEY,AUTH_VER);
+      localStorage.setItem(AUTH_TOKEN_KEY,r.token);
+    }catch(e){}
+    pIn.value='';p2In.value='';errEl.textContent='';
+    try{await loadUsers(true);}catch(e){} // names / roles for the header chip (non-blocking on failure)
+    document.getElementById('loginScreen').classList.add('hidden');
+    startApp();
+  }finally{_loginBusy=false;btn.disabled=false;}
 }
 
 
@@ -690,16 +764,12 @@ function renderUserChip(welcome){
 
 function logoutUser(){
   try{idbClear();}catch(e){}
-  try{
-    localStorage.removeItem(AUTH_KEY);
-    localStorage.removeItem(AUTH_VER_KEY);
-  }catch(e){}
+  clearSession();
   window.location.reload();
 }
 
 function checkAuthOnLoad(){
-  const email=getLoggedInEmail();
-  if(email&&isAllowedEmail(email)){
+  if(getLoggedInEmail()){
     document.getElementById('loginScreen').classList.add('hidden');
     return true;
   }
@@ -710,8 +780,7 @@ function checkAuthOnLoad(){
 
 /* if the session was invalidated (logout from another tab / new auth version) — show the login screen immediately */
 function enforceAuthLive(){
-  const email=getLoggedInEmail();
-  if(email&&isAllowedEmail(email))return;
+  if(getLoggedInEmail())return;
   if(typeof autoRefreshTimer!=='undefined'&&autoRefreshTimer){clearInterval(autoRefreshTimer);autoRefreshTimer=null;}
   if(typeof _versionCheckTimer!=='undefined'&&_versionCheckTimer){clearInterval(_versionCheckTimer);_versionCheckTimer=null;}
   const ls=document.getElementById('loginScreen');
@@ -2493,21 +2562,23 @@ window.addEventListener('load',()=>{
   const showLogin=(msg)=>{
     if(splash&&splash.parentNode){window._splashTpl=splash.outerHTML;splash.remove();}
     document.getElementById('loginScreen').classList.remove('hidden');
-    const em=document.getElementById('loginErrMsg');let kicked=false;try{kicked=sessionStorage.getItem('meeg_kicked')==='1';sessionStorage.removeItem('meeg_kicked');}catch(e){}if(em)em.textContent=kicked?'Your access has been removed 🚫':(msg||'');
-    setTimeout(()=>{const i=document.getElementById('loginEmailInput');if(i)i.focus();},80);
+    let m='';try{m=sessionStorage.getItem('meeg_login_msg')||'';sessionStorage.removeItem('meeg_login_msg');}catch(e){}
+    goLoginStep('email',m||msg||'');
   };
   if(!email){showLogin();loadUsers().catch(()=>{});return;} // not signed in — warm the users list while they type
-  const enter=()=>{
-    if(!isAllowedEmail(email)){ // this email was removed from the Users tab
-      try{localStorage.removeItem(AUTH_KEY);localStorage.removeItem(AUTH_VER_KEY);}catch(e){}
-      showLogin();return;
+  /* has a saved session → keep the login screen hidden (splash shows), confirm the session with the server BEFORE any data is loaded */
+  document.getElementById('loginScreen').classList.add('hidden');
+  const enter=()=>{startApp();};
+  const withNames=()=>{ if(usersLoaded)enter(); else loadUsers().then(enter).catch(enter); };
+  authCall({action:'verify',token:getAuthToken()}).then(r=>{
+    if(r&&r.ok)withNames();
+    else{
+      clearSession();
+      showLogin(r&&r.error==='not_allowed'?'Your access has been removed 🚫':'Session ended — please sign in again');
     }
-    document.getElementById('loginScreen').classList.add('hidden');
-    startApp();
-    checkUsersAccess(); // immediate re-check against the Users tab (startApp keeps re-checking every 30s)
-  };
-  if(usersLoaded)enter();
-  else loadUsers().then(enter).catch(()=>showLogin('Could not load the users list — check your connection and try again'));
+  }).catch(()=>{ // server unreachable → don't lock people out because of a network hiccup; the 30s watch re-checks later
+    if(AUTH_API_URL)withNames(); else{clearSession();showLogin('Sign-in server is not configured yet');}
+  });
 });
 
 /* =====================================================================
