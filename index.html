@@ -204,6 +204,8 @@ html[data-theme="dark"] .tm-in{color-scheme:dark;}
 .tm-presets{display:flex;flex-wrap:wrap;gap:5px;padding:10px 12px 0;}
 .tm-presets button{padding:4px 9px;border-radius:10px;font-size:.56rem;font-weight:700;font-family:var(--font);cursor:pointer;border:1px solid var(--border);background:var(--card);color:var(--muted);}
 .tm-presets button:hover{border-color:var(--accent);color:var(--accent);}
+.tm-presets button.on{border-color:var(--accent);color:var(--accent);background:var(--elevated);}
+.tm-presets button{flex:1;font-size:.68rem;padding:6px 9px;}
 .tm-note{padding:8px 12px 10px;font-size:.54rem;color:var(--muted);line-height:1.5;}
 .dp-foot button{flex:1;padding:5px;border-radius:10px;font-size:.58rem;font-weight:700;font-family:var(--font);cursor:pointer;border:1px solid var(--border);background:var(--card);color:var(--muted);transition:all .15s}
 .dp-foot button:hover{border-color:var(--accent);color:var(--accent)}
@@ -923,8 +925,8 @@ function toggleDark(){const html=document.documentElement;const isDark=html.getA
 let autoRefreshEnabled=(function(){try{const v=localStorage.getItem('meeg_autorefresh');return v===null?true:v==='1';}catch(e){return true;}})();
 function applyAutoRefreshUI(){const btn=document.getElementById('arBtn');if(!btn)return;btn.classList.toggle('active',autoRefreshEnabled);btn.innerHTML=autoRefreshEnabled?'🔄 Auto':'⏸️ Off';}
 function toggleAutoRefresh(){autoRefreshEnabled=!autoRefreshEnabled;try{localStorage.setItem('meeg_autorefresh',autoRefreshEnabled?'1':'0');}catch(e){}applyAutoRefreshUI();if(autoRefreshEnabled){if(autoRefreshTimer)clearInterval(autoRefreshTimer);autoRefreshTimer=setInterval(loadData,REFRESH_INTERVAL*1000);showToast('⏱️ Auto-refresh ON');}else{if(autoRefreshTimer)clearInterval(autoRefreshTimer);autoRefreshTimer=null;showToast('⏸️ Auto-refresh OFF');}}
-function saveFilters(){try{const state={sel:Object.fromEntries(Object.entries(sel).map(([k,v])=>[k,[...v]])),selD:[...selD],selWeeks:[...selWeeks],idFilter,timeFrom,timeTo,shifts:Object.fromEntries(Object.entries(shiftState).map(([k,v])=>[k,v.on])),activeLoc};localStorage.setItem('meeg_filters',JSON.stringify(state));}catch(e){}}
-function restoreFilters(){try{const raw=localStorage.getItem('meeg_filters');if(!raw)return;const state=JSON.parse(raw);if(state.sel)Object.entries(state.sel).forEach(([k,arr])=>{if(k==='Shift')return;sel[k]=new Set(arr);}); /* the Shift dropdown was removed (the Shifts buttons cover it) — ignore any old saved value */if(state.selD)state.selD.forEach(d=>selD.add(d));if(state.selWeeks)state.selWeeks.forEach(w=>selWeeks.add(w));if(state.idFilter)idFilter=state.idFilter;if(state.timeFrom)timeFrom=state.timeFrom;if(state.timeTo)timeTo=state.timeTo;if(state.shifts)Object.entries(state.shifts).forEach(([k,on])=>{if(shiftState[k]){shiftState[k].on=on;const btn=document.getElementById('btn_'+k);if(btn){btn.classList.toggle('on',on);btn.querySelector('.dot').textContent=on?'●':'○';}}});if(state.activeLoc)activeLoc=state.activeLoc;}catch(e){}}
+function saveFilters(){try{const state={sel:Object.fromEntries(Object.entries(sel).map(([k,v])=>[k,[...v]])),selD:[...selD],selWeeks:[...selWeeks],idFilter,timeFrom,timeTo,timePreset,shifts:Object.fromEntries(Object.entries(shiftState).map(([k,v])=>[k,v.on])),activeLoc};localStorage.setItem('meeg_filters',JSON.stringify(state));}catch(e){}}
+function restoreFilters(){try{const raw=localStorage.getItem('meeg_filters');if(!raw)return;const state=JSON.parse(raw);if(state.sel)Object.entries(state.sel).forEach(([k,arr])=>{if(k==='Shift')return;sel[k]=new Set(arr);}); /* the Shift dropdown was removed (the Shifts buttons cover it) — ignore any old saved value */if(state.selD)state.selD.forEach(d=>selD.add(d));if(state.selWeeks)state.selWeeks.forEach(w=>selWeeks.add(w));if(state.idFilter)idFilter=state.idFilter;if(state.timeFrom)timeFrom=state.timeFrom;if(state.timeTo)timeTo=state.timeTo;if(state.timePreset&&TIME_SHIFTS[state.timePreset])timePreset=state.timePreset;if(state.shifts)Object.entries(state.shifts).forEach(([k,on])=>{if(shiftState[k]){shiftState[k].on=on;const btn=document.getElementById('btn_'+k);if(btn){btn.classList.toggle('on',on);btn.querySelector('.dot').textContent=on?'●':'○';}}});if(state.activeLoc)activeLoc=state.activeLoc;}catch(e){}}
 function animateNum(el,target,duration=900){const start=performance.now();function step(now){const p=Math.min((now-start)/duration,1);const ease=1-Math.pow(1-p,3);el.textContent=Math.round(ease*(target)).toLocaleString();if(p<1)requestAnimationFrame(step);else el.textContent=target.toLocaleString();}requestAnimationFrame(step);}
 function animateAllNums(){document.querySelectorAll('[data-anim-num]').forEach(el=>{const t=parseInt(el.getAttribute('data-anim-num'));if(!isNaN(t))animateNum(el,t);});}
 let cmpMode=false;
@@ -950,7 +952,20 @@ let locations=[],activeLoc='__all__';
 let sel={},selD=new Set(),selWeeks=new Set();
 let idFilter='';
 /* ===== TIME-OF-DAY FILTER (From → To, minutes since midnight; From later than To = overnight range) ===== */
-let timeFrom='',timeTo='';
+let timeFrom='',timeTo='',timePreset='';
+/* Shift presets — every room has its own window (minutes are inclusive). 102 runs 30 min later than the other rooms. */
+const TIME_SHIFTS={
+  M :{ic:'🌅',base:['08:00','15:45'],r102:['08:30','16:15']},
+  N :{ic:'🌆',base:['16:00','23:45'],r102:['16:30','00:15']},
+  ON:{ic:'🌙',base:['00:00','07:45'],r102:['00:30','08:15']}
+};
+function isRoom102(r){
+  for(const idx of [sIdx['Location'],sIdx['Unit'],locColIdx]){
+    if(idx!==undefined&&idx>=0&&/(^|\D)102(\D|$)/.test(String(r[idx]==null?'':r[idx])))return true;
+  }
+  return false;
+}
+function inWin(m,w){const a=t2m(w[0]),b=t2m(w[1]);return a<=b?(m>=a&&m<=b):(m>=a||m<=b);}
 function t2m(t){const m=/^(\d{1,2}):(\d{2})$/.exec(t||'');return m?(+m[1])*60+(+m[2]):-1;}
 function rMinutes(r){
   if(tsIdx<0)return -1;
@@ -964,31 +979,34 @@ function rMinutes(r){
   return -1;
 }
 function timeOk(r){
-  if(!timeFrom&&!timeTo)return true;
+  if(!timeFrom&&!timeTo&&!timePreset)return true;
   const m=rMinutes(r);if(m<0)return false;
+  if(timePreset){const t=TIME_SHIFTS[timePreset];return t?inWin(m,isRoom102(r)?t.r102:t.base):true;}
   const a=t2m(timeFrom),b=t2m(timeTo);
   if(a>=0&&b>=0)return a<=b?(m>=a&&m<=b):(m>=a||m<=b);
   if(a>=0)return m>=a;
   if(b>=0)return m<=b;
   return true;
 }
-function timeChipLabel(){return '🕒 Time'+((timeFrom||timeTo)?` <span class="chk-cnt">${timeFrom||'…'}–${timeTo||'…'}</span>`:'');}
-function updTimeChip(){const fc=document.getElementById('fc___time');if(!fc)return;fc.className='fchip'+((timeFrom||timeTo)?' has-sel':'')+(openK==='__time'?' open':'');fc.innerHTML=timeChipLabel()+' <span class="chk-arr">▾</span>';}
+function timeActive(){return !!(timeFrom||timeTo||timePreset);}
+function timeChipLabel(){return '🕒 Time'+(timePreset?` <span class="chk-cnt">${timePreset}</span>`:((timeFrom||timeTo)?` <span class="chk-cnt">${timeFrom||'…'}–${timeTo||'…'}</span>`:''));}
+function updTimeChip(){const fc=document.getElementById('fc___time');if(!fc)return;fc.className='fchip'+(timeActive()?' has-sel':'')+(openK==='__time'?' open':'');fc.innerHTML=timeChipLabel()+' <span class="chk-arr">▾</span>';}
 function syncTimeInputs(){const a=document.getElementById('tmFrom'),b=document.getElementById('tmTo');if(a)a.value=timeFrom;if(b)b.value=timeTo;}
+function updTimePresetBtns(){document.querySelectorAll('#dp___time .tm-presets button').forEach(b=>b.classList.toggle('on',b.dataset.tp===timePreset));}
 function _timeApplied(){
-  updTimeChip();applyAll();
-  if((timeFrom||timeTo)&&!rawRows.some(r=>rMinutes(r)>=0))showToast('⚠️ No time-of-day found in the Timestamp column');
+  updTimeChip();updTimePresetBtns();applyAll();
+  if(timeActive()&&!rawRows.some(r=>rMinutes(r)>=0))showToast('⚠️ No time-of-day found in the Timestamp column');
 }
-function setTime(which,v){if(which==='from')timeFrom=v||'';else timeTo=v||'';_timeApplied();}
-function setTimeRange(a,b){timeFrom=a;timeTo=b;syncTimeInputs();_timeApplied();}
-function clrTime(){timeFrom='';timeTo='';syncTimeInputs();updTimeChip();applyAll();}
+function setTime(which,v){timePreset='';if(which==='from')timeFrom=v||'';else timeTo=v||'';_timeApplied();}
+function setTimePreset(k){timePreset=(timePreset===k)?'':k;timeFrom='';timeTo='';syncTimeInputs();_timeApplied();}
+function clrTime(){timeFrom='';timeTo='';timePreset='';syncTimeInputs();updTimeChip();updTimePresetBtns();applyAll();}
 function timeChipHtml(){
-  const on=!!(timeFrom||timeTo);
+  const on=timeActive();
   return `<div class="fg" id="fg___time"><div class="fchip${on?' has-sel':''}" id="fc___time" onclick="tgDrop('__time')">${timeChipLabel()} <span class="chk-arr">▾</span></div><div class="dpanel" id="dp___time" style="min-width:250px">`
    +`<div class="tm-row"><label>From</label><input type="time" class="tm-in" id="tmFrom" value="${timeFrom}" onchange="setTime('from',this.value)"/></div>`
    +`<div class="tm-row"><label>To</label><input type="time" class="tm-in" id="tmTo" value="${timeTo}" onchange="setTime('to',this.value)"/></div>`
-   +`<div class="tm-presets"><button onclick="setTimeRange('06:00','11:59');event.stopPropagation()">🌅 06–12</button><button onclick="setTimeRange('12:00','17:59');event.stopPropagation()">☀️ 12–18</button><button onclick="setTimeRange('18:00','23:59');event.stopPropagation()">🌆 18–24</button><button onclick="setTimeRange('00:00','05:59');event.stopPropagation()">🌙 00–06</button></div>`
-   +`<div class="tm-note">From later than To = overnight range (e.g. 22:00 → 06:00). Rows without a time are hidden while this filter is on.</div>`
+   +`<div class="tm-presets">${Object.keys(TIME_SHIFTS).map(k=>`<button data-tp="${k}" class="${timePreset===k?'on':''}" onclick="setTimePreset('${k}');event.stopPropagation()">${TIME_SHIFTS[k].ic} ${k}</button>`).join('')}</div>`
+   +`<div class="tm-note"><b>M</b> 104·105·106·108: 08:00–15:45 · 102: 08:30–16:15<br><b>N</b> 104·105·106·108: 16:00–23:45 · 102: 16:30–00:15<br><b>ON</b> 104·105·106·108: 00:00–07:45 · 102: 00:30–08:15<br>Or pick a custom From/To above (From later than To = overnight). Rows without a time are hidden while this filter is on.</div>`
    +`<div class="dp-foot"><button onclick="clrTime();event.stopPropagation()">✕ Clear</button><button onclick="closeDr('__time');event.stopPropagation()">✓ Done</button></div></div></div>`;
 }
 let sortC=-1,sortDr=1,fcache=[],openK=null,locSearch={};
@@ -2161,11 +2179,11 @@ function clearAll(){
     selD:[...selD],
     selWeeks:[...selWeeks],
     idFilter,
-    timeFrom,timeTo,
+    timeFrom,timeTo,timePreset,
     shifts:Object.fromEntries(Object.entries(shiftState).map(([k,v])=>[k,v.on]))
   };
   setShiftsUI(null);
-  selD.clear();selWeeks.clear();idFilter='';timeFrom='';timeTo='';Object.keys(sel).forEach(k=>sel[k].clear());
+  selD.clear();selWeeks.clear();idFilter='';timeFrom='';timeTo='';timePreset='';Object.keys(sel).forEach(k=>sel[k].clear());
   document.querySelectorAll('.dp-srch').forEach(e=>e.value='');
   locSearch={};saveFilters();buildStrip();applyAll();
   showToastUndo('🗑️ All filters cleared','↩️ Undo',undoClearAll);
@@ -2176,7 +2194,7 @@ function undoClearAll(){
   selD=new Set(_lastClearedState.selD);
   selWeeks=new Set(_lastClearedState.selWeeks);
   idFilter=_lastClearedState.idFilter;
-  timeFrom=_lastClearedState.timeFrom||'';timeTo=_lastClearedState.timeTo||'';
+  timeFrom=_lastClearedState.timeFrom||'';timeTo=_lastClearedState.timeTo||'';timePreset=_lastClearedState.timePreset||'';
   setShiftsUI(_lastClearedState.shifts);
   const idInput=document.getElementById('idFilterInput');if(idInput)idInput.value=idFilter;
   saveFilters();buildStrip();applyAll();
@@ -2194,7 +2212,7 @@ function setIdFilter(v){
   },300);
 }
 function applyAll(){const idIdx=hdrs.findIndex(h=>h.toLowerCase()==='id');const idQ=idFilter.toLowerCase();fcache=rawRows.filter(r=>{if(!isRowAllowed(r))return false;if(selWeeks.size){const wl=getWeekLabel(rDate(r));if(!selWeeks.has(wl))return false;}if(selD.size&&!selD.has(rDate(r)))return false;if(!timeOk(r))return false;if(idQ&&idIdx>=0&&!String(r[idIdx]||'').toLowerCase().includes(idQ))return false;for(const[k,ss]of Object.entries(sel)){if(!ss.size)continue;const ci=sIdx[k];if(ci===undefined)continue;if(!ss.has(String(r[ci]||'').trim()))return false;}return true;});saveFilters();updPills();updPresets();buildTabs();renderAllSections();}
-function updPills(){const w=document.getElementById('pillsRow');const ps=[];let any=false;if(idFilter){any=true;ps.push(`<span class="pill">🔎 ID: ${esc(idFilter)} <span class="pill-x" onclick="setIdFilter('');const i=document.getElementById('idFilterInput');if(i)i.value='';">✕</span></span>`);}selWeeks.forEach(wk=>{any=true;ps.push(`<span class="pill">📅 ${esc(wk)} <span class="pill-x" onclick="tgWeek('${esc(wk)}')">✕</span></span>`);});selD.forEach(d=>{any=true;ps.push(`<span class="pill">${d===todayStr?'🗓️ '+d+' ⭐':'🗓️ '+d} <span class="pill-x" onclick="tgDate('${d}')">✕</span></span>`);});if(timeFrom||timeTo){any=true;ps.push(`<span class="pill">🕒 ${timeFrom||'…'} → ${timeTo||'…'} <span class="pill-x" onclick="clrTime()">✕</span></span>`);}for(const[k,ss]of Object.entries(sel)){ss.forEach(v=>{any=true;const sc=SC.find(s=>s.key===k);ps.push(`<span class="pill">${sc?sc.ic:''} ${esc(v)} <span class="pill-x" onclick="tgVal('${esc(k)}','${esc(v)}')">✕</span></span>`);});}w.innerHTML=any?ps.join('')+`<button class="clr-btn" onclick="clearAll()">✕ Clear All</button>`:'<span class="pill pill-all">All Data — No Filters Active</span>';}
+function updPills(){const w=document.getElementById('pillsRow');const ps=[];let any=false;if(idFilter){any=true;ps.push(`<span class="pill">🔎 ID: ${esc(idFilter)} <span class="pill-x" onclick="setIdFilter('');const i=document.getElementById('idFilterInput');if(i)i.value='';">✕</span></span>`);}selWeeks.forEach(wk=>{any=true;ps.push(`<span class="pill">📅 ${esc(wk)} <span class="pill-x" onclick="tgWeek('${esc(wk)}')">✕</span></span>`);});selD.forEach(d=>{any=true;ps.push(`<span class="pill">${d===todayStr?'🗓️ '+d+' ⭐':'🗓️ '+d} <span class="pill-x" onclick="tgDate('${d}')">✕</span></span>`);});if(timeActive()){any=true;ps.push(`<span class="pill">🕒 ${timePreset?timePreset+' shift':(timeFrom||'…')+' → '+(timeTo||'…')} <span class="pill-x" onclick="clrTime()">✕</span></span>`);}for(const[k,ss]of Object.entries(sel)){ss.forEach(v=>{any=true;const sc=SC.find(s=>s.key===k);ps.push(`<span class="pill">${sc?sc.ic:''} ${esc(v)} <span class="pill-x" onclick="tgVal('${esc(k)}','${esc(v)}')">✕</span></span>`);});}w.innerHTML=any?ps.join('')+`<button class="clr-btn" onclick="clearAll()">✕ Clear All</button>`:'<span class="pill pill-all">All Data — No Filters Active</span>';}
 
 /* ===== PATCH #2: race-condition-safe tab switching (token guard) ===== */
 let _tabRenderToken=0;
