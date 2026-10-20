@@ -2219,7 +2219,7 @@ const BACKUP_SHEET_ID='1vpsYtvoZSKLsUeKj-FTXVGJmyFygSSck8DUIODJha_A';
 const BACKUP_SHEET_GID='0';
 function csvEsc(v){v=v==null?'':String(v);return /[",\n\r]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;}
 function tableToCSV(t){return t.map(r=>r.map(csvEsc).join(',')).join('\n');}
-function _hk(h){return String(h==null?'':h).toLowerCase().replace(/[\s_\-.]+/g,'');}
+function _hk(h){const k=String(h==null?'':h).toLowerCase().replace(/[\s_\-.]+/g,'');return (k==='taskid'||k==='actualid')?'id':k;}   // "Task ID" (Backup) and "ID" (Data Base) are the same column
 function fetchBackupTable(){
   return fetch(`https://docs.google.com/spreadsheets/d/${BACKUP_SHEET_ID}/export?format=csv&gid=${encodeURIComponent(BACKUP_SHEET_GID)}`,{cache:'no-store'})
     .then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.text();})
@@ -2229,16 +2229,19 @@ function fetchBackupTable(){
 function mergeBackup(mainTable,bTable){
   if(!mainTable.length||!bTable.length)return 0;
   const mH=mainTable[0].map(_hk),bH=bTable[0].map(_hk);
-  const map=mH.map(h=>h?bH.indexOf(h):-1);                      // main column i  ->  backup column (or -1)
-  if(map.every(i=>i<0))return 0;                                // no common headers → nothing sensible to merge
-  const keyCols=['timestamp','yubikeyemail','labelername','pcno','queuename','tasklink'].map(k=>mH.indexOf(k)).filter(i=>i>=0);
+  const map=mH.map(h=>{const l=[];if(h)bH.forEach((x,i)=>{if(x===h)l.push(i);});return l;});   // main column i -> backup column(s) with the same name
+  if(map.every(l=>!l.length))return 0;                          // no common headers → nothing sensible to merge
+  const linkIdx=bH.indexOf('tasklink');
+  const keyCols=['timestamp','yubikeyemail','labelername','pcno','queuename','id'].map(k=>mH.indexOf(k)).filter(i=>i>=0);
   const norm=v=>String(v==null?'':v).trim().replace(/\s+/g,' ').toLowerCase();
   const keyOf=r=>keyCols.map(i=>norm(r[i])).join('|');
   const seen=new Set();for(let i=1;i<mainTable.length;i++)seen.add(keyOf(mainTable[i]));
   let added=0;
   for(let i=1;i<bTable.length;i++){
     const br=bTable[i];if(!br||!br.length||br.every(c=>String(c||'').trim()===''))continue;
-    const row=mH.map((_,ci)=>map[ci]>=0&&br[map[ci]]!==undefined?String(br[map[ci]]).trim():'');
+    const row=mH.map((_,ci)=>{for(const bi of map[ci]){const v=br[bi]!==undefined?String(br[bi]).trim():'';if(v)return v;}return '';});
+    const idc=mH.indexOf('id');   // Task ID missing in the backup row → take it from the task link (…/id/1465137880/queue/…)
+    if(idc>=0&&!row[idc]&&linkIdx>=0){const m=/\/id\/(\d+)/.exec(String(br[linkIdx]||''));if(m)row[idc]=m[1];}
     const k=keyOf(row);if(seen.has(k))continue;seen.add(k);
     mainTable.push(row);added++;
   }
@@ -2287,7 +2290,8 @@ function onCsvData(text,fromCache){
 }
 function cairoToday(){try{return new Date().toLocaleDateString('en-CA',{timeZone:'Africa/Cairo'});}catch(e){const n=new Date();return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');}}
 function onCsvTable(table){
-  if(!table.length){showErr('No data returned.');return;}hdrs=table[0].map(h=>String(h||'').trim());const hLower=hdrs.map(h=>h.toLowerCase());sIdx={};["Shift","Unit","Qtc Name","Yubikey Email","Labeler Name","Pc No","Modality","Queue Name","Location","Pass"].forEach(name=>{const i=hLower.indexOf(name.toLowerCase());if(i>=0)sIdx[name]=i;});tsIdx=hLower.findIndex(h=>h==='timestamp');if(tsIdx<0)tsIdx=hLower.findIndex(h=>h==='created at');if(tsIdx<0)tsIdx=hLower.findIndex(h=>h==='date');if(tsIdx<0)tsIdx=hLower.findIndex(h=>h.includes('date'));locColIdx=hLower.findIndex(h=>h==='location');if(locColIdx<0)locColIdx=hLower.findIndex(h=>h==='unit');if(locColIdx<0)locColIdx=hLower.findIndex(h=>h==='site');rawRows=[];for(let ri=1;ri<table.length;ri++){const rowRaw=table[ri];if(!rowRaw||!rowRaw.length)continue;const row=hdrs.map((_,ci)=>rowRaw[ci]!==undefined?String(rowRaw[ci]).trim():'');if(row.every(c=>c===''))continue;const sci=sIdx['Shift'];if(sci!==undefined){const sv=String(row[sci]||'').trim().toLowerCase();if(!ALL_SHIFTS.some(a=>sv===a))continue;}normRow(row);rawRows.push(row);}sOpts={};["Shift","Unit","Qtc Name","Yubikey Email","Labeler Name","Pc No","Modality","Queue Name","Location","Pass"].forEach(name=>{const ci=sIdx[name];if(ci===undefined)return;const set=new Set();rawRows.forEach(r=>{const v=String(r[ci]||'').trim();if(v)set.add(v);});sOpts[name]=[...set].sort();});const dateSet=new Set();rawRows.forEach(r=>{const d=extractDate(r[tsIdx]);if(d)dateSet.add(d);});sOpts['_dates']=[...dateSet].sort().reverse();const locSet=new Set();if(locColIdx>=0)rawRows.forEach(r=>{const v=String(r[locColIdx]||'').trim();if(v)locSet.add(v);});locations=[...locSet].sort();todayStr=cairoToday();document.getElementById('todayLabel').textContent=todayStr;lastUpdateTs=Date.now();updateRelativeTime();setTrafficLight('green');window._firstDataReady=true;document.getElementById('totalBadge').textContent=rawRows.length+' rows';SC.forEach(s=>{if(!sel[s.key])sel[s.key]=new Set();});if(!_filtersRestored){restoreFilters();_filtersRestored=true;}buildStrip();buildTabs();applyAll();if(autoRefreshTimer)clearInterval(autoRefreshTimer);autoRefreshTimer=null;if(autoRefreshEnabled)autoRefreshTimer=setInterval(loadData,REFRESH_INTERVAL*1000);applyAutoRefreshUI();if(cmpMode)populateCmpSelects();try{loadArchiveIds();}catch(e){}
+  if(!table.length){showErr('No data returned.');return;}hdrs=table[0].map(h=>String(h||'').trim());const hLower=hdrs.map(h=>h.toLowerCase());sIdx={};["Shift","Unit","Qtc Name","Yubikey Email","Labeler Name","Pc No","Modality","Queue Name","Location","Pass"].forEach(name=>{const i=hLower.indexOf(name.toLowerCase());if(i>=0)sIdx[name]=i;});tsIdx=hLower.findIndex(h=>h==='timestamp');if(tsIdx<0)tsIdx=hLower.findIndex(h=>h==='created at');if(tsIdx<0)tsIdx=hLower.findIndex(h=>h==='date');if(tsIdx<0)tsIdx=hLower.findIndex(h=>h.includes('date'));locColIdx=hLower.findIndex(h=>h==='location');if(locColIdx<0)locColIdx=hLower.findIndex(h=>h==='unit');if(locColIdx<0)locColIdx=hLower.findIndex(h=>h==='site');rawRows=[];const skippedShift={};for(let ri=1;ri<table.length;ri++){const rowRaw=table[ri];if(!rowRaw||!rowRaw.length)continue;const row=hdrs.map((_,ci)=>rowRaw[ci]!==undefined?String(rowRaw[ci]).trim():'');if(row.every(c=>c===''))continue;const sci=sIdx['Shift'];if(sci!==undefined){const sv=String(row[sci]||'').replace(/\s+/g,' ').trim().toLowerCase();if(!ALL_SHIFTS.some(a=>sv===a)){const kk=sv||'(empty)';skippedShift[kk]=(skippedShift[kk]||0)+1;continue;}}normRow(row);rawRows.push(row);}window._skippedShift=skippedShift;{const ks=Object.keys(skippedShift),tot=ks.reduce((a,k)=>a+skippedShift[k],0);if(tot>0){console.warn('Rows skipped (unknown Shift value):',skippedShift);const sig=JSON.stringify(skippedShift);if(window._skipSig!==sig){window._skipSig=sig;showToast('⚠️ '+tot+' row(s) skipped — unknown Shift: '+ks.slice(0,4).map(k=>'"'+k+'" ×'+skippedShift[k]).join(', ')+(ks.length>4?' …':''));}}}
+sOpts={};["Shift","Unit","Qtc Name","Yubikey Email","Labeler Name","Pc No","Modality","Queue Name","Location","Pass"].forEach(name=>{const ci=sIdx[name];if(ci===undefined)return;const set=new Set();rawRows.forEach(r=>{const v=String(r[ci]||'').trim();if(v)set.add(v);});sOpts[name]=[...set].sort();});const dateSet=new Set();rawRows.forEach(r=>{const d=extractDate(r[tsIdx]);if(d)dateSet.add(d);});sOpts['_dates']=[...dateSet].sort().reverse();const locSet=new Set();if(locColIdx>=0)rawRows.forEach(r=>{const v=String(r[locColIdx]||'').trim();if(v)locSet.add(v);});locations=[...locSet].sort();todayStr=cairoToday();document.getElementById('todayLabel').textContent=todayStr;lastUpdateTs=Date.now();updateRelativeTime();setTrafficLight('green');window._firstDataReady=true;document.getElementById('totalBadge').textContent=rawRows.length+' rows';SC.forEach(s=>{if(!sel[s.key])sel[s.key]=new Set();});if(!_filtersRestored){restoreFilters();_filtersRestored=true;}buildStrip();buildTabs();applyAll();if(autoRefreshTimer)clearInterval(autoRefreshTimer);autoRefreshTimer=null;if(autoRefreshEnabled)autoRefreshTimer=setInterval(loadData,REFRESH_INTERVAL*1000);applyAutoRefreshUI();if(cmpMode)populateCmpSelects();try{loadArchiveIds();}catch(e){}
 }
 const _MONTH_NAMES={jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12};
 function extractDate(v){
