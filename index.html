@@ -2208,6 +2208,42 @@ let _lastCsvHash='';
 function simpleHash(s){let h=0;for(let i=0;i<s.length;i++){h=(h<<5)-h+s.charCodeAt(i);h|=0;}return h;}
 
 /* ===== PATCH #3: loading overlay only on first load, sync-bar handles refresh feedback ===== */
+
+/* ============ BACKUP SHEET (second Google Sheet that continues the Data Base when the main form is down) ============
+   Rows from the backup tab are merged INTO the main Data Base rows (matched by column NAME, so the column order may differ),
+   duplicates are dropped, and everything else in the dashboard works exactly the same.
+   - BACKUP_SHEET_ID : the long code between /d/ and /edit in the backup sheet URL ('' = turn the backup OFF)
+   - BACKUP_SHEET_GID: the number after gid= in the URL while you're on the "Backup Date Base" tab
+   - The backup sheet must be shared as "Anyone with the link can view". */
+const BACKUP_SHEET_ID='1vpsYtvoZSKLsUeKj-FTXVGJmyFygSSck8DUIODJha_A';
+const BACKUP_SHEET_GID='0';
+function csvEsc(v){v=v==null?'':String(v);return /[",\n\r]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;}
+function tableToCSV(t){return t.map(r=>r.map(csvEsc).join(',')).join('\n');}
+function _hk(h){return String(h==null?'':h).toLowerCase().replace(/[\s_\-.]+/g,'');}
+function fetchBackupTable(){
+  return fetch(`https://docs.google.com/spreadsheets/d/${BACKUP_SHEET_ID}/export?format=csv&gid=${encodeURIComponent(BACKUP_SHEET_GID)}`,{cache:'no-store'})
+    .then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.text();})
+    .then(t=>{if(/^\s*<(!doctype|html)/i.test(t))throw new Error('not readable — share the backup sheet as "Anyone with the link can view"');return parseCSVAsync(t);});
+}
+/* appends the backup rows (re-ordered to the main sheet's columns) to mainTable; returns how many rows were added */
+function mergeBackup(mainTable,bTable){
+  if(!mainTable.length||!bTable.length)return 0;
+  const mH=mainTable[0].map(_hk),bH=bTable[0].map(_hk);
+  const map=mH.map(h=>h?bH.indexOf(h):-1);                      // main column i  ->  backup column (or -1)
+  if(map.every(i=>i<0))return 0;                                // no common headers → nothing sensible to merge
+  const keyCols=['timestamp','yubikeyemail','labelername','pcno','queuename','tasklink'].map(k=>mH.indexOf(k)).filter(i=>i>=0);
+  const norm=v=>String(v==null?'':v).trim().replace(/\s+/g,' ').toLowerCase();
+  const keyOf=r=>keyCols.map(i=>norm(r[i])).join('|');
+  const seen=new Set();for(let i=1;i<mainTable.length;i++)seen.add(keyOf(mainTable[i]));
+  let added=0;
+  for(let i=1;i<bTable.length;i++){
+    const br=bTable[i];if(!br||!br.length||br.every(c=>String(c||'').trim()===''))continue;
+    const row=mH.map((_,ci)=>map[ci]>=0&&br[map[ci]]!==undefined?String(br[map[ci]]).trim():'');
+    const k=keyOf(row);if(seen.has(k))continue;seen.add(k);
+    mainTable.push(row);added++;
+  }
+  return added;
+}
 let _cacheTried=false;
 function loadData(){
   setSyncActive(true);setTrafficLight('yellow');
@@ -2220,7 +2256,17 @@ function loadData(){
     _cacheTried=true;
     idbGet('csv').then(c=>{if(c&&c.v===AUTH_VER&&c.text&&rawRows.length===0)onCsvData(c.text,true);});
   }
-  fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${SHEET_GID}`).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.text();}).then(txt=>{idbSet('csv',{v:AUTH_VER,ts:Date.now(),text:txt});onCsvData(txt);}).catch(e=>{
+  const mainP=fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${SHEET_GID}`).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.text();});
+  const backP=BACKUP_SHEET_ID?fetchBackupTable().catch(e=>{console.warn('Backup sheet not readable:',e.message);window._backupErr=e.message;return null;}):Promise.resolve(null);
+  Promise.all([mainP,backP]).then(async([txt,bt])=>{
+    let out=txt,added=0;
+    if(bt&&bt.length>1){
+      try{const mt=await parseCSVAsync(txt);added=mergeBackup(mt,bt);if(added>0)out=tableToCSV(mt);}
+      catch(e){console.warn('Backup merge failed:',e.message);added=0;out=txt;}
+    }
+    if(window._lastBackupAdded!==added){const first=window._lastBackupAdded===undefined;window._lastBackupAdded=added;if(!first||added>0)showToast(added>0?('🗂️ Backup sheet merged: +'+added+' rows'):'🗂️ Backup sheet: no new rows');}
+    idbSet('csv',{v:AUTH_VER,ts:Date.now(),text:out});onCsvData(out);
+  }).catch(e=>{
     setSyncActive(false);setTrafficLight('red');if(b)b.disabled=false;
     if(rawRows.length>0){showToast('⚠️ Could not refresh — showing the last loaded data');}
     else showErr('Failed to load data: '+e.message);
