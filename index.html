@@ -1358,7 +1358,7 @@ function scanArchiveTab(tab,text,remainingMap,map){
     else{row.forEach(cell=>{const n=normId(cell);if(n.length>=6){const o=remainingMap.get(n);if(o)hits.push(o);}});}
     if(!hits.length)continue;
     const em=emI>=0?String(row[emI]||'').trim():'';
-    const nm=nmI>=0?String(row[nmI]||'').trim():'';
+    const nm=nmI>=0?fmtPerson(row[nmI]):'';
     const qtc=qtI>=0?String(row[qtI]||'').trim():'';
     hits.forEach(rid=>{map[rid]={name:nm||em||rid,email:em,qtc,group:qtcShiftGroup(qtc),src:'archive'};found++;});
   }
@@ -1639,7 +1639,7 @@ async function loadArchiveIds(){
       if(ARCHIVE_TABS_URL&&tab.gid!=null)remote=await remoteScanArchiveTab(tab,remaining);
       if(remote){
         archiveFetched++;archiveRemoteTabs++;updateArchiveBar();
-        remote.forEach(h=>{const em=String(h.email||'').trim(),nm=String(h.name||'').trim(),qtc=String(h.qtc||'').trim();
+        remote.forEach(h=>{const em=String(h.email||'').trim(),nm=fmtPerson(h.name),qtc=String(h.qtc||'').trim();
           map[h.id]={name:nm||em||h.id,email:em,qtc,group:qtcShiftGroup(qtc),src:'archive'};});
         archiveOkTabs.add(archiveTabKey(tab));
         console.info('Archive tab "'+tab.name+'" (server read): '+remote.length+' ID(s) found');
