@@ -577,6 +577,35 @@ td a{color:var(--info);text-decoration:none;font-weight:700;}
 @media(max-width:360px){
   .meeg-wordmark .brand{font-size:1rem}
 }
+
+/* ================= SIDEBAR NAV ================= */
+.app-shell{display:flex;align-items:flex-start;width:100%}
+.app-main{flex:1;min-width:0}
+.side-nav{width:248px;flex-shrink:0;position:sticky;top:var(--hdr-h,66px);height:calc(100vh - var(--hdr-h,66px));overflow-y:auto;background:var(--elevated);border-right:1px solid var(--border);backdrop-filter:blur(10px);padding:12px 10px 24px;z-index:95;scrollbar-width:thin}
+.sn-item,.sn-grp{display:flex;align-items:center;gap:8px;border-radius:7px;cursor:pointer;user-select:none;transition:background .15s,color .15s}
+.sn-grp{padding:9px 10px;font-size:.74rem;font-weight:800;color:var(--text);margin-top:6px}
+.sn-grp:hover{background:var(--accent-light)}
+.sn-grp .sn-chev{margin-left:auto;font-size:.7rem;color:var(--muted);transition:transform .15s}
+.sn-grp.open .sn-chev{transform:rotate(90deg)}
+.sn-grp.act-grp{color:var(--accent)}
+.sn-sub{display:none;padding:2px 0 6px}
+.sn-sub.open{display:block}
+.sn-lbl{font-size:.6rem;font-weight:800;color:var(--muted);letter-spacing:.4px;padding:8px 10px 3px 30px;text-transform:uppercase}
+.sn-item{padding:7px 10px 7px 30px;font-size:.7rem;font-weight:600;color:var(--text-soft)}
+.sn-item.sn-top{padding-left:10px;font-size:.74rem;font-weight:800;color:var(--text);margin-bottom:2px}
+.sn-item:hover{background:var(--accent-light);color:var(--accent)}
+.sn-item.act{background:var(--accent);color:#fff;box-shadow:0 2px 10px rgba(15,143,255,.25)}
+.sn-item .sn-cnt{margin-left:auto;font-family:var(--mono);font-size:.55rem;font-weight:800;background:rgba(0,0,0,.08);border-radius:8px;padding:1px 6px}
+.sn-item.act .sn-cnt{background:rgba(255,255,255,.28)}
+.nav-toggle{display:none;background:var(--card);border:1px solid var(--border);color:var(--text);border-radius:8px;width:38px;height:38px;font-size:1.05rem;cursor:pointer;flex-shrink:0}
+.nav-ov{display:none}
+@media(max-width:860px){
+  .nav-toggle{display:inline-flex;align-items:center;justify-content:center}
+  .side-nav{position:fixed;left:0;top:0;height:100vh;width:270px;max-width:82vw;transform:translateX(-102%);transition:transform .22s ease;z-index:400;background:var(--bg,#eef2f7);box-shadow:4px 0 24px rgba(10,30,60,.25);padding-top:18px}
+  body.nav-open .side-nav{transform:none}
+  body.nav-open .nav-ov{display:block;position:fixed;inset:0;background:rgba(10,30,60,.45);z-index:399}
+}
+.loc-tabs{display:none!important}
 </style>
 </head>
 <body>
@@ -633,6 +662,7 @@ td a{color:var(--info);text-decoration:none;font-weight:700;}
 </div>
 <div class="hdr">
   <div class="hdr-left">
+    <button class="nav-toggle" id="navToggle" onclick="toggleNav()" aria-label="Menu">☰</button>
     <div class="meeg-logo">
       <div class="logo-orb">
         <svg width="24" height="20" viewBox="0 0 54 46" fill="none">
@@ -668,6 +698,10 @@ td a{color:var(--info);text-decoration:none;font-weight:700;}
   </div>
 </div>
 <div class="sync-bar" id="syncBar"><div class="sync-progress"></div></div>
+<div class="nav-ov" onclick="toggleNav(false)"></div>
+<div class="app-shell">
+<nav class="side-nav" id="sideNav" aria-label="Main menu"></nav>
+<div class="app-main">
 <div class="cmp-bar" id="cmpBar">
   <div class="cmp-side"><span class="cmp-label cmp-label-a">A</span><select class="cmp-sel" id="cmpSelA"><option value="">— Select Period —</option></select></div>
   <span class="cmp-vs">VS</span>
@@ -692,6 +726,8 @@ td a{color:var(--info);text-decoration:none;font-weight:700;}
 </div>
 <div class="loc-tabs" id="locTabs"><div class="spin" style="width:14px;height:14px;border-width:3px;margin:9px 0"></div></div>
 <div class="content" id="mainContent"><div class="loader"><div class="spin"></div><span class="ltxt">Loading data…</span></div></div>
+</div>
+</div>
 <button class="scroll-top-car" id="scrollTopBtn" onclick="shootWebScrollTop()" title="Back to top">▲</button>
 <script>
 /* ============ AUTH GATE ============ */
@@ -1413,12 +1449,12 @@ function loadArchiveTabTable(tab,urgent){
 function prefetchArchiveTabs(){
   resolveArchiveTabs().catch(()=>archiveTabList).then(tabs=>{window._arcTabsTotal=(tabs||[]).length;(tabs||[]).forEach(t=>{loadArchiveTabTable(t);});});
 }
-function openArchiveSearch(){
+function openArchiveSearch(pre){
   const ov=document.getElementById('arcsOv');if(!ov)return;
   ov.classList.add('on');
   buildArchiveFilters();
   const inp=document.getElementById('arcsIn');
-  if(idFilter&&!inp.value)inp.value=idFilter;
+  const _pre=(typeof pre==='string')?pre.trim():idFilter;if(_pre&&!inp.value)inp.value=_pre;
   inp.focus();inp.select();
   prefetchArchiveTabs();
   if(inp.value.trim().length>=3&&!document.getElementById('arcsRes').children.length)runArchiveSearch();
@@ -1967,12 +2003,12 @@ function renderQualitySection(mc){
   const lastImp=qualityLastImport?new Date(qualityLastImport).toLocaleString():'—';
   const toolbar=document.createElement('div');toolbar.className='sec';
   toolbar.innerHTML=`<div class="sec-hd"><span class="sec-t">📥 Import from "Export" tab</span><span class="sec-m">Last import: ${esc(lastImp)}</span></div><div style="padding:12px 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="bdg bdg-info" style="border-color:var(--border);color:var(--primary)">📅 ${esc(curWeekLbl)}</span><button class="btn btn-c" id="qualityRefreshBtn" onclick="fetchQualityData(false)">📥 Import / Refresh Quality</button><button class="btn btn-d" onclick="resetQualityWeek()">🔄 Reset (New Week)</button><span class="ltxt" style="font-size:.6rem">The week shown above is worked out automatically from the "Actual Date" column in Export — no need to set it manually. Old data stays saved even if you clear the Export tab and add new data — hit Reset before pulling a new week's quality.</span></div>`;
-  mc.appendChild(toolbar);
 
   /* ---- Search by ID ---- */
   const searchSec=document.createElement('div');searchSec.className='sec';
-  searchSec.innerHTML=`<div class="sec-hd"><span class="sec-t">🔎 Find a task by ID</span></div><div class="ttbar"><input class="srch" id="qualityIdSearch" placeholder="🔍 Type the ID..." oninput="filterQualityById(this.value)"/><span class="rcnt" id="qualityIdCount">—</span></div><div id="qualityIdResult" style="padding:0 14px 14px"></div>`;
+  searchSec.innerHTML=`<div class="sec-hd"><span class="sec-t">🔎 Find a task by ID</span></div><div class="ttbar"><input class="srch" id="qualityIdSearch" placeholder="🔍 Type the ID..." oninput="filterQualityById(this.value)"/><span class="rcnt" id="qualityIdCount">—</span><button class="btn btn-c" type="button" onclick="openArchiveSearch(document.getElementById('qualityIdSearch').value)">📦 Search from Archive</button></div><div id="qualityIdResult" style="padding:0 14px 14px"></div>`;
   mc.appendChild(searchSec);
+  mc.appendChild(toolbar);
 
   /* ---- Ranked table per shift: sorted by Total Accuracy, medals for top 3, color-coded by accuracy tier ---- */
   [...SHIFT_GROUPS,'Empty'].forEach(grp=>{
@@ -2400,14 +2436,53 @@ function updPills(){const w=document.getElementById('pillsRow');const ps=[];let 
 
 /* ===== PATCH #2: race-condition-safe tab switching (token guard) ===== */
 let _tabRenderToken=0;
-function buildTabs(){const c=document.getElementById('locTabs');const _sl=c.scrollLeft,_first=!c.dataset.built;let h=`<div class="loc-tab loc-all-tab${activeLoc==='__all__'?' act':''}" data-loc="__all__" onclick="switchTab('__all__')">🌐 All <span class="tab-cnt">${fcache.length}</span></div>`;h+=`<div class="loc-tab loc-all-tab${activeLoc==='__totalsubmit__'?' act':''}" data-loc="__totalsubmit__" onclick="switchTab('__totalsubmit__')">📊 Total Submit</div>`;h+=`<div class="loc-tab loc-all-tab${activeLoc==='__topperf__'?' act':''}" data-loc="__topperf__" onclick="switchTab('__topperf__')">🏆 Top Performers</div>`;h+=`<div class="loc-tab loc-all-tab${activeLoc==='__quality__'?' act':''}" data-loc="__quality__" onclick="switchTab('__quality__')">🎯 Quality</div>`;locations.forEach(loc=>{const cnt=fcache.filter(r=>locColIdx>=0?String(r[locColIdx]||'').trim()===loc:true).length;h+=`<div class="loc-tab${activeLoc===loc?' act':''}" data-loc="${esc(loc)}" onclick="switchTab('${esc(loc)}')">📍 ${esc(loc)} <span class="tab-cnt">${cnt}</span></div>`;});c.innerHTML=h;c.dataset.built='1';c.scrollLeft=_sl;if(_first)centerActiveTab(false);}
+let navOpen={fp:true,wt:true};
+function toggleNav(force){const on=typeof force==='boolean'?force:!document.body.classList.contains('nav-open');document.body.classList.toggle('nav-open',on);}
+function syncHdrH(){const h=document.querySelector('.hdr');if(h)document.documentElement.style.setProperty('--hdr-h',h.offsetHeight+'px');}
+window.addEventListener('resize',syncHdrH);
+function buildTabs(){
+  const nav=document.getElementById('sideNav');if(!nav)return;
+  syncHdrH();
+  const _st=nav.scrollTop;
+  const A=activeLoc,isTop=String(A).indexOf('__topperf__')===0;
+  const isLive=!(A==='__all__'||A==='__totalsubmit__'||A==='__quality__'||isTop);
+  const item=(key,label,cnt,top)=>`<div class="sn-item${top?' sn-top':''}${A===key?' act':''}" data-loc="${esc(key)}">${label}${cnt!==null&&cnt!==undefined?`<span class="sn-cnt">${cnt}</span>`:''}</div>`;
+  const locCnt=loc=>fcache.filter(r=>locColIdx>=0?String(r[locColIdx]||'').trim()===loc:true).length;
+  let h=item('__all__','🌐 All',fcache.length,true);
+  /* Floor Productivity */
+  const fpAct=isLive||isTop;
+  if(fpAct)navOpen.fp=navOpen.fp!==false?true:navOpen.fp;
+  h+=`<div class="sn-grp${navOpen.fp?' open':''}${fpAct?' act-grp':''}" data-grp="fp">🏭 Floor Productivity<span class="sn-chev">▶</span></div><div class="sn-sub${navOpen.fp?' open':''}">`;
+  h+=`<div class="sn-lbl">Live Submit</div>`;
+  locations.forEach(loc=>{h+=item(loc,'📍 '+esc(loc),locCnt(loc),false);});
+  h+=`<div class="sn-lbl">Top Performers</div>`;
+  h+=item('__topperf__','🏆 All locations combined',null,false);
+  locations.forEach(loc=>{h+=item('__topperf__::'+loc,'🏆 '+esc(loc),null,false);});
+  h+=`</div>`;
+  /* Workload Submit Tracker */
+  const wtAct=A==='__totalsubmit__';
+  h+=`<div class="sn-grp${navOpen.wt?' open':''}${wtAct?' act-grp':''}" data-grp="wt">📋 Workload Submit Tracker<span class="sn-chev">▶</span></div><div class="sn-sub${navOpen.wt?' open':''}">`;
+  h+=item('__totalsubmit__','📊 Total Submit',null,false);
+  h+=`</div>`;
+  /* Quality */
+  h+=item('__quality__','🎯 Quality',null,true);
+  nav.innerHTML=h;nav.scrollTop=_st;
+  if(!nav.dataset.bound){
+    nav.dataset.bound='1';
+    nav.addEventListener('click',e=>{
+      const it=e.target.closest('.sn-item');
+      if(it){switchTab(it.dataset.loc);return;}
+      const g=e.target.closest('.sn-grp');
+      if(g){const k=g.dataset.grp;navOpen[k]=!navOpen[k];buildTabs();}
+    });
+  }
+}
 function centerActiveTab(smooth){const c=document.getElementById('locTabs'),a=c&&c.querySelector('.loc-tab.act');if(!a)return;const x=Math.max(0,a.offsetLeft-(c.clientWidth-a.offsetWidth)/2);if(smooth&&c.scrollTo)c.scrollTo({left:x,behavior:'smooth'});else c.scrollLeft=x;}
 function switchTab(loc){
   activeLoc=loc;
   const myToken=++_tabRenderToken;
-  document.querySelectorAll('.loc-tab').forEach(el=>{el.classList.toggle('act',el.dataset.loc===loc);});
-  centerActiveTab(true);
-  if(loc==='__totalsubmit__'||loc==='__topperf__'||loc==='__quality__'){
+  buildTabs();toggleNav(false);
+  if(loc==='__totalsubmit__'||loc==='__quality__'||String(loc).indexOf('__topperf__')===0){
     const mc=document.getElementById('mainContent');
     mc.innerHTML=`<div class="loader"><svg style="width:44px;height:44px" viewBox="0 0 64 40" xmlns="http://www.w3.org/2000/svg"><path d="M6 26 Q4 26 4 22 L6 18 Q10 12 20 11 L26 6 Q30 3 38 3 L46 6 Q52 8 56 14 L60 18 Q62 20 62 22 L62 26 Z" fill="#dfe6ea" stroke="#7a9dae" stroke-width="1.5"/><path d="M22 11 L28 6 Q31 4 37 4 L44 6 Q48 8 51 12 L52 14 L22 14 Z" fill="#3c6478" opacity=".6"/><circle cx="16" cy="27" r="6" fill="#3c6478"/><circle cx="50" cy="27" r="6" fill="#3c6478"/></svg><span class="ltxt">Loading leaderboard…</span></div>`;
     setTimeout(()=>{ if(myToken===_tabRenderToken) renderAllSections(); },180);
@@ -2416,7 +2491,7 @@ function switchTab(loc){
   }
 }
 function sid(k){return k.replace(/[\s()]/g,'_');}
-function renderAllSections(){const mc=document.getElementById('mainContent');const cmpRes=document.getElementById('cmpResultSection');if(activeLoc==='__quality__'){mc.innerHTML='';if(cmpRes)mc.appendChild(cmpRes);renderQualitySection(mc);return;}if(fcache.length===0&&rawRows.length===0){mc.innerHTML=`<div style="text-align:center;padding:60px 20px;color:var(--muted)"><svg style="width:52px;height:52px;margin:0 auto 12px;display:block" viewBox="0 0 64 40" xmlns="http://www.w3.org/2000/svg"><path d="M6 26 Q4 26 4 22 L6 18 Q10 12 20 11 L26 6 Q30 3 38 3 L46 6 Q52 8 56 14 L60 18 Q62 20 62 22 L62 26 Z" fill="#dfe6ea" stroke="#7a9dae" stroke-width="1.5"/><path d="M22 11 L28 6 Q31 4 37 4 L44 6 Q48 8 51 12 L52 14 L22 14 Z" fill="#3c6478" opacity=".6"/><circle cx="16" cy="27" r="6" fill="#3c6478"/><circle cx="50" cy="27" r="6" fill="#3c6478"/></svg><div style="font-size:.85rem;font-weight:700;color:var(--text);margin-bottom:6px">No data found — the car's still on its way 🛣️</div><button class="btn" style="margin-top:10px" onclick="loadData()">↻ Retry</button></div>`;return;}if(fcache.length===0&&rawRows.length>0){mc.innerHTML=`<div style="text-align:center;padding:60px 20px;color:var(--muted)"><svg style="width:52px;height:52px;margin:0 auto 12px;display:block" viewBox="0 0 64 40" xmlns="http://www.w3.org/2000/svg"><path d="M6 26 Q4 26 4 22 L6 18 Q10 12 20 11 L26 6 Q30 3 38 3 L46 6 Q52 8 56 14 L60 18 Q62 20 62 22 L62 26 Z" fill="#dfe6ea" stroke="#7a9dae" stroke-width="1.5"/><path d="M22 11 L28 6 Q31 4 37 4 L44 6 Q48 8 51 12 L52 14 L22 14 Z" fill="#3c6478" opacity=".6"/><circle cx="16" cy="27" r="6" fill="#3c6478"/><circle cx="50" cy="27" r="6" fill="#3c6478"/></svg><div style="font-size:.85rem;font-weight:700;color:var(--text);margin-bottom:6px">No rows match current filters — wrong turn 🚧</div><div style="font-size:.7rem;margin-bottom:12px">${rawRows.length} total rows loaded.</div><button class="btn" onclick="clearAll()">✕ Clear all filters</button></div>`;return;}if(activeLoc==='__totalsubmit__'){mc.innerHTML='';if(cmpRes)mc.appendChild(cmpRes);renderTotalSubmitSection(mc);return;}if(activeLoc==='__topperf__'){mc.innerHTML='';if(cmpRes)mc.appendChild(cmpRes);renderTopPerformersSection(mc);return;}const locsToRender=activeLoc==='__all__'?locations:[activeLoc];mc.innerHTML='';if(cmpRes)mc.appendChild(cmpRes);if(locations.length===0||locColIdx<0){const wrap=document.createElement('div');wrap.className='loc-section visible';mc.appendChild(wrap);renderLocSection(wrap,null,fcache);return;}locsToRender.forEach(loc=>{const locRows=fcache.filter(r=>String(r[locColIdx]||'').trim()===loc);const wrap=document.createElement('div');wrap.className='loc-section visible';mc.appendChild(wrap);renderLocSection(wrap,loc,locRows);});}
+function renderAllSections(){const mc=document.getElementById('mainContent');const cmpRes=document.getElementById('cmpResultSection');if(activeLoc==='__quality__'){mc.innerHTML='';if(cmpRes)mc.appendChild(cmpRes);renderQualitySection(mc);return;}if(fcache.length===0&&rawRows.length===0){mc.innerHTML=`<div style="text-align:center;padding:60px 20px;color:var(--muted)"><svg style="width:52px;height:52px;margin:0 auto 12px;display:block" viewBox="0 0 64 40" xmlns="http://www.w3.org/2000/svg"><path d="M6 26 Q4 26 4 22 L6 18 Q10 12 20 11 L26 6 Q30 3 38 3 L46 6 Q52 8 56 14 L60 18 Q62 20 62 22 L62 26 Z" fill="#dfe6ea" stroke="#7a9dae" stroke-width="1.5"/><path d="M22 11 L28 6 Q31 4 37 4 L44 6 Q48 8 51 12 L52 14 L22 14 Z" fill="#3c6478" opacity=".6"/><circle cx="16" cy="27" r="6" fill="#3c6478"/><circle cx="50" cy="27" r="6" fill="#3c6478"/></svg><div style="font-size:.85rem;font-weight:700;color:var(--text);margin-bottom:6px">No data found — the car's still on its way 🛣️</div><button class="btn" style="margin-top:10px" onclick="loadData()">↻ Retry</button></div>`;return;}if(fcache.length===0&&rawRows.length>0){mc.innerHTML=`<div style="text-align:center;padding:60px 20px;color:var(--muted)"><svg style="width:52px;height:52px;margin:0 auto 12px;display:block" viewBox="0 0 64 40" xmlns="http://www.w3.org/2000/svg"><path d="M6 26 Q4 26 4 22 L6 18 Q10 12 20 11 L26 6 Q30 3 38 3 L46 6 Q52 8 56 14 L60 18 Q62 20 62 22 L62 26 Z" fill="#dfe6ea" stroke="#7a9dae" stroke-width="1.5"/><path d="M22 11 L28 6 Q31 4 37 4 L44 6 Q48 8 51 12 L52 14 L22 14 Z" fill="#3c6478" opacity=".6"/><circle cx="16" cy="27" r="6" fill="#3c6478"/><circle cx="50" cy="27" r="6" fill="#3c6478"/></svg><div style="font-size:.85rem;font-weight:700;color:var(--text);margin-bottom:6px">No rows match current filters — wrong turn 🚧</div><div style="font-size:.7rem;margin-bottom:12px">${rawRows.length} total rows loaded.</div><button class="btn" onclick="clearAll()">✕ Clear all filters</button></div>`;return;}if(activeLoc==='__totalsubmit__'){mc.innerHTML='';if(cmpRes)mc.appendChild(cmpRes);renderTotalSubmitSection(mc);return;}if(String(activeLoc).indexOf('__topperf__')===0){mc.innerHTML='';if(cmpRes)mc.appendChild(cmpRes);renderTopPerformersSection(mc,activeLoc.indexOf('::')>0?activeLoc.split('::').slice(1).join('::'):'');return;}const locsToRender=activeLoc==='__all__'?locations:[activeLoc];mc.innerHTML='';if(cmpRes)mc.appendChild(cmpRes);if(locations.length===0||locColIdx<0){const wrap=document.createElement('div');wrap.className='loc-section visible';mc.appendChild(wrap);renderLocSection(wrap,null,fcache);return;}locsToRender.forEach(loc=>{const locRows=fcache.filter(r=>String(r[locColIdx]||'').trim()===loc);const wrap=document.createElement('div');wrap.className='loc-section visible';mc.appendChild(wrap);renderLocSection(wrap,loc,locRows);});}
 function buildSpeedometer(pct,color){
   pct=Math.max(0,Math.min(100,Math.round(pct)));
   const angle=-90+(pct/100)*180,rad=angle*Math.PI/180,cx=40,cy=40,r=30;
@@ -2510,13 +2585,13 @@ function renderTotalSubmitSection(mc){
     mc.appendChild(uSec);
   }
 }
-function renderTopPerformersSection(mc){
-  const rows=fcache;
+function renderTopPerformersSection(mc,loc){
+  const rows=(loc&&locColIdx>=0)?fcache.filter(r=>String(r[locColIdx]||'').trim()===loc):fcache;
   const qtcIdx=hdrs.findIndex(h=>h.toLowerCase()==='qtc name');
   const labIdx=hdrs.findIndex(h=>h.toLowerCase()==='labeler name');
   const header=document.createElement('div');
   header.className='loc-hdr';
-  header.innerHTML=`<div class="loc-hdr-name">🏆 Top Performers — QTC &amp; Labeler</div><div class="loc-stats"><div class="loc-stat"><div class="sv anim-num" data-anim-num="${rows.length}">0</div><div class="sl">Rows Counted</div></div></div>`;
+  header.innerHTML=`<div class="loc-hdr-name">🏆 Top Performers — ${loc?esc(loc):'All Locations'} (QTC &amp; Labeler)</div><div class="loc-stats"><div class="loc-stat"><div class="sv anim-num" data-anim-num="${rows.length}">0</div><div class="sl">Rows Counted</div></div></div>`;
   mc.appendChild(header);
   setTimeout(animateAllNums,50);
   renderTopQtcTotalSection(mc,rows,qtcIdx);
