@@ -2669,7 +2669,7 @@ function renderLocSection(wrap,locName,rows){
   rows.forEach(r=>{const mv=mIdx>=0?String(r[mIdx]||'').trim():'';const pv=passIdx>=0?String(r[passIdx]||'').trim():'';if(qtcIdx>=0){const qtc=String(r[qtcIdx]||'').trim();if(qtc){qtcMap[qtc]=(qtcMap[qtc]||0)+1;if(mv&&pv){if(!qtcDetailMap[qtc])qtcDetailMap[qtc]={};if(!qtcDetailMap[qtc][mv])qtcDetailMap[qtc][mv]={};qtcDetailMap[qtc][mv][pv]=(qtcDetailMap[qtc][mv][pv]||0)+1;}}}if(labIdx>=0){const lab=String(r[labIdx]||'').trim();if(lab){labMap[lab]=(labMap[lab]||0)+1;if(mv&&pv){if(!labDetailMap[lab])labDetailMap[lab]={};if(!labDetailMap[lab][mv])labDetailMap[lab][mv]={};labDetailMap[lab][mv][pv]=(labDetailMap[lab][mv][pv]||0)+1;}}}});
   const FIXED_FILTERS=[{label:'All',mod:'All',pass:'All'},{label:'Lane Line — FP',mod:'Lane Line',pass:'FP'},{label:'Lane Line — QA',mod:'Lane Line',pass:'QA'},{label:'Lidar — FP',mod:'Lidar',pass:'FP'},{label:'Lidar — QA',mod:'Lidar',pass:'QA'}];
   const FILTER_COLORS={'Lane Line':'#f59e0b','Lidar':'#16a34a','All':'var(--info)'};
-  function mkPersonTable(icon,title,nameLabel,dataMap,detailMap,tableId){
+  function mkPersonTable(icon,title,nameLabel,dataMap,detailMap,tableId,kind){
     const sorted=Object.entries(dataMap).sort((a,b)=>b[1]-a[1]);if(!sorted.length)return null;
     const sec=document.createElement('div');sec.className='sec';
     const filterBar=document.createElement('div');filterBar.className='sec-hd';filterBar.style.cssText='flex-direction:column;align-items:flex-start;gap:8px;';
@@ -2679,10 +2679,11 @@ function renderLocSection(wrap,locName,rows){
       const onStyle=isAll?`border-color:rgba(37,99,235,.7);background:rgba(37,99,235,.18);font-weight:800;`:`border-color:${col};background:${col}22;font-weight:800;`;
       return`<button class="mod-chip" data-fi="${fi}" style="${baseStyle}" data-base="${baseStyle}" data-on="${onStyle}" onclick="filterPersonTable('${tableId}',${fi});event.stopPropagation();">${esc(f.label)}</button>`;
     }).join('');
-    filterBar.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;width:100%;flex-wrap:wrap;gap:4px"><span class="sec-t">${icon} ${title}</span><span class="sec-m" id="meta_${tableId}">${sorted.length} ${nameLabel} · ${Object.values(dataMap).reduce((a,b)=>a+b,0)} total</span></div><div class="mod-filter-bar" style="padding:0;border:none;background:transparent;gap:5px;">${chips}</div>`;
+    filterBar.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;width:100%;flex-wrap:wrap;gap:4px"><span class="sec-t">${icon} ${title}</span><span class="sec-m" style="display:flex;align-items:center;gap:8px"><span id="meta_${tableId}">${sorted.length} ${nameLabel} · ${Object.values(dataMap).reduce((a,b)=>a+b,0)} total</span><span class="fchip no-shot" onclick="shotTopPerf('${kind}',this,'${tableId}');event.stopPropagation();" title="Screenshot for this location — split by Lidar / Lane Line × FP / QA">📸 Screenshot</span></span></div><div class="mod-filter-bar" style="padding:0;border:none;background:transparent;gap:5px;">${chips}</div>`;
     sec.appendChild(filterBar);
     const tableWrap=document.createElement('div');tableWrap.id='wrap_'+tableId;tableWrap.style.cssText='overflow-x:auto;max-height:360px;overflow-y:auto;-webkit-overflow-scrolling:touch;';
     sec.appendChild(tableWrap);
+    window._shotCtx=window._shotCtx||{};window._shotCtx[tableId]={rows:rows,loc:locName||''};
     window['_ptData_'+tableId]={sorted,dataMap,detailMap,nameLabel,allMods,allPasses,modColor,mkGroupedThead,mkGroupedCells,mkGroupedFootCells};
     let savedIdx=0;try{savedIdx=parseInt(localStorage.getItem('meeg_ptf_'+tableId))||0;}catch(e){}
     renderPersonTable(tableId,savedIdx);
@@ -2724,8 +2725,8 @@ function renderLocSection(wrap,locName,rows){
     wrap.innerHTML=`<table style="width:100%;border-collapse:collapse;font-size:.65rem">${thead}<tbody>${bodyRows}</tbody><tfoot><tr style="border-top:1px solid var(--border)"><td style="padding:5px 8px;font-size:.62rem;font-weight:700;color:var(--text-soft)">Total</td>${footCells}<td style="padding:5px 8px;text-align:right;font-size:.65rem;font-weight:800;color:${col};font-family:var(--mono)">${grandTotal}</td></tr></tfoot></table>`;
   }
   window.filterPersonTable=function(tableId,filterIdx){renderPersonTable(tableId,filterIdx);};
-  const qtcSec=mkPersonTable('🏷️','Top QTC — Most Submits','QTCs',qtcMap,qtcDetailMap,'qtc_'+sid(locKey));
-  const labSec=mkPersonTable('👤','Top Labeler — Most Submits','Labelers',labMap,labDetailMap,'lab_'+sid(locKey));
+  const qtcSec=mkPersonTable('🏷️','Top QTC — Most Submits','QTCs',qtcMap,qtcDetailMap,'qtc_'+sid(locKey),'qtc');
+  const labSec=mkPersonTable('👤','Top Labeler — Most Submits','Labelers',labMap,labDetailMap,'lab_'+sid(locKey),'labeler');
   if(qtcSec)wrap.appendChild(qtcSec);if(labSec)wrap.appendChild(labSec);
 }
 function renderCards(locKey,rows){
@@ -2993,15 +2994,18 @@ async function shotTeamSheet(btn){
 }
 
 /* ---------- SCREENSHOT of Top QTC / Top Labelers — split into Lidar FP · Lidar QA · Lane Line FP · Lane Line QA ---------- */
-async function shotTopPerf(kind,btn){
+async function shotTopPerf(kind,btn,ctxId){
   const isQ=kind==='qtc';
+  const ctx=(ctxId&&window._shotCtx)?window._shotCtx[ctxId]:null;
+  const srcRows=ctx?ctx.rows:fcache;
+  const locLbl=ctx?(ctx.loc||'All Locations'):'';
   const nameIdx=hdrs.findIndex(h=>h.toLowerCase()===(isQ?'qtc name':'labeler name'));
   const mIdx=hdrs.findIndex(h=>h.toLowerCase()==='modality');
   const pIdx=hdrs.findIndex(h=>h.toLowerCase()==='pass');
   if(nameIdx<0||mIdx<0||pIdx<0){showToast('⚠️ Missing columns for this screenshot');return;}
   const CATS=[{mod:'Lidar',pass:'FP',ic:'📡',col:'#16a34a'},{mod:'Lidar',pass:'QA',ic:'📡',col:'#8b5cf6'},{mod:'Lane Line',pass:'FP',ic:'🛣️',col:'#f59e0b'},{mod:'Lane Line',pass:'QA',ic:'🛣️',col:'#0891b2'}];
   const maps=CATS.map(()=>({}));
-  fcache.forEach(r=>{
+  srcRows.forEach(r=>{
     const n=String(r[nameIdx]||'').trim(),m=String(r[mIdx]||'').trim(),pv=String(r[pIdx]||'').trim();
     if(!n)return;
     const i=CATS.findIndex(c=>c.mod.toLowerCase()===m.toLowerCase()&&c.pass.toLowerCase()===pv.toLowerCase());
@@ -3023,7 +3027,7 @@ async function shotTopPerf(kind,btn){
     }).join('');
     const wk=selWeeks.size===1?[...selWeeks][0]:(selD.size===1?[...selD][0]:'');
     stage=document.createElement('div');stage.className='shot-stage';stage.style.background=bg;stage.style.width='980px';
-    stage.innerHTML=`<div class="shot-head"><div class="shot-title">${isQ?'🏷️ Top QTC':'👤 Top Labelers'} — Lidar &amp; Lane Line · FP / QA</div><div class="shot-sub">${esc(wk)}${wk?' · ':''}${esc(new Date().toLocaleString())} · Top ${LIMIT} per category</div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">${cards}</div>`;
+    stage.innerHTML=`<div class="shot-head"><div class="shot-title">${isQ?'🏷️ Top QTC':'👤 Top Labelers'}${locLbl?' — 📍 '+esc(locLbl):''} — Lidar &amp; Lane Line · FP / QA</div><div class="shot-sub">${esc(wk)}${wk?' · ':''}${esc(new Date().toLocaleString())} · Top ${LIMIT} per category</div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">${cards}</div>`;
     document.body.appendChild(stage);
     await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
     const scale=Math.min(4,Math.max(2.5,(window.devicePixelRatio||1)*2));
@@ -3031,7 +3035,7 @@ async function shotTopPerf(kind,btn){
       onclone:d=>{const x=d.querySelector('.shot-stage');if(x){x.style.left='0';x.style.top='0';}}});
     const blob=await new Promise(r=>canvas.toBlob(r,'image/png'));
     if(!blob)throw new Error('empty image');
-    downloadBlob(blob,'MEEG_Top_'+(isQ?'QTC':'Labelers')+'_'+expSafe(wk)+(wk?'_':'')+expStamp()+'.png');
+    downloadBlob(blob,'MEEG_Top_'+(isQ?'QTC':'Labelers')+(locLbl?'_'+expSafe(locLbl):'')+'_'+expSafe(wk)+(wk?'_':'')+expStamp()+'.png');
     let copied=false;
     try{if(navigator.clipboard&&window.ClipboardItem){await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);copied=true;}}catch(e){}
     showToast(copied?'📸 Screenshot saved & copied to clipboard':'📸 Screenshot saved');
