@@ -702,6 +702,7 @@ tbody tr{transition:background-color .2s}tbody tr:hover td{background:rgba(120,1
 #darkBtn::after{content:"\2600";position:absolute;top:2px;left:2px;width:24px;height:24px;border-radius:50%;background:#fff;color:#FF9500;font-size:14px;line-height:24px;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,.28);transition:transform .45s var(--ease)}
 html[data-theme="dark"] #darkBtn::after{content:"\263E";transform:translateX(24px);background:#2C2C2E;color:#fff}
 #darkBtn:hover{transform:none}
+.ic{display:inline-flex;width:1.1em;height:1.1em;vertical-align:-.2em;margin-right:.35em;flex:none}.ic svg{width:100%;height:100%}.ic:last-child{margin-right:0}
 @media(max-width:700px){.pn{top:auto;height:88%;width:100%;border-radius:24px 24px 0 0;border-left:0;transform:translateY(104%)}.pn.on{transform:none}}
 .loc-section{display:flex;flex-direction:column;gap:32px}.loc-section>*{margin:0!important}
 html{scroll-behavior:smooth}body{background-attachment:scroll!important}
@@ -1310,8 +1311,8 @@ function normRow(row){
   if(p!==undefined)row[p]=normPass(row[p]);
   {const i=sIdx['Qtc Name'];if(i!==undefined)row[i]=cleanName(row[i]);}{const i=sIdx['Labeler Name'];if(i!==undefined)row[i]=fmtPerson(row[i]);}['Unit','Location'].forEach(k=>{const i=sIdx[k];if(i!==undefined)row[i]=normUnit(row[i]);});
 }
-const MOD_PALETTE=['#e8a000','#16a34a','#7c3aed','#dc2626','#0891b2','#d97706','#f59e0b','#8b5cf6'];
-function makeModColor(){const cache={};let n=0;return function(m){if(!cache[m]){const known={'Lane Line':'#f59e0b','Lidar':'#16a34a'};cache[m]=known[m]||MOD_PALETTE[n++%MOD_PALETTE.length];}return cache[m];};}
+const MOD_PALETTE=['#0A84FF','#FF9500','#34C759','#AF52DE','#FF2D55','#5AC8FA','#FFCC00','#A2845E'];
+function makeModColor(){const cache={};let n=0;return function(m){if(!cache[m]){const known={'Lane Line':'#6360E6','Lidar':'#22A6BC'};cache[m]=known[m]||MOD_PALETTE[n++%MOD_PALETTE.length];}return cache[m];};}
 
 /* ============ WEB WORKER (CSV parsing off the main thread) ============ */
 let _csvWorker=null,_csvJobs={},_csvJobId=0;
@@ -2799,7 +2800,7 @@ function renderLocSection(wrap,locName,rows){
   const qtcMap={},labMap={},qtcDetailMap={},labDetailMap={};
   rows.forEach(r=>{const mv=mIdx>=0?String(r[mIdx]||'').trim():'';const pv=passIdx>=0?String(r[passIdx]||'').trim():'';if(qtcIdx>=0){const qtc=String(r[qtcIdx]||'').trim();if(qtc){qtcMap[qtc]=(qtcMap[qtc]||0)+1;if(mv&&pv){if(!qtcDetailMap[qtc])qtcDetailMap[qtc]={};if(!qtcDetailMap[qtc][mv])qtcDetailMap[qtc][mv]={};qtcDetailMap[qtc][mv][pv]=(qtcDetailMap[qtc][mv][pv]||0)+1;}}}if(labIdx>=0){const lab=String(r[labIdx]||'').trim();if(lab){labMap[lab]=(labMap[lab]||0)+1;if(mv&&pv){if(!labDetailMap[lab])labDetailMap[lab]={};if(!labDetailMap[lab][mv])labDetailMap[lab][mv]={};labDetailMap[lab][mv][pv]=(labDetailMap[lab][mv][pv]||0)+1;}}}});
   const FIXED_FILTERS=[{label:'All',mod:'All',pass:'All'},{label:'Lane Line — FP',mod:'Lane Line',pass:'FP'},{label:'Lane Line — QA',mod:'Lane Line',pass:'QA'},{label:'Lidar — FP',mod:'Lidar',pass:'FP'},{label:'Lidar — QA',mod:'Lidar',pass:'QA'}];
-  const FILTER_COLORS={'Lane Line':'#f59e0b','Lidar':'#16a34a','All':'var(--info)'};
+  const FILTER_COLORS={'Lane Line':'#6360E6','Lidar':'#22A6BC','All':'var(--info)'};
   function mkPersonTable(icon,title,nameLabel,dataMap,detailMap,tableId,kind){
     const sorted=Object.entries(dataMap).sort((a,b)=>b[1]-a[1]);if(!sorted.length)return null;
     const sec=document.createElement('div');sec.className='sec';
@@ -3134,7 +3135,7 @@ async function shotTopPerf(kind,btn,ctxId){
   const mIdx=hdrs.findIndex(h=>h.toLowerCase()==='modality');
   const pIdx=hdrs.findIndex(h=>h.toLowerCase()==='pass');
   if(nameIdx<0||mIdx<0||pIdx<0){showToast('⚠️ Missing columns for this screenshot');return;}
-  const CATS=[{mod:'Lidar',pass:'FP',ic:'📡',col:'#16a34a'},{mod:'Lidar',pass:'QA',ic:'📡',col:'#8b5cf6'},{mod:'Lane Line',pass:'FP',ic:'🛣️',col:'#f59e0b'},{mod:'Lane Line',pass:'QA',ic:'🛣️',col:'#0891b2'}];
+  const CATS=[{mod:'Lidar',pass:'FP',ic:'📡',col:'#22A6BC'},{mod:'Lidar',pass:'QA',ic:'📡',col:'#0A84FF'},{mod:'Lane Line',pass:'FP',ic:'🛣️',col:'#6360E6'},{mod:'Lane Line',pass:'QA',ic:'🛣️',col:'#FF9500'}];
   const maps=CATS.map(()=>({}));
   srcRows.forEach(r=>{
     const n=String(r[nameIdx]||'').trim(),m=String(r[mIdx]||'').trim(),pv=String(r[pIdx]||'').trim();
@@ -3301,6 +3302,24 @@ const from=key&&_nc[key]!=null?_nc[key]:0;if(key)_nc[key]=t;if(from===t){el.text
 const st=performance.now(),dur=d||900;(function step(n){const p=Math.min((n-st)/dur,1),e=1-Math.pow(1-p,3);el.textContent=Math.round(from+(t-from)*e).toLocaleString();if(p<1)requestAnimationFrame(step)})(st)};
 const _sw=window.switchTab;
 window.switchTab=function(){const mc=document.getElementById('mainContent');if(mc&&!RM){mc.classList.remove('tab-in');void mc.offsetWidth;mc.classList.add('tab-in');clearTimeout(window._tiT);window._tiT=setTimeout(()=>mc.classList.remove('tab-in'),700)}return _sw.apply(this,arguments)};
+})();
+</script>
+<script id="apple-icons">
+/* MEEG · Apple skin — emoji -> thin line icons (SF-Symbols style). Runs on every DOM change so JS-built content gets them too; text nodes only, no logic touched. */
+(function(){
+const IC={"alert": "<path d=\"M12 3 2.5 20h19L12 3z\"/><path d=\"M12 10v4M12 17.5v.01\"/>", "camera": "<path d=\"M3 8h4l2-3h6l2 3h4v11H3z\"/><circle cx=\"12\" cy=\"13\" r=\"3.5\"/>", "tag": "<path d=\"M3 12V4h8l10 10-8 8z\"/><circle cx=\"7.5\" cy=\"8.5\" r=\"1\"/>", "user": "<circle cx=\"12\" cy=\"8\" r=\"4\"/><path d=\"M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7\"/>", "users": "<circle cx=\"9\" cy=\"8\" r=\"3.5\"/><path d=\"M2 20c0-3.6 3-6 7-6s7 2.4 7 6M16 4.5a3.5 3.5 0 0 1 0 7M18 14c2.4.6 4 2.4 4 6\"/>", "bars": "<path d=\"M5 20V10M12 20V4M19 20v-7\"/>", "ban": "<circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M5.6 5.6l12.8 12.8\"/>", "checkc": "<circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M8 12.5l3 3 5-6\"/>", "check": "<path d=\"M5 12.5l4.5 4.5L19 7\"/>", "x": "<path d=\"M6 6l12 12M18 6L6 18\"/>", "pin": "<path d=\"M12 21s7-6.2 7-11.5a7 7 0 0 0-14 0C5 14.8 12 21 12 21z\"/><circle cx=\"12\" cy=\"9.5\" r=\"2.5\"/>", "clip": "<rect x=\"5\" y=\"4\" width=\"14\" height=\"17\" rx=\"2\"/><path d=\"M9 4h6v3H9zM9 12h6M9 16h6\"/>", "moon": "<path d=\"M20 14.5A8.5 8.5 0 1 1 9.5 4 7 7 0 0 0 20 14.5z\"/>", "sun": "<circle cx=\"12\" cy=\"12\" r=\"4\"/><path d=\"M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4\"/>", "cal": "<rect x=\"3.5\" y=\"5\" width=\"17\" height=\"16\" rx=\"2.5\"/><path d=\"M3.5 10h17M8 3v4M16 3v4\"/>", "trophy": "<path d=\"M8 4h8v6a4 4 0 0 1-8 0zM8 6H4.5v1.5A3.5 3.5 0 0 0 8 11M16 6h3.5v1.5A3.5 3.5 0 0 1 16 11M12 14v4M8.5 21h7M10 18h4\"/>", "road": "<path d=\"M8 3 4 21M16 3l4 18M12 4v3M12 10.5v3M12 17v3\"/>", "scale": "<path d=\"M7 4v16M17 4v16M3.5 8 7 4.5 10.5 8M13.5 16l3.5 3.5 3.5-3.5\"/>", "refresh": "<path d=\"M20.5 12a8.5 8.5 0 1 1-2.8-6.3L20.5 8M20.5 3.5V8H16\"/>", "mail": "<rect x=\"3\" y=\"5\" width=\"18\" height=\"14\" rx=\"2.5\"/><path d=\"M3.5 7.5 12 13.5l8.5-6\"/>", "search": "<circle cx=\"11\" cy=\"11\" r=\"6.5\"/><path d=\"M16 16l4.5 4.5\"/>", "radar": "<circle cx=\"12\" cy=\"12\" r=\"9\"/><circle cx=\"12\" cy=\"12\" r=\"4.5\"/><path d=\"M12 12l6-6\"/>", "box": "<path d=\"M3.5 7.5 12 3l8.5 4.5v9L12 21l-8.5-4.5zM3.5 7.5 12 12l8.5-4.5M12 12v9\"/>", "eye": "<path d=\"M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z\"/><circle cx=\"12\" cy=\"12\" r=\"3\"/>", "eyeoff": "<path d=\"M3 3l18 18M10.5 6.2A9.5 9.5 0 0 1 12 6c6.5 0 10 6 10 6a17 17 0 0 1-3.2 3.8M6.2 7.5A16 16 0 0 0 2 12s3.5 7 10 7c1.6 0 3-.4 4.2-1\"/>", "star": "<path d=\"M12 3l2.7 5.8 6.3.8-4.6 4.3 1.2 6.3L12 17l-5.6 3.2 1.2-6.3L3 9.6l6.3-.8z\"/>", "monitor": "<rect x=\"3\" y=\"4\" width=\"18\" height=\"12\" rx=\"2\"/><path d=\"M8 20h8M12 16v4\"/>", "target": "<circle cx=\"12\" cy=\"12\" r=\"9\"/><circle cx=\"12\" cy=\"12\" r=\"5\"/><circle cx=\"12\" cy=\"12\" r=\"1\"/>", "clock": "<circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M12 7v5l3.5 2\"/>", "pause": "<path d=\"M9 5v14M15 5v14\"/>", "trash": "<path d=\"M4 7h16M9 7V4h6v3M6.5 7l1 13h9l1-13M10 11v6M14 11v6\"/>", "download": "<path d=\"M12 4v11M7.5 10.5 12 15l4.5-4.5M4.5 20h15\"/>", "grid": "<rect x=\"4\" y=\"4\" width=\"7\" height=\"7\" rx=\"1.5\"/><rect x=\"13\" y=\"4\" width=\"7\" height=\"7\" rx=\"1.5\"/><rect x=\"4\" y=\"13\" width=\"7\" height=\"7\" rx=\"1.5\"/><rect x=\"13\" y=\"13\" width=\"7\" height=\"7\" rx=\"1.5\"/>", "ruler": "<path d=\"M3 17 17 3l4 4L7 21zM8 12l2 2M11 9l2 2M14 6l2 2\"/>", "folder": "<path d=\"M3 7a2 2 0 0 1 2-2h4l2 2.5h8a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z\"/>", "globe": "<circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18\"/>", "logout": "<path d=\"M10 4H5.5A1.5 1.5 0 0 0 4 5.5v13A1.5 1.5 0 0 0 5.5 20H10M15 8l4 4-4 4M19 12H9\"/>", "inbox": "<path d=\"M3 13l3-8h12l3 8v6H3zM3 13h5l1 2.5h6l1-2.5h5\"/>", "help": "<circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.8.4-1 1-1 1.7M12 17v.01\"/>", "bolt": "<path d=\"M13 3 5 14h6l-1 7 8-11h-6z\"/>", "building": "<path d=\"M4 21V9l6 3V9l6 3V4h4v17zM8 17h1M12 17h1M16 17h1\"/>", "award": "<circle cx=\"12\" cy=\"9\" r=\"5.5\"/><path d=\"M8.5 14l-1.5 7 5-3 5 3-1.5-7\"/>", "hash": "<path d=\"M8 4 6 20M18 4l-2 16M4 9h16M3.5 15h16\"/>", "shield": "<path d=\"M12 3 4.5 6v6c0 4.5 3.2 7.8 7.5 9 4.3-1.2 7.5-4.5 7.5-9V6z\"/>", "compass": "<circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M15.5 8.5l-2 5-5 2 2-5z\"/>", "link": "<path d=\"M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1\"/>"};
+const MAP={"⚠": "alert", "✕": "x", "📸": "camera", "✓": "check", "🏷": "tag", "👤": "user", "📊": "bars", "🚫": "ban", "✅": "checkc", "📍": "pin", "📋": "clip", "🌙": "moon", "📅": "cal", "📆": "cal", "🗓": "cal", "🏆": "trophy", "🛣": "road", "⚖": "scale", "🔄": "refresh", "↻": "refresh", "⟳": "refresh", "✉": "mail", "🔍": "search", "🔎": "search", "🔬": "search", "📡": "radar", "📦": "box", "👁": "eye", "🙈": "eyeoff", "☀": "sun", "🌅": "sun", "🌆": "moon", "⭐": "star", "🖥": "monitor", "🎯": "target", "👥": "users", "⏳": "clock", "⏱": "clock", "🕒": "clock", "⏸": "pause", "🗑": "trash", "📥": "download", "🧩": "grid", "📐": "ruler", "🗂": "folder", "🌐": "globe", "🚪": "logout", "📭": "inbox", "❓": "help", "⚡": "bolt", "🚧": "alert", "🏭": "building", "🏅": "award", "🔢": "hash", "🛡": "shield", "🧭": "compass", "🔗": "link"};
+const RX=new RegExp("("+Object.keys(MAP).join("|")+")\\uFE0F?","g");
+const SKIP={SCRIPT:1,STYLE:1,TEXTAREA:1,OPTION:1,TITLE:1,INPUT:1,SELECT:1,CANVAS:1,NOSCRIPT:1};
+const esc=t=>t.replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+const svg=k=>'<span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+IC[k]+'</svg></span>';
+function fix(n){const t=n.nodeValue;RX.lastIndex=0;if(!t||!RX.test(t))return;RX.lastIndex=0;const sp=document.createElement("span");sp.style.display="contents";sp.innerHTML=esc(t).replace(RX,(m,c)=>svg(MAP[c]));n.replaceWith(sp)}
+function proc(r){if(!r||!r.isConnected)return;if(r.nodeType===3){if(!SKIP[r.parentNode.tagName])fix(r);return}if(r.nodeType!==1||SKIP[r.tagName])return;
+const w=document.createTreeWalker(r,NodeFilter.SHOW_TEXT,{acceptNode:n=>SKIP[n.parentNode.tagName]?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_ACCEPT}),L=[];while(w.nextNode())L.push(w.currentNode);L.forEach(fix);
+r.querySelectorAll("[placeholder]").forEach(e=>{const v=e.getAttribute("placeholder");RX.lastIndex=0;if(RX.test(v)){RX.lastIndex=0;e.setAttribute("placeholder",v.replace(RX,"").trim())}})}
+let q=new Set(),raf=0;
+new MutationObserver(ms=>{for(const m of ms){if(m.type==="characterData")q.add(m.target);else m.addedNodes.forEach(n=>q.add(n))}if(!raf)raf=requestAnimationFrame(()=>{raf=0;const a=[...q];q=new Set();a.forEach(proc)})}).observe(document.body,{childList:true,subtree:true,characterData:true});
+proc(document.body);
 })();
 </script>
 </body>
