@@ -582,9 +582,9 @@ td a{color:var(--info);text-decoration:none;font-weight:700;}
 /* ===== MEEG · Apple skin — Stage 1: tokens + shell. UI only; no data/backend logic touched ===== */
 :root{--bg:#fff;--bg-1:#fff;--bg-2:#fff;--bg-3:#fff;--card:#F2F2F7;--elevated:#fff;--border:rgba(60,60,67,.16);--border-light:rgba(60,60,67,.08);--glass:rgba(255,255,255,.72);--glass-hover:rgba(255,255,255,.9);--primary:#007AFF;--primary-light:rgba(0,122,255,.12);--accent:#007AFF;--accent-light:rgba(0,122,255,.12);--success:#34C759;--warning:#FF9500;--danger:#FF3B30;--info:#007AFF;--cmp-a:#007AFF;--cmp-b:#30B0C7;--text:#000;--text-soft:rgba(60,60,67,.78);--muted:rgba(60,60,67,.6);--font:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display",Inter,system-ui,"Segoe UI",sans-serif;--display:var(--font);--mono:var(--font);--radius:10px;--radius-lg:14px;--radius-xl:20px;--shadow:0 1px 2px rgba(0,0,0,.05),0 8px 24px rgba(0,0,0,.06);--shadow-hover:0 2px 4px rgba(0,0,0,.06),0 14px 32px rgba(0,0,0,.1);--chrome-grad:var(--glass);--scrollbar:rgba(60,60,67,.28);--grid-line:transparent;--ease:cubic-bezier(.32,.72,0,1)}
 html[data-theme="dark"]{--bg:#000;--bg-1:#000;--bg-2:#000;--bg-3:#000;--card:#1C1C1E;--elevated:#2C2C2E;--border:rgba(84,84,88,.5);--border-light:rgba(84,84,88,.3);--glass:rgba(28,28,30,.68);--glass-hover:rgba(44,44,46,.85);--primary:#0A84FF;--primary-light:rgba(10,132,255,.18);--accent:#0A84FF;--accent-light:rgba(10,132,255,.18);--success:#30D158;--warning:#FF9F0A;--danger:#FF453A;--info:#0A84FF;--cmp-a:#0A84FF;--cmp-b:#40C8E0;--text:#fff;--text-soft:rgba(235,235,245,.78);--muted:rgba(235,235,245,.6);--shadow:0 0 0 1px rgba(255,255,255,.07),inset 0 1px 0 rgba(255,255,255,.06);--shadow-hover:0 0 0 1px rgba(255,255,255,.16),inset 0 1px 0 rgba(255,255,255,.1);--scrollbar:rgba(235,235,245,.25)}
-body{font-family:var(--font);font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased;transition:background-color .4s ease-in-out,color .4s ease-in-out}
+body{font-family:var(--font);font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased;transition:none}
 body::before,.orb{display:none!important}
-.hdr,.sec,.dcard,.btn,.fchip,.loc-tab,.pill,.opt-shift-btn,.shift-banner,.loc-tabs,.cmp-bar,.dpanel,.arcs-box,.login-card,.catcard,.pg-btn,.srch,.cmp-sel{transition:background-color .4s ease-in-out,color .4s ease-in-out,border-color .4s ease-in-out,box-shadow .4s ease-in-out,transform .25s var(--ease)}
+.hdr,.sec,.dcard,.btn,.fchip,.loc-tab,.pill,.opt-shift-btn,.shift-banner,.loc-tabs,.cmp-bar,.dpanel,.arcs-box,.login-card,.catcard,.pg-btn,.srch,.cmp-sel{transition:transform .25s var(--ease),box-shadow .25s var(--ease)}
 /* header → frosted nav bar */
 .hdr{position:sticky;top:0;z-index:30;background:var(--glass)!important;backdrop-filter:saturate(180%) blur(24px);-webkit-backdrop-filter:saturate(180%) blur(24px);border:0!important;border-bottom:1px solid var(--border-light)!important;border-radius:0!important;box-shadow:none!important;padding:12px 28px!important;gap:16px}
 .logo-orb{background:none!important;border:0!important;box-shadow:none!important;color:#0f8fff}
@@ -675,6 +675,15 @@ tbody tr{transition:background-color .2s}tbody tr:hover td{background:rgba(120,1
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation-duration:.01ms!important}}
 </style>
 
+<style id="apple-stage2">
+::view-transition-old(root),::view-transition-new(root){animation-duration:.38s;animation-timing-function:ease-in-out}
+.ins-grid{display:grid;grid-template-columns:1.7fr 1fr;gap:24px}.ins-grid .wide{grid-column:1/-1}
+.ins-cv{position:relative;height:250px;padding:4px 20px 20px}.ins-cv.sm{height:270px}
+.ins-dn{position:absolute;left:0;right:0;top:calc(50% - 22px);text-align:center;pointer-events:none}.ins-dn b{display:block;font-size:1.7rem;letter-spacing:-.02em}.ins-dn span{color:var(--muted);font-size:.78rem}
+#mtt{position:fixed;pointer-events:none;z-index:9999;opacity:0;padding:10px 14px;border-radius:12px;background:var(--glass);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);border:1px solid var(--border-light);box-shadow:var(--shadow-hover);font-size:.8rem;color:var(--text);transition:opacity .15s}
+#mtt i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
+@media(max-width:900px){.ins-grid{grid-template-columns:1fr}}
+</style>
 </head>
 <body>
 <div class="arcs-ov" id="arcsOv" onclick="if(event.target===this)closeArchiveSearch()"><div class="arcs-box">
@@ -3143,6 +3152,53 @@ async function shotTopPerf(kind,btn,ctxId){
     if(btn){btn.innerHTML=old;btn.style.pointerEvents='';}
   }
 }
+</script>
+<script id="apple-stage2-js">
+/* ===== MEEG · Apple skin — theme crossfade + Chart.js insights (reads existing in-memory rows only) ===== */
+(function(){
+const RM=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+const PAL={light:{blue:'#007AFF',teal:'#30B0C7',indigo:'#5856D6',orange:'#FF9500',green:'#34C759'},dark:{blue:'#0A84FF',teal:'#40C8E0',indigo:'#5E5CE6',orange:'#FF9F0A',green:'#30D158'}};
+const th=()=>document.documentElement.getAttribute('data-theme')==='dark'?'dark':'light';
+const cs=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+let reg=[],libP=null;
+function lib(){if(window.Chart)return Promise.resolve();return libP||(libP=new Promise((res,rej)=>{const sc=document.createElement('script');sc.src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js';sc.onload=res;sc.onerror=()=>{libP=null;rej()};document.head.appendChild(sc)}))}
+/* theme switch: one GPU crossfade instead of repainting every element */
+const _td=window.toggleDark;
+window.toggleDark=function(){const go=()=>{_td();redraw(false)};if(document.startViewTransition&&!RM)document.startViewTransition(go);else go()};
+function tip(ctx){const t=ctx.tooltip;let el=document.getElementById('mtt');if(!el){el=document.createElement('div');el.id='mtt';document.body.appendChild(el)}
+if(t.opacity===0){el.style.opacity=0;return}const r=ctx.chart.canvas.getBoundingClientRect();
+el.innerHTML=(t.title[0]?'<b>'+t.title[0]+'</b><br>':'')+t.dataPoints.map(d=>'<div><i style="background:'+(d.dataset.pointBorderColor||d.dataset.borderColor||(Array.isArray(d.dataset.backgroundColor)?d.dataset.backgroundColor[d.dataIndex]:d.dataset.backgroundColor))+'"></i>'+(d.dataset.label&&d.chart.config.type!=='doughnut'?d.dataset.label+': ':d.label+': ')+'<b>'+d.formattedValue+'</b></div>').join('');
+el.style.opacity=1;el.style.left=Math.min(r.left+t.caretX+14,innerWidth-190)+'px';el.style.top=(r.top+t.caretY-20)+'px'}
+const ax={grid:{display:false},border:{display:false}};
+function grad(c,col){const g=c.createLinearGradient(0,0,0,250);g.addColorStop(0,col+'55');g.addColorStop(1,col+'00');return g}
+function mk(cv,build,anim){const c=cv.getContext('2d');Chart.defaults.font.family=cs('--font');Chart.defaults.color=cs('--muted');Chart.defaults.font.size=12;
+const cfg=build(PAL[th()],c);cfg.options=Object.assign({maintainAspectRatio:false,animation:anim?{duration:1000,easing:'easeOutQuart'}:false},cfg.options);return new Chart(cv,cfg)}
+function redraw(anim){reg=reg.filter(o=>o.cv.isConnected);reg.forEach(o=>{if(o.ch){o.ch.destroy();o.ch=mk(o.cv,o.build,anim)}})}
+function add(cv,build){const o={cv,build,ch:null};reg.push(o);
+const io=new IntersectionObserver(es=>{if(es[0].isIntersecting){io.disconnect();lib().then(()=>{if(cv.isConnected)o.ch=mk(cv,build,true)}).catch(()=>{})}},{rootMargin:'120px'});io.observe(cv)}
+function box(title,cls,inner){const d=document.createElement('div');d.className='sec '+(cls||'');d.innerHTML='<div class="sec-hd"><span class="sec-t">'+title+'</span></div><div class="ins-cv'+(cls==='wide'?'':' sm')+'">'+inner+'</div>';return d}
+function addInsights(wrap,locName,rows){
+const hl=hdrs.map(h=>String(h||'').toLowerCase()),mI=hl.indexOf('modality'),pI=hl.indexOf('pass'),qI=hl.indexOf('queue name');
+if(!rows.length||tsIdx<0)return;
+reg=reg.filter(o=>o.cv.isConnected);
+const days={},mods={},mp={};
+rows.forEach(r=>{const d=rDate(r),m=mI>=0?String(r[mI]||'').trim():'';if(d){(days[d]=days[d]||{})[m||'Other']=(days[d][m||'Other']||0)+1}if(m)mods[m]=1;if(m&&pI>=0){const k=m+' '+String(r[pI]||'').trim();mp[k]=(mp[k]||0)+1}});
+const dk=Object.keys(days).sort().slice(-14);if(dk.length<2)return;
+const ml=Object.keys(mods).length?Object.keys(mods).sort():['Other'];
+const g=document.createElement('div');g.className='ins-grid';
+const b1=box('Submits over time','','<canvas></canvas>'),b2=box('Modality & pass','','<canvas></canvas><div class="ins-dn"><b>'+rows.length.toLocaleString()+'</b><span>total</span></div>');
+g.appendChild(b1);g.appendChild(b2);
+const colOf=(P,m,i)=>/lidar/i.test(m)?P.teal:/lane/i.test(m)?P.indigo:[P.blue,P.orange,P.green][i%3];
+add(b1.querySelector('canvas'),(P,c)=>({type:'line',data:{labels:dk.map(d=>d.slice(5)),datasets:ml.map((m,i)=>{const col=colOf(P,m,i);return{label:m,data:dk.map(d=>(days[d]||{})[m]||0),borderColor:col,backgroundColor:grad(c,col),fill:true,tension:.4,borderWidth:2.5,pointRadius:0,pointHoverRadius:5,pointHoverBackgroundColor:col,pointHoverBorderColor:'#fff',pointHoverBorderWidth:2}})},options:{interaction:{mode:'index',intersect:false},plugins:{legend:{display:ml.length>1,position:'bottom',labels:{usePointStyle:true,pointStyle:'circle',boxWidth:7}},tooltip:{enabled:false,external:tip}},scales:{x:ax,y:Object.assign({},ax,{ticks:{maxTicksLimit:4},beginAtZero:true})}}}));
+const mk2=Object.keys(mp).sort();
+add(b2.querySelector('canvas'),P=>({type:'doughnut',data:{labels:mk2,datasets:[{data:mk2.map(k=>mp[k]),backgroundColor:mk2.map((k,i)=>[P.teal,P.blue,P.indigo,P.orange,P.green][i%5]),borderWidth:0,borderRadius:8,spacing:3,hoverOffset:6}]},options:{cutout:'74%',layout:{padding:{bottom:6}},plugins:{legend:{position:'bottom',labels:{usePointStyle:true,pointStyle:'circle',boxWidth:7}},tooltip:{enabled:false,external:tip}}}}));
+if(qI>=0){const q={};rows.forEach(r=>{const v=String(r[qI]||'').trim();if(v)q[v]=(q[v]||0)+1});const qs=Object.entries(q).sort((a,b)=>b[1]-a[1]).slice(0,8);
+if(qs.length>1){const b3=box('Top queues','wide','<canvas></canvas>');g.appendChild(b3);
+add(b3.querySelector('canvas'),P=>({type:'bar',data:{labels:qs.map(x=>x[0]),datasets:[{label:'Submits',data:qs.map(x=>x[1]),backgroundColor:P.blue,borderRadius:10,borderSkipped:false,maxBarThickness:34}]},options:{plugins:{legend:{display:false},tooltip:{enabled:false,external:tip}},scales:{x:ax,y:Object.assign({},ax,{ticks:{maxTicksLimit:4}})}}}))}}
+const h=wrap.querySelector('.loc-hdr');if(h&&h.nextSibling)wrap.insertBefore(g,h.nextSibling);else wrap.appendChild(g)}
+const _rls=window.renderLocSection;
+window.renderLocSection=function(wrap,locName,rows){_rls.apply(this,arguments);try{addInsights(wrap,locName,rows)}catch(e){console.warn('insights',e)}};
+})();
 </script>
 </body>
 </html>
