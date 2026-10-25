@@ -786,6 +786,39 @@ html[data-theme="dark"] #darkBtn::after{content:"\263E";transform:translateX(24p
 .qtot-wrap th{padding:12px 16px!important;font-size:.78rem!important;font-weight:500!important;color:var(--muted)!important;background:transparent!important;text-transform:none!important}
 .um-sec.collapsed>.sec-hd{padding-bottom:20px!important}
 .ttbar .srch{background:var(--elevated)!important}
+
+/* ===== Progressive disclosure: detail sections collapse behind their header ===== */
+.disc>.sec-hd{cursor:pointer;user-select:none;display:flex;align-items:center}
+.disc>.sec-hd::after{content:"";flex:none;width:8px;height:8px;margin-left:14px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);transition:transform .35s var(--ease)}
+.disc:not(.collapsed)>.sec-hd::after{transform:rotate(-135deg)}
+.disc>.sec-hd:hover .sec-t{color:var(--accent)}
+.disc.collapsed>.sec-hd~*{display:none!important}
+.disc.collapsed>.sec-hd{padding-bottom:20px!important}
+.disc.opening>.sec-hd~*{animation:tabIn .38s var(--ease) both}
+.disc>.sec-hd:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;border-radius:20px}
+.loc-section>.disc{order:10}
+.disc:not(.sec){background:var(--card);border-radius:20px;box-shadow:var(--shadow);overflow:hidden}.disc:not(.sec)>.sec{box-shadow:none!important;border-radius:0!important;background:transparent!important}
+.scroll-top-car{z-index:8000!important}
+
+/* ===== Screenshots: phone-friendly (portrait) + branded header ===== */
+.shot-stage{width:480px!important;padding:22px 18px 26px!important}
+.shot-stage .shot-head{margin:0 0 18px!important}
+.sh-brand{display:flex;align-items:center;gap:8px;font-size:.8rem;font-weight:600;color:var(--muted);margin-bottom:14px;font-family:var(--font)}
+.sh-brand svg{width:22px;height:19px;display:block}
+.sh-title{font-family:var(--font);font-size:1.3rem;font-weight:700;letter-spacing:-.02em;line-height:1.2;color:var(--text)}
+.sh-sub{font-family:var(--font);font-size:.78rem;color:var(--muted);margin-top:5px}
+.sh-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.sh-chips span{padding:4px 11px;border-radius:999px;background:var(--card);color:var(--text-soft);font-family:var(--font);font-size:.74rem;font-weight:500}
+.shot-stage table{width:100%!important;min-width:0!important;table-layout:auto!important}
+.shot-stage [style*="overflow-x"],.shot-stage .tbl-w{overflow:visible!important;max-height:none!important}
+.shot-stage table th{white-space:normal!important;padding:10px 4px!important;font-size:.66rem!important;line-height:1.2}
+.shot-stage table td{padding:10px 4px!important;font-size:.72rem!important;white-space:nowrap}
+.shot-stage table td:first-child{white-space:normal}
+.shot-stage span[style*="border:1.5px"],.shot-stage table span[style*="padding:3px"]{padding:3px 8px!important;font-size:.7rem!important}
+.shot-stage table th:first-child,.shot-stage table td:first-child{padding-left:12px!important}
+.shot-stage .qtot-wrap{padding:6px 12px 14px!important;gap:22px!important}
+.shot-stage .sec{background:var(--card)!important;box-shadow:none!important}
+.shot-stage .sec .sec-hd,.shot-stage .qtot-wrap,.shot-stage .qtot-wrap div,.shot-stage .qtot-wrap table,.shot-stage .qtot-wrap thead,.shot-stage .qtot-wrap tbody,.shot-stage .qtot-wrap tr,.shot-stage .qtot-wrap th,.shot-stage .qtot-wrap td{background:transparent!important;box-shadow:none!important}
 @media(max-width:700px){.pn{top:auto;height:88%;width:100%;border-radius:24px 24px 0 0;border-left:0;transform:translateY(104%)}.pn.on{transform:none}}
 .loc-section{display:flex;flex-direction:column;gap:32px}.loc-section>*{margin:0!important}
 html{scroll-behavior:smooth}body{background-attachment:scroll!important}
@@ -3424,6 +3457,61 @@ window.renderQualitySection=function(mc){
     });
   }catch(e){console.warn("quality ui",e)}
 };
+})();
+</script>
+<script id="apple-disclosure">
+/* Progressive disclosure: Device cards, Row Detail and Queue summary start collapsed; open state survives re-renders. Presentation only. */
+(function(){
+var _r=window.renderLocSection;if(typeof _r!=="function")return;
+var RX=/(Device Submit Counts|Row Detail|Queue\s*[\u2014-]\s*Total Submits)/;
+window._disc=window._disc||{};
+function setup(wrap,loc){
+  Array.prototype.slice.call(wrap.children).forEach(function(el){
+    var t=el.querySelector&&el.querySelector(".sec-t");if(!t||el.classList.contains("disc"))return;
+    var m=RX.exec(t.textContent.replace(/\s+/g," ").trim());if(!m)return;
+    var hd=el.querySelector(":scope>.sec-hd");
+    if(!hd){hd=document.createElement("div");hd.className="sec-hd";hd.innerHTML='<span class="sec-t">Queue &amp; modality summary</span>';el.insertBefore(hd,el.firstChild);m=[0,"Queue"]}
+    var key=(loc||"")+"|"+m[1];
+    el.classList.add("disc");if(window._disc[key]!==true)el.classList.add("collapsed");
+    hd.setAttribute("role","button");hd.setAttribute("tabindex","0");hd.setAttribute("aria-expanded",window._disc[key]===true?"true":"false");
+    function toggle(){var c=el.classList.toggle("collapsed");window._disc[key]=!c;hd.setAttribute("aria-expanded",c?"false":"true");
+      el.classList.add("opening");setTimeout(function(){el.classList.remove("opening")},450)}
+    hd.addEventListener("click",function(e){if(e.target.closest(".fchip,button,a,input,select"))return;toggle()});
+    hd.addEventListener("keydown",function(e){if((e.key==="Enter"||e.key===" ")&&e.target===hd){e.preventDefault();toggle()}});
+  });
+}
+window.renderLocSection=function(wrap,locName,rows){_r.apply(this,arguments);try{setup(wrap,locName)}catch(e){console.warn("disclosure",e)}};
+})();
+</script>
+<script id="apple-shots">
+/* Screenshots: replace the plain header with a branded one (logo, title, time, active filters) and stack the layout for phones.
+   Runs the moment a .shot-stage is inserted, before the capture happens. Presentation only. */
+(function(){
+var LOGO='<svg viewBox="0 0 54 46"><defs><linearGradient id="shg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#00e5d4"/><stop offset="1" stop-color="#0f8fff"/></linearGradient></defs><polygon points="0,4 30,4 21,16 0,16" fill="url(#shg)"/><polygon points="5,19 35,19 26,31 5,31" fill="url(#shg)"/><polygon points="10,34 40,34 31,46 10,46" fill="url(#shg)"/></svg>';
+function esc(t){return String(t).replace(/[&<>]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;"}[c]})}
+function filters(){
+  var out=[];
+  document.querySelectorAll(".opt-shift-btn.on").forEach(function(b){var t=b.textContent.replace(/[\u25CF\u2022]/g,"").trim();if(t&&!/^all/i.test(t))out.push(t)});
+  document.querySelectorAll("#pillsRow .pill:not(.pill-all)").forEach(function(p){
+    var c=p.cloneNode(true);c.querySelectorAll(".pill-x,.ic").forEach(function(x){x.remove()});
+    var t=c.textContent.replace(/\s+/g," ").trim();if(t&&out.indexOf(t)<0)out.push(t)});
+  return out;
+}
+function restyle(st){
+  try{
+    var h=st.querySelector(".shot-head");if(!h||h.dataset.branded)return;
+    var t=h.querySelector(".shot-title"),u=h.querySelector(".shot-sub");
+    var f=filters();
+    h.dataset.branded="1";
+    h.innerHTML='<div class="sh-brand">'+LOGO+'<span>MEEG Productivity</span></div>'
+      +'<div class="sh-title">'+(t?t.innerHTML:"")+'</div>'
+      +'<div class="sh-sub">'+(u?u.innerHTML:"")+'</div>'
+      +'<div class="sh-chips">'+(f.length?f.map(function(x){return"<span>"+esc(x)+"</span>"}).join(""):"<span>All data \u00b7 no filters</span>")+"</div>";
+    var g=st.querySelector('div[style*="grid-template-columns"]');
+    if(g){g.style.gridTemplateColumns="1fr";g.style.gap="14px"}
+  }catch(e){console.warn("shot header",e)}
+}
+new MutationObserver(function(ms){ms.forEach(function(m){m.addedNodes.forEach(function(n){if(n.nodeType===1&&n.classList&&n.classList.contains("shot-stage"))restyle(n)})})}).observe(document.body,{childList:true});
 })();
 </script>
 </body>
