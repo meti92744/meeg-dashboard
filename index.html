@@ -759,6 +759,33 @@ html[data-theme="dark"] #darkBtn::after{content:"\263E";transform:translateX(24p
 .arcs-hd,.arcs-hd *{text-transform:none!important;letter-spacing:0!important}.arcs-hd .t{font-size:1rem;font-weight:600}
 .arcs-box button{border-radius:999px!important}
 @media(max-width:700px){.hdr{flex-wrap:wrap;row-gap:10px}.hdr .meta-blk{display:none}.hdr [class*="hdr-r"]{flex-wrap:wrap;gap:8px}.loc-hdr{flex-direction:column!important;align-items:flex-start!important;gap:16px!important}.loc-stats{display:grid!important;grid-template-columns:repeat(2,1fr);width:100%;gap:12px}.loc-stat{padding:16px!important}.loc-stat .sv{font-size:1.9rem!important}.loc-hdr-name{font-size:1.5rem!important}.ins-cv{padding:4px 10px 16px}}
+
+/* ===== Quality tab polish (found in visual review) ===== */
+.sec tbody td[style*="padding:6px 10px"]{padding:13px 16px!important;font-size:.88rem!important;font-family:var(--font)!important;letter-spacing:0}
+.sec thead th[style*="padding:7px 10px"]{padding:12px 16px!important;font-size:.78rem!important;font-weight:500!important;color:var(--muted)!important;background:transparent!important;border-bottom:1px solid var(--border-light)!important;text-transform:none!important}
+.sec tr[style*="border-bottom"]{border-bottom:0!important}.sec tr[style*="border-bottom"] td{border-top:1px solid var(--border-light)!important}
+.sec span[style*="border:1.5px solid"]{border:0!important;border-radius:999px!important;font-family:var(--font)!important;font-size:.82rem!important;padding:4px 12px!important}
+.qtag{border:0!important;border-radius:999px!important;font-size:.72rem!important;padding:4px 10px!important;font-family:var(--font)}
+.sec [style*="background:var(--elevated)"]:not(td):not(th):not(.dcard):not(input){background:transparent!important}
+.qtot-wrap{display:grid!important;grid-template-columns:1fr!important;gap:28px!important;padding:8px 24px 24px!important}
+.qtot-wrap>div{min-width:0!important}
+.qtot-wrap>div>div:first-child{text-align:left!important;font-family:var(--font)!important;font-size:1rem!important;font-weight:600!important;color:var(--text)!important;border:0!important;background:transparent!important;padding:0 0 8px!important}
+.qtot-wrap>div>div:last-child{border:0!important;border-radius:0!important}
+/* unmatched: collapsible "needs attention" list */
+.um-sec{border-left:0!important}
+.um-sec>.sec-hd{cursor:pointer;user-select:none}
+.um-sec>.sec-hd::after{content:"";width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);margin-left:12px;transition:transform .35s var(--ease);flex:none}
+.um-sec:not(.collapsed)>.sec-hd::after{transform:rotate(-135deg)}
+.um-sec.collapsed>:not(.sec-hd){display:none!important}
+.um-badge{display:inline-block;margin-left:10px;padding:2px 10px;border-radius:999px;background:rgba(255,59,48,.14);color:var(--danger);font-size:.74rem;font-weight:600;vertical-align:middle}
+.um-sec .dcard{background:var(--elevated)!important;border:0!important;box-shadow:none!important}
+.ttbar{background:transparent!important;border:0!important;padding:4px 24px 12px!important;gap:12px}
+.ttbar .srch{flex:1;height:44px;font-size:.95rem}.ttbar .rcnt{color:var(--muted);font-size:.85rem;font-family:var(--font)}
+#qualityIdResult{padding:0 24px 20px!important}
+.qtot-wrap td{font-size:.88rem!important;font-family:var(--font)!important;padding:13px 16px!important}
+.qtot-wrap th{padding:12px 16px!important;font-size:.78rem!important;font-weight:500!important;color:var(--muted)!important;background:transparent!important;text-transform:none!important}
+.um-sec.collapsed>.sec-hd{padding-bottom:20px!important}
+.ttbar .srch{background:var(--elevated)!important}
 @media(max-width:700px){.pn{top:auto;height:88%;width:100%;border-radius:24px 24px 0 0;border-left:0;transform:translateY(104%)}.pn.on{transform:none}}
 .loc-section{display:flex;flex-direction:column;gap:32px}.loc-section>*{margin:0!important}
 html{scroll-behavior:smooth}body{background-attachment:scroll!important}
@@ -3377,6 +3404,26 @@ r.querySelectorAll("[placeholder]").forEach(e=>{const v=e.getAttribute("placehol
 let q=new Set(),raf=0;
 new MutationObserver(ms=>{for(const m of ms){if(m.type==="characterData")q.add(m.target);else m.addedNodes.forEach(n=>q.add(n))}if(!raf)raf=requestAnimationFrame(()=>{raf=0;const a=[...q];q=new Set();a.forEach(proc)})}).observe(document.body,{childList:true,subtree:true,characterData:true});
 proc(document.body);
+})();
+</script>
+<script id="apple-quality">
+/* Quality tab: make "Unmatched Tasks" a collapsible list (state survives re-renders). Presentation only. */
+(function(){
+var _rq=window.renderQualitySection;if(typeof _rq!=="function")return;
+window._umOpen=!!window._umOpen;
+window.renderQualitySection=function(mc){
+  _rq.apply(this,arguments);
+  try{
+    mc.querySelectorAll(".sec").forEach(function(sec){
+      var t=sec.querySelector(".sec-t");
+      if(!t||t.textContent.indexOf("Unmatched Tasks")<0||sec.classList.contains("um-sec"))return;
+      sec.classList.add("um-sec");if(!window._umOpen)sec.classList.add("collapsed");
+      var bad=0;sec.querySelectorAll(".dcard").forEach(function(c){if(/Not found in Teams|No email/.test(c.textContent))bad++});
+      if(bad){var b=document.createElement("span");b.className="um-badge";b.textContent=bad+" need attention";t.appendChild(b)}
+      sec.querySelector(".sec-hd").addEventListener("click",function(e){if(e.target.closest("a,button"))return;window._umOpen=!sec.classList.toggle("collapsed")});
+    });
+  }catch(e){console.warn("quality ui",e)}
+};
 })();
 </script>
 </body>
