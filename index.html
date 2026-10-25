@@ -819,7 +819,6 @@ html[data-theme="dark"] #darkBtn::after{content:"\263E";transform:translateX(24p
 .shot-stage .qtot-wrap{padding:6px 12px 14px!important;gap:22px!important}
 .shot-stage .sec{background:var(--card)!important;box-shadow:none!important}
 .shot-stage .sec .sec-hd,.shot-stage .qtot-wrap,.shot-stage .qtot-wrap div,.shot-stage .qtot-wrap table,.shot-stage .qtot-wrap thead,.shot-stage .qtot-wrap tbody,.shot-stage .qtot-wrap tr,.shot-stage .qtot-wrap th,.shot-stage .qtot-wrap td{background:transparent!important;box-shadow:none!important}
-.pn-act{width:100%;height:48px;margin-top:24px;border:0;border-radius:14px;background:var(--accent);color:#fff;font:600 1rem var(--font);cursor:pointer;transition:transform .2s var(--ease),filter .2s}.pn-act:hover{filter:brightness(1.08)}.pn-act:active{transform:scale(.98)}.pn-act.off{background:var(--card);color:var(--text)}
 @media(max-width:700px){.pn{top:auto;height:88%;width:100%;border-radius:24px 24px 0 0;border-left:0;transform:translateY(104%)}.pn.on{transform:none}}
 .loc-section{display:flex;flex-direction:column;gap:32px}.loc-section>*{margin:0!important}
 html{scroll-behavior:smooth}body{background-attachment:scroll!important}
@@ -3362,27 +3361,26 @@ const _rls=window.renderLocSection;
 window.renderLocSection=function(wrap,locName,rows){_rls.apply(this,arguments);try{addInsights(wrap,locName,rows)}catch(e){console.warn('insights',e)}};
 
 /* ---- slide-out detail panel ---- */
-document.body.insertAdjacentHTML('beforeend','<div class="pn-scrim" id="pnScrim"></div><aside class="pn" id="pn" role="dialog" aria-modal="true" aria-label="Details"><button class="pn-x" id="pnX" aria-label="Close">\u2715</button><div class="pn-top"><div class="pn-av" id="pnAv"></div><h2 id="pnName"></h2><p id="pnSub"></p></div><div class="pn-two"><div class="pn-mini"><b id="pnV"></b><span id="pnVl">Submits</span></div><div class="pn-mini"><b id="pnD"></b><span id="pnDl">Active days</span></div></div><div class="pn-card"><div class="pn-ct" id="pnCt"></div><div class="pn-cv"><canvas id="pnCv"></canvas></div></div><div id="pnBars"></div><button class="pn-act" id="pnAct" style="display:none"></button></aside>');
+document.body.insertAdjacentHTML('beforeend','<div class="pn-scrim" id="pnScrim"></div><aside class="pn" id="pn" role="dialog" aria-modal="true" aria-label="Details"><button class="pn-x" id="pnX" aria-label="Close">\u2715</button><div class="pn-top"><div class="pn-av" id="pnAv"></div><h2 id="pnName"></h2><p id="pnSub"></p></div><div class="pn-two"><div class="pn-mini"><b id="pnV"></b><span id="pnVl">Submits</span></div><div class="pn-mini"><b id="pnD"></b><span id="pnDl">Active days</span></div></div><div class="pn-card"><div class="pn-ct" id="pnCt"></div><div class="pn-cv"><canvas id="pnCv"></canvas></div></div><div id="pnBars"></div></aside>');
 const G=i=>document.getElementById(i);let pch=null,pbuild=null,pOpen=false;
 function closeP(){if(!pOpen)return;pOpen=false;G('pn').classList.remove('on');G('pnScrim').classList.remove('on');setTimeout(()=>{if(!pOpen&&pch){pch.destroy();pch=null}},520)}
 window._pnlRedraw=function(){if(pOpen&&pbuild&&window.Chart){if(pch)pch.destroy();pch=mk(G('pnCv'),pbuild,false)}};
-function openP(kind,name,ctx,ttl,onAct,actOn){G('pnAct').style.display='none';document.querySelector('#pn .pn-card').style.display='';G('pnVl').textContent='Submits';G('pnDl').textContent='Active days';
-const hl=hdrs.map(h=>String(h||'').toLowerCase()),nI=hl.indexOf(kind==='qtc'?'qtc name':kind==='device'?'pc no':'labeler name'),mI=hl.indexOf('modality'),pI=hl.indexOf('pass'),qI=hl.indexOf('queue name'),lI=hl.indexOf('labeler name');
+function openP(kind,name,ctx){document.querySelector('#pn .pn-card').style.display='';G('pnVl').textContent='Submits';G('pnDl').textContent='Active days';
+const hl=hdrs.map(h=>String(h||'').toLowerCase()),nI=hl.indexOf(kind==='qtc'?'qtc name':'labeler name'),mI=hl.indexOf('modality'),pI=hl.indexOf('pass'),qI=hl.indexOf('queue name');
 if(nI<0)return;const mine=ctx.rows.filter(r=>String(r[nI]||'').trim()===name);if(!mine.length)return;
-const byDay={},mp={},qs={},lb={};
-mine.forEach(r=>{if(kind==='device'&&lI>=0){const l=String(r[lI]||'').trim();if(l)lb[l]=(lb[l]||0)+1}const d=rDate(r);if(d)byDay[d]=(byDay[d]||0)+1;const m=mI>=0?String(r[mI]||'').trim():'',pv=pI>=0?String(r[pI]||'').trim():'';if(m)mp[m+(pv?' '+pv:'')]=(mp[m+(pv?' '+pv:'')]||0)+1;const q=qI>=0?String(r[qI]||'').trim():'';if(q)qs[q]=(qs[q]||0)+1});
+const byDay={},mp={},qs={};
+mine.forEach(r=>{const d=rDate(r);if(d)byDay[d]=(byDay[d]||0)+1;const m=mI>=0?String(r[mI]||'').trim():'',pv=pI>=0?String(r[pI]||'').trim():'';if(m)mp[m+(pv?' '+pv:'')]=(mp[m+(pv?' '+pv:'')]||0)+1;const q=qI>=0?String(r[qI]||'').trim():'';if(q)qs[q]=(qs[q]||0)+1});
 const ds=Object.keys(byDay).sort();
 let L,V,type='line',title='Last 7 days';
 if(ds.length<=1){title='Submits by hour';const hr={};let lo=24,hi=-1;mine.forEach(r=>{const mn=rMinutes(r);if(mn<0)return;const h=Math.floor(mn/60);hr[h]=(hr[h]||0)+1;if(h<lo)lo=h;if(h>hi)hi=h});
  if(hi>=0){L=[];V=[];for(let h=lo;h<=hi;h++){L.push(String(h).padStart(2,'0')+':00');V.push(hr[h]||0)}if(L.length<4)type='bar'}else{L=[ds[0]||'Total'];V=[mine.length];type='bar'}}
 else{L=[];V=[];const end=new Date(ds[ds.length-1]+'T12:00:00');for(let k=6;k>=0;k--){const d=new Date(end);d.setDate(d.getDate()-k);const key=d.toISOString().slice(0,10);L.push(key.slice(5));V.push(byDay[key]||0)}}
 const P=PAL[th()],cols=[P.blue,P.teal,P.indigo,P.orange,P.green];let hsh=0;for(const ch of name)hsh=(hsh*31+ch.charCodeAt(0))>>>0;
-G('pnAv').textContent=kind==='device'?'PC':name.split(/\s+/).slice(0,2).map(x=>x[0]||'').join('').toUpperCase();G('pnAv').style.background=cols[hsh%5];
-G('pnName').textContent=ttl||name;G('pnSub').textContent=(kind==='qtc'?'QTC':kind==='device'?'Device':'Labeler')+(ctx.loc?' \u00b7 '+ctx.loc:'');
+G('pnAv').textContent=name.split(/\s+/).slice(0,2).map(x=>x[0]||'').join('').toUpperCase();G('pnAv').style.background=cols[hsh%5];
+G('pnName').textContent=name;G('pnSub').textContent=(kind==='qtc'?'QTC':'Labeler')+(ctx.loc?' \u00b7 '+ctx.loc:'');
 G('pnV').textContent=mine.length.toLocaleString();G('pnD').textContent=ds.length||'\u2014';G('pnCt').textContent=title;
 const blk=(t,o)=>{const e=Object.entries(o).sort((a,b)=>b[1]-a[1]).slice(0,6);if(!e.length)return'';const mx=e[0][1];return'<div class="pn-h">'+t+'</div>'+e.map(([k,v],i)=>'<div class="pn-bar"><span title="'+esc(k)+'">'+esc(k)+'</span><div><i data-w="'+Math.max(4,Math.round(v/mx*100))+'" style="background:'+cols[(i+1)%5]+'"></i></div><em>'+v.toLocaleString()+'</em></div>').join('')};
-G('pnBars').innerHTML=(kind==='device'?blk('Labelers',lb):'')+blk('Modality & pass',mp)+blk('Top queues',qs);
-if(onAct){const a=G('pnAct');a.style.display='';a.textContent=actOn?'Remove device filter':'Filter on this device';a.classList.toggle('off',!!actOn);a.onclick=function(){onAct();closeP()}}
+G('pnBars').innerHTML=blk('Modality & pass',mp)+blk('Top queues',qs);
 pOpen=true;G('pn').classList.add('on');G('pnScrim').classList.add('on');setTimeout(()=>G('pnBars').querySelectorAll('i').forEach(e=>e.style.width=e.dataset.w+'%'),140);G('pnX').focus({preventScroll:true});
 pbuild=(P2,c)=>({type,data:{labels:L,datasets:[type==='bar'?{label:'Submits',data:V,backgroundColor:P2.blue,borderRadius:10,borderSkipped:false,maxBarThickness:34}:{label:'Submits',data:V,borderColor:P2.blue,backgroundColor:(()=>{const g=c.createLinearGradient(0,0,0,150);g.addColorStop(0,P2.blue+'55');g.addColorStop(1,P2.blue+'00');return g})(),fill:true,tension:.4,borderWidth:2.5,pointRadius:0,pointHoverRadius:5,pointHoverBackgroundColor:P2.blue,pointHoverBorderColor:'#fff',pointHoverBorderWidth:2}]},options:{plugins:{legend:{display:false},tooltip:{enabled:false,external:tip}},scales:{x:Object.assign({},ax,{ticks:{maxTicksLimit:7,maxRotation:0}}),y:{display:false,beginAtZero:true}}}});
 lib().then(()=>{if(!pOpen)return;if(pch)pch.destroy();pch=mk(G('pnCv'),pbuild,true)}).catch(()=>{})}
@@ -3395,7 +3393,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeP()});
 
 /* ---- panel for Quality (team rows) + Top Performers (podium & table rows) ---- */
-function openQ(tr){G('pnAct').style.display='none';const tb=tr.closest('table'),H=[...tb.querySelectorAll('thead th')].map(t=>t.textContent.trim()),name=tr.querySelector('td:first-child').textContent.trim(),r=(window._teamSheetData||[]).find(x=>x.tl===name);if(!r)return;
+function openQ(tr){const tb=tr.closest('table'),H=[...tb.querySelectorAll('thead th')].map(t=>t.textContent.trim()),name=tr.querySelector('td:first-child').textContent.trim(),r=(window._teamSheetData||[]).find(x=>x.tl===name);if(!r)return;
 const P=PAL[th()],cols=[P.blue,P.teal,P.indigo,P.orange,P.green];let hsh=0;for(const ch of name)hsh=(hsh*31+ch.charCodeAt(0))>>>0;
 G('pnAv').textContent=name.split(/\s+/).slice(0,2).map(x=>x[0]||'').join('').toUpperCase();G('pnAv').style.background=cols[hsh%5];
 G('pnName').textContent=name;G('pnSub').textContent='QTC'+(r.group?' \u00b7 '+r.group:'');
@@ -3415,8 +3413,6 @@ document.addEventListener('click',e=>{if(e.target.closest('a'))return;
 const _rtt=window.renderTopTotalSection;
 window.renderTopTotalSection=function(mc,rows,nameIdx,cfg){const before=mc.lastElementChild;_rtt.apply(this,arguments);try{const sec=mc.lastElementChild;if(sec&&sec!==before&&sec.classList.contains('sec')){sec._pctx={rows:rows,kind:cfg&&cfg.kind==='qtc'?'qtc':'labeler',loc:''};sec.classList.add('pn-link')}}catch(e){}};
 const _db=document.getElementById('darkBtn');if(_db)_db.setAttribute('aria-label','Toggle dark mode');
-window._pn={open:openP,close:closeP};
-window._mc={add:add,tip:tip,ax:ax};
 const _nc={};
 window.animateNum=function(el,t,d){let key=null;try{const sec=el.closest('.loc-section'),nm=sec&&sec.querySelector('.loc-hdr-name'),sl=el.nextElementSibling;if(nm&&sl)key=nm.textContent+'|'+sl.textContent}catch(e){}
 const from=key&&_nc[key]!=null?_nc[key]:0;if(key)_nc[key]=t;if(from===t){el.textContent=t.toLocaleString();return}
@@ -3448,24 +3444,6 @@ proc(document.body);
 (function(){
 var _rq=window.renderQualitySection;if(typeof _rq!=="function")return;
 window._umOpen=!!window._umOpen;
-function qualityChart(mc){
-  var R=(window._qExport&&window._qExport.rows)||[],X=window._mc;if(!R.length||!X)return;
-  var order=["Morning","Night","Overnight","Empty"],M=[["Artifacts",5,"teal"],["Attribute",6,"indigo"],["TVA F1",7,"orange"],["Total accuracy",8,"blue"]],agg={};
-  R.forEach(function(r){var g=r[0],n=+r[4]||0,a=agg[g]=agg[g]||{n:0,m:M.map(function(){return{s:0,c:0}})};a.n+=n;
-    M.forEach(function(m,i){var v=r[m[1]];if(typeof v==="number"&&!isNaN(v)&&n){a.m[i].s+=v*n;a.m[i].c+=n}})});
-  var gs=order.filter(function(g){return agg[g]&&agg[g].n>0});if(!gs.length)return;
-  var first=[].slice.call(mc.querySelectorAll(".sec")).filter(function(s){var t=s.querySelector(".sec-t");return t&&/\bShift\b/.test(t.textContent)})[0];if(!first)return;
-  var sec=document.createElement("div");sec.className="sec";
-  sec.innerHTML='<div class="sec-hd"><span class="sec-t">Accuracy by shift</span><span class="sec-m">Averages weighted by task count</span></div><div class="ins-cv sm"><canvas></canvas></div>';
-  var cv=sec.querySelector("canvas");cv.dataset.k="qshift|"+gs.map(function(g){return g+agg[g].n}).join(",");
-  first.parentNode.insertBefore(sec,first);
-  X.add(cv,function(P){
-    var ds=M.map(function(m,i){return{label:m[0],data:gs.map(function(g){var a=agg[g].m[i];return a.c?+(a.s/a.c).toFixed(1):null}),backgroundColor:P[m[2]],borderRadius:8,borderSkipped:false,maxBarThickness:30}});
-    var vals=[];ds.forEach(function(d){d.data.forEach(function(v){if(v!==null)vals.push(v)})});
-    var lo=Math.max(0,Math.floor(Math.min.apply(null,vals)-4));
-    var mm=sec.querySelector(".sec-m");if(mm)mm.textContent="Weighted by task count \u00b7 axis starts at "+lo+"%";
-    return{type:"bar",data:{labels:gs,datasets:ds},options:{plugins:{legend:{position:"bottom",labels:{usePointStyle:true,pointStyle:"circle",boxWidth:8,boxHeight:8,padding:18}},tooltip:{enabled:false,external:X.tip}},scales:{x:X.ax,y:Object.assign({},X.ax,{min:lo,max:100,ticks:{maxTicksLimit:5,callback:function(v){return v+"%"}}})}}}});
-}
 window.renderQualitySection=function(mc){
   _rq.apply(this,arguments);
   try{
@@ -3477,7 +3455,6 @@ window.renderQualitySection=function(mc){
       if(bad){var b=document.createElement("span");b.className="um-badge";b.textContent=bad+" need attention";t.appendChild(b)}
       sec.querySelector(".sec-hd").addEventListener("click",function(e){if(e.target.closest("a,button"))return;window._umOpen=!sec.classList.toggle("collapsed")});
     });
-    qualityChart(mc);
   }catch(e){console.warn("quality ui",e)}
 };
 })();
@@ -3535,38 +3512,6 @@ function restyle(st){
   }catch(e){console.warn("shot header",e)}
 }
 new MutationObserver(function(ms){ms.forEach(function(m){m.addedNodes.forEach(function(n){if(n.nodeType===1&&n.classList&&n.classList.contains("shot-stage"))restyle(n)})})}).observe(document.body,{childList:true});
-})();
-</script>
-<script id="apple-device">
-/* Device cards: a click opens the details panel (with a button for the old click behaviour = filter on that device). Presentation only. */
-document.addEventListener("click",function(e){
-  var c=e.target.closest&&e.target.closest(".dcard");if(!c||!window._pn)return;
-  var m=/tgVal\('([^']*)','([^']*)'\)/.exec(c.getAttribute("onclick")||"");if(!m||m[1]!=="Pc No")return;
-  e.stopPropagation();e.preventDefault();
-  try{
-    var hl=hdrs.map(function(h){return String(h||"").toLowerCase()}),pI=hl.indexOf("pc no"),v=m[2];
-    var sec=c.closest(".loc-section"),nm=sec&&sec.querySelector(".loc-hdr-name"),loc=nm?nm.textContent.replace(/\s+/g," ").trim():"";
-    var rows=fcache.filter(function(r){return String(r[pI]||"").trim()===v});
-    if(loc&&locColIdx>=0){var by=rows.filter(function(r){return String(r[locColIdx]||"").trim()===loc});if(by.length)rows=by}
-    var t=((c.querySelector(".dc-pc")||{}).textContent||v).trim();
-    window._pn.open("device",v,{rows:rows,loc:loc},t,function(){tgVal("Pc No",v)},!!(sel["Pc No"]&&sel["Pc No"].has(v)));
-  }catch(err){console.warn("device panel",err);tgVal(m[1],m[2])}
-},true);
-</script>
-<script id="apple-leaderboard">
-/* Leaderboards (Top QTC / Top Labeler): open the "All" view automatically instead of waiting for a click. Uses the existing chip; staggered so a big render doesn't block the page. */
-(function(){
-var _r=window.renderLocSection;if(typeof _r!=="function")return;
-window.renderLocSection=function(wrap,loc,rows){
-  _r.apply(this,arguments);
-  try{
-    if(!window._lbT){window._lbQ=0;window._lbT=setTimeout(function(){window._lbT=0},2500)}
-    wrap.querySelectorAll('[id^="wrap_qtc_"],[id^="wrap_lab_"]').forEach(function(w){
-      var sec=w.closest(".sec"),chip=sec&&sec.querySelector(".mod-chip");if(!chip)return;
-      setTimeout(function(){if(w.isConnected&&!w.children.length)chip.click()},150+120*(window._lbQ++));
-    });
-  }catch(e){console.warn("leaderboard",e)}
-};
 })();
 </script>
 </body>
