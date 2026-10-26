@@ -2159,7 +2159,7 @@ function renderQualitySection(mc){
   let matched=0,unmatched=0,archiveHits=0;
   const unmatchedList=[];
   function addToBucket(info,q,aid){
-    const grp=info.group||'Overnight';
+    const grp=info.group||(info.email&&teamsMap[teamsKey(info.email.toLowerCase())])||'Overnight';
     shiftIds[grp].push(aid);
     const key=info.email||info.name;
     if(!buckets[grp][key]){
@@ -2478,15 +2478,29 @@ const BACKUP_SHEET_GID='0';
 function csvEsc(v){v=v==null?'':String(v);return /[",\n\r]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;}
 function tableToCSV(t){return t.map(r=>r.map(csvEsc).join(',')).join('\n');}
 function _hk(h){const k=String(h==null?'':h).toLowerCase().replace(/[\s_\-.]+/g,'');return (k==='taskid'||k==='actualid')?'id':k;}   // "Task ID" (Backup) and "ID" (Data Base) are the same column
+const BACKUP_TAB_NAME='Backup Date Base';
 function fetchBackupTable(){
-  return fetch(`https://docs.google.com/spreadsheets/d/${BACKUP_SHEET_ID}/export?format=csv&gid=${encodeURIComponent(BACKUP_SHEET_GID)}`,{cache:'no-store'})
+  /* try the tab by its NAME first (can't be wrong like a GID can), then fall back to the GID */
+  const urls=[
+    `https://docs.google.com/spreadsheets/d/${BACKUP_SHEET_ID}/gviz/tq?tqx=out:csv&headers=1&sheet=${encodeURIComponent(BACKUP_TAB_NAME)}`,
+    `https://docs.google.com/spreadsheets/d/${BACKUP_SHEET_ID}/export?format=csv&gid=${encodeURIComponent(BACKUP_SHEET_GID)}`
+  ];
+  const tryAt=i=>fetch(urls[i],{cache:'no-store'})
     .then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.text();})
-    .then(t=>{if(/^\s*<(!doctype|html)/i.test(t))throw new Error('not readable — share the backup sheet as "Anyone with the link can view"');return parseCSVAsync(t);});
+    .then(t=>{if(/^\s*<(!doctype|html)/i.test(t))throw new Error('not readable — share the backup sheet as "Anyone with the link can view"');return parseCSVAsync(t);})
+    .then(tb=>{if(!tb||tb.length<2)throw new Error('empty');return tb;})
+    .catch(e=>{if(i+1<urls.length)return tryAt(i+1);throw e;});
+  return tryAt(0);
 }
+/* extra header spellings the backup form may use — applied to the BACKUP headers only, never to the main Data Base */
+const _BK_ALIAS={'tasklink':'tasklink','qtc':'qtcname','qtcname':'qtcname','tl':'qtcname','email':'yubikeyemail','actualemail':'yubikeyemail','labeler':'labelername','name':'labelername','pc':'pcno','pcnumber':'pcno','queue':'queuename','date':'timestamp','createdat':'timestamp'};
+function _hkB(h){const k=_hk(h);return _BK_ALIAS[k]||k;}
 /* appends the backup rows (re-ordered to the main sheet's columns) to mainTable; returns how many rows were added */
 function mergeBackup(mainTable,bTable){
   if(!mainTable.length||!bTable.length)return 0;
-  const mH=mainTable[0].map(_hk),bH=bTable[0].map(_hk);
+  const mH=mainTable[0].map(_hk),bH=bTable[0].map(_hkB);
+  window._backupMissing=['id','qtcname','yubikeyemail','labelername','timestamp'].filter(k=>mH.indexOf(k)>=0&&bH.indexOf(k)<0&&!(k==='id'&&bH.indexOf('tasklink')>=0));
+  if(window._backupMissing.length)console.warn('Backup tab is missing columns:',window._backupMissing.join(', '));
   const map=mH.map(h=>{const l=[];if(h)bH.forEach((x,i)=>{if(x===h)l.push(i);});return l;});   // main column i -> backup column(s) with the same name
   if(map.every(l=>!l.length))return 0;                          // no common headers → nothing sensible to merge
   const linkIdx=bH.indexOf('tasklink');
@@ -2525,6 +2539,7 @@ function loadData(){
       try{const mt=await parseCSVAsync(txt);added=mergeBackup(mt,bt);if(added>0)out=tableToCSV(mt);}
       catch(e){console.warn('Backup merge failed:',e.message);added=0;out=txt;}
     }
+    if(window._backupMissing&&window._backupMissing.length&&!window._backupMissWarned){window._backupMissWarned=true;showToast('⚠️ Backup tab has no column: '+window._backupMissing.join(', '));}
     if(window._lastBackupAdded!==added){const first=window._lastBackupAdded===undefined;window._lastBackupAdded=added;if(!first||added>0)showToast(added>0?('🗂️ Backup sheet merged: +'+added+' rows'):'🗂️ Backup sheet: no new rows');}
     idbSet('csv',{v:AUTH_VER,ts:Date.now(),text:out});onCsvData(out);
   }).catch(e=>{
