@@ -991,6 +991,40 @@ html body .fstrip{position:relative!important;top:auto!important;z-index:60!impo
 html body .loc-tabs{position:relative;z-index:2}
 @media(min-width:701px){html body .hdr{z-index:100!important}}
 </style>
+<style id="glass-spy">
+/* ---- section scroll-spy dots ---- */
+.rail-sec{display:flex;flex-direction:column;align-items:center;gap:0;margin:2px 0}
+.rail-sec:empty,.rail-sec:empty+.rs-i{display:none}
+html body .rail button.rs{width:42px;height:24px;border-radius:12px;background:none!important;box-shadow:none!important;transform:none!important;color:var(--text-soft)}
+html body .rail-sec.dense button.rs{height:16px}
+.rail button.rs::before{content:'';display:block;width:6px;height:6px;border-radius:99px;background:currentColor;opacity:.45;transition:height .35s var(--pop),opacity .2s,background .2s,box-shadow .3s}
+.rail button.rs:hover::before{opacity:1;height:10px}
+.rail button.rs.cur::before{height:20px;opacity:1;background:var(--g-grad);box-shadow:0 0 12px rgba(0,229,212,.65)}
+.rail-sec.dense button.rs.cur::before{height:14px}
+html body .rail{max-height:calc(100vh - 24px)}
+html body .sec,html body .loc-hdr{scroll-margin-top:96px}
+#railNow{display:none}
+/* ---- contrast in dark ---- */
+html[data-theme="dark"] body :is(.loc-tab,.opt-shift-btn){color:#9fd3df!important}
+html[data-theme="dark"] body .loc-tab.act,html body .opt-shift-btn.on{color:#fff!important}
+/* ---- mobile ---- */
+@media(max-width:700px){
+ html body .hdr{grid-template-columns:minmax(0,1fr) auto!important}
+ html body .hdr-left{grid-column:1;grid-row:1}
+ html body .hdr-right{grid-column:2;grid-row:1;justify-self:end}
+ html body .hdr>div:nth-child(2){grid-column:1/-1;grid-row:2;justify-content:flex-start}
+ html body .logout-btn{color:var(--text)!important;padding:8px 14px}
+ html body .content{padding-bottom:130px!important}
+ html body .toast{bottom:92px!important}
+ html body .rail{bottom:calc(12px + env(safe-area-inset-bottom,0px))}
+ .rail-sec,.rs-i{display:none!important}
+ #railNow{display:block;position:fixed;left:50%;bottom:calc(74px + env(safe-area-inset-bottom,0px));z-index:89;max-width:78vw;padding:6px 14px;border-radius:999px;font:600 .72rem var(--font);color:var(--text);background:var(--g-bg);border:1px solid var(--g-brd);box-shadow:var(--g-hi),var(--g-sh);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none;opacity:0;transform:translate(-50%,8px);transition:opacity .25s,transform .3s var(--pop)}
+ #railNow.show{opacity:1;transform:translate(-50%,0)}
+}
+</style>
+<style id="glass-body-h">html body{height:auto!important;min-height:100%}</style>
+
+
 
 
 
@@ -3701,7 +3735,7 @@ function restyle(st){
 new MutationObserver(function(ms){ms.forEach(function(m){m.addedNodes.forEach(function(n){if(n.nodeType===1&&n.classList&&n.classList.contains("shot-stage"))restyle(n)})})}).observe(document.body,{childList:true});
 })();
 </script>
-<nav class="rail" id="glassRail"><button data-tip="Home" title="Home" onclick="shootWebScrollTop()" class="on"><svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg></button><button data-tip="Refresh" title="Refresh" onclick="loadData()" ><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg></button><button id="railAuto" data-tip="Auto refresh" title="Auto refresh" onclick="toggleAutoRefresh()" ><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></button><i></i><button id="railCmp" data-tip="Compare" title="Compare" onclick="toggleCompare()" ><svg viewBox="0 0 24 24"><path d="M12 3v18M5 7h14M5 7l-2 6a3 3 0 0 0 4 0zM19 7l-2 6a3 3 0 0 0 4 0z"/></svg></button><i></i><button data-tip="Dark / Light" title="Dark / Light" onclick="toggleDark()" ><svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button></nav>
+<div id="railNow" aria-live="polite"></div><nav class="rail" id="glassRail"><button data-tip="Home" title="Home" onclick="shootWebScrollTop()" class="on"><svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg></button><div class="rail-sec" id="railSec"></div><i class="rs-i"></i><button data-tip="Refresh" title="Refresh" onclick="loadData()" ><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg></button><button id="railAuto" data-tip="Auto refresh" title="Auto refresh" onclick="toggleAutoRefresh()" ><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></button><i></i><button id="railCmp" data-tip="Compare" title="Compare" onclick="toggleCompare()" ><svg viewBox="0 0 24 24"><path d="M12 3v18M5 7h14M5 7l-2 6a3 3 0 0 0 4 0zM19 7l-2 6a3 3 0 0 0 4 0z"/></svg></button><i></i><button data-tip="Dark / Light" title="Dark / Light" onclick="toggleDark()" ><svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button></nav>
 <script id="glass-rail-sync">
 (function(){function pair(src,dst){var a=document.getElementById(src),b=document.getElementById(dst);if(!a||!b)return;function f(){b.classList.toggle('on',a.classList.contains('active'));}f();new MutationObserver(f).observe(a,{attributes:true,attributeFilter:['class']});}
 pair('arBtn','railAuto');pair('cmpBtn','railCmp');})();
@@ -3710,6 +3744,19 @@ pair('arBtn','railAuto');pair('cmpBtn','railCmp');})();
 (function(){var r=document.documentElement,t,m=document.getElementById('mainContent');function go(){r.classList.add('g-enter');clearTimeout(t);t=setTimeout(function(){r.classList.remove('g-enter')},900);}
 if(m){var mo=new MutationObserver(function(){if(m.querySelector('.loc-stat')){mo.disconnect();go();}});mo.observe(m,{childList:true,subtree:true});}
 document.addEventListener('click',function(e){if(e.target.closest&&e.target.closest('.loc-tab'))go();},true);})();
+</script>
+<script id="glass-spy-js">
+(function(){var rail=document.getElementById('railSec'),m=document.getElementById('mainContent'),nav=document.getElementById('glassRail'),home=nav&&nav.querySelector('button'),now=document.getElementById('railNow');if(!rail||!m)return;
+var secs=[],sig='',cur=-2,raf=0,tm=0;
+function ttl(e){var t=e.querySelector('.sec-t');return t?t.textContent.replace(/\s+/g,' ').trim().slice(0,36):'Section';}
+function paint(c){if(c===cur)return;cur=c;var k=rail.children;for(var i=0;i<k.length;i++)k[i].classList.toggle('cur',i===c);if(home)home.classList.toggle('on',c<0);if(now){now.textContent=c>=0?ttl(secs[c]):'';now.classList.toggle('show',c>=0);}}
+function upd(){raf=0;var y=innerHeight*.4,c=-1,n=secs.length;for(var i=0;i<n;i++){if(secs[i].getBoundingClientRect().top<=y)c=i;else break;}
+if(n&&innerHeight+scrollY>=document.documentElement.scrollHeight-4)c=n-1;paint(c);}
+function build(){var list=[].slice.call(m.querySelectorAll('.sec')),s=list.map(ttl).join('|');secs=list;if(s===sig){upd();return;}sig=s;rail.innerHTML='';rail.className='rail-sec'+(list.length>10?' dense':'');
+list.forEach(function(el,i){var b=document.createElement('button');b.className='rs';b.title=b.dataset.tip=ttl(el);b.setAttribute('aria-label',b.title);b.onclick=function(){if(secs[i])secs[i].scrollIntoView({behavior:'smooth',block:'start'});};rail.appendChild(b);});cur=-2;upd();}
+function req(){if(!raf)raf=requestAnimationFrame(upd);}
+addEventListener('scroll',req,{passive:true});addEventListener('resize',req);
+new MutationObserver(function(){clearTimeout(tm);tm=setTimeout(build,120);}).observe(m,{childList:true,subtree:true});build();})();
 </script>
 <script id="glass-greet">
 (function(){var sb=document.querySelector('.shift-banner');if(!sb)return;var g=document.createElement('div');g.className='greet';g.innerHTML='<h2 id="greetH"></h2><p>Here’s what’s happening across your shifts today</p>';sb.parentNode.insertBefore(g,sb);
