@@ -826,6 +826,76 @@ html{scroll-behavior:smooth}body{background-attachment:scroll!important}
 .dpanel.open{transform-origin:top left;animation:popIn .32s var(--ease)}@keyframes popIn{from{opacity:0;transform:scale(.94) translateY(-6px)}to{opacity:1;transform:none}}
 .anim-num{transition:none}
 </style>
+<style id="glass-v5">
+/* ===== MEEG Glass V5 — glass layer on top of existing theme ===== */
+:root{--g-bg:rgba(255,255,255,.5);--g-bg2:rgba(255,255,255,.38);--g-brd:rgba(255,255,255,.75);--g-hi:inset 0 1px 0 rgba(255,255,255,.9);--g-sh:0 8px 32px rgba(21,82,184,.12);--g-sh-h:0 18px 44px rgba(13,148,136,.22);--g-grad:linear-gradient(135deg,#00e5d4,#0f8fff);--spring:cubic-bezier(.34,1.56,.64,1)}
+html[data-theme="dark"]{--g-bg:rgba(10,24,38,.42);--g-bg2:rgba(10,24,38,.3);--g-brd:rgba(140,240,235,.15);--g-hi:inset 0 1px 0 rgba(255,255,255,.09);--g-sh:0 10px 36px rgba(0,0,0,.45);--g-sh-h:0 18px 50px rgba(0,229,212,.2),0 0 0 1px rgba(0,229,212,.28)}
+html body{background:radial-gradient(60% 50% at 8% 0%,rgba(0,229,212,.3),transparent 62%),radial-gradient(55% 50% at 100% 100%,rgba(15,143,255,.3),transparent 62%),radial-gradient(40% 40% at 88% 8%,rgba(99,96,230,.18),transparent 60%),linear-gradient(160deg,var(--bg-1),var(--bg-2))!important;background-attachment:fixed!important}
+html body::after{content:'';position:fixed;z-index:-1;right:-6vmin;bottom:-8vmin;width:78vmin;height:66vmin;pointer-events:none;opacity:.13;filter:blur(1.5px);transform:rotate(-8deg);background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 54 46'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%2300e5d4'/%3E%3Cstop offset='1' stop-color='%230f8fff'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpolygon points='0,4 30,4 21,16 0,16' fill='url(%23g)'/%3E%3Cpolygon points='5,19 35,19 26,31 5,31' fill='url(%23g)'/%3E%3Cpolygon points='10,34 40,34 31,46 10,46' fill='url(%23g)'/%3E%3C/svg%3E") center/contain no-repeat}
+html[data-theme="dark"] body::after{opacity:.17}
+
+/* glass surfaces */
+html body :is(.sec,.loc-stat,.cmp-bar,.cmp-col,.dpanel,.arcs-box,.login-card,.toast,.fstrip){background:var(--g-bg)!important;backdrop-filter:blur(24px) saturate(170%)!important;-webkit-backdrop-filter:blur(24px) saturate(170%)!important;border:1px solid var(--g-brd)!important;box-shadow:var(--g-hi),var(--g-sh)!important;border-radius:22px!important}
+html body :is(.dcard,.catcard,.podium-item){background:var(--g-bg2)!important;border:1px solid var(--g-brd)!important;box-shadow:var(--g-hi)!important;border-radius:16px!important;backdrop-filter:none!important}
+html body :is(.loc-stat,.dcard,.catcard,.podium-item){transition:transform .35s var(--spring),box-shadow .3s,border-color .3s!important}
+html body :is(.loc-stat,.dcard,.catcard,.podium-item):hover{transform:translateY(-5px)!important;box-shadow:var(--g-hi),var(--g-sh-h)!important;border-color:rgba(0,229,212,.4)!important}
+html body .sec:hover{transform:none!important}
+html body .fstrip{border-radius:18px!important;margin:10px 16px 0}
+
+/* floating pill header */
+@media(min-width:701px){html body .hdr{position:sticky;top:12px;margin:12px auto 0;width:calc(100% - 32px);max-width:1320px;border-radius:26px!important;border:1px solid var(--g-brd)!important;background:var(--g-bg)!important;box-shadow:var(--g-hi),var(--g-sh)!important;padding:10px 20px!important}}
+html body .hdr-title h1{font-family:var(--display);letter-spacing:-.02em}
+html body .hdr-title h1 span{background:var(--g-grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+html body .logo-orb{background:var(--g-grad)!important;color:#fff!important;border-radius:14px!important;box-shadow:0 6px 18px rgba(0,229,212,.4)}
+
+/* pill buttons */
+html body .btn,html body .opt-shift-btn,html body .fchip,html body .preset,html body .mod-chip{border-radius:999px!important;background:var(--g-bg2)!important;border:1px solid var(--g-brd)!important;backdrop-filter:blur(12px);transition:transform .25s var(--spring),box-shadow .25s,background .25s}
+html body :is(.btn,.opt-shift-btn,.fchip,.preset,.mod-chip):hover{transform:translateY(-2px)}
+html body :is(.btn-c,.opt-shift-btn.on,.fchip.has-sel,.preset.on,.mod-chip.on){background:var(--g-grad)!important;color:#fff!important;border-color:transparent!important;box-shadow:0 6px 18px rgba(15,143,255,.35)!important}
+html body .btn-d{color:var(--danger)!important}
+
+/* nav tabs like the reference pill nav */
+html body .loc-tabs{background:var(--g-bg)!important;border:1px solid var(--g-brd)!important;border-radius:999px!important;margin:14px 16px 0;padding:6px!important;align-items:center;gap:4px;box-shadow:var(--g-hi),var(--g-sh)}
+html body .loc-tab{border-radius:999px!important;padding:8px 16px!important;transition:all .25s var(--spring)}
+html body .loc-tab.act{background:var(--g-grad)!important;color:#fff!important;box-shadow:0 6px 18px rgba(0,229,212,.35)!important}
+html body .loc-tab.act .tab-cnt{color:#fff}
+
+/* KPI cards: gradient icon chip + big mono value */
+html body .loc-stat{position:relative;overflow:hidden;animation:gIn .6s var(--spring) both}
+html body .loc-stat:nth-child(2){animation-delay:.07s}html body .loc-stat:nth-child(3){animation-delay:.14s}html body .loc-stat:nth-child(4){animation-delay:.21s}html body .loc-stat:nth-child(5){animation-delay:.28s}
+html body .loc-stat::before{content:'';position:absolute;top:16px;right:16px;width:34px;height:34px;border-radius:11px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-12 -10 78 66'%3E%3Cg fill='white' fill-opacity='.9'%3E%3Cpolygon points='0,4 30,4 21,16 0,16'/%3E%3Cpolygon points='5,19 35,19 26,31 5,31' opacity='.7'/%3E%3Cpolygon points='10,34 40,34 31,46 10,46' opacity='.45'/%3E%3C/g%3E%3C/svg%3E") center/62% no-repeat,var(--g-grad);box-shadow:0 6px 16px rgba(15,143,255,.3)}
+html body .loc-stat:nth-child(4n+2)::before{background-color:#0d9488;background-image:inherit;filter:hue-rotate(-18deg)}
+html body .loc-stat:nth-child(4n+3)::before{filter:hue-rotate(40deg)}
+html body .loc-stat:nth-child(4n)::before{filter:hue-rotate(95deg)}
+html body .loc-stat::after{content:'';position:absolute;inset:auto -30% -60% auto;width:70%;height:90%;background:radial-gradient(circle,rgba(0,229,212,.18),transparent 70%);pointer-events:none}
+html body .loc-stat .sv{font-family:var(--display)!important;font-size:2.1rem!important;letter-spacing:-.04em}
+@keyframes gIn{from{opacity:0;transform:translateY(14px) scale(.97)}to{opacity:1;transform:none}}
+
+/* tables */
+html body .sec tbody tr{transition:background .2s}html body .sec tbody tr:hover{background:var(--accent-light)}
+html body .sec thead th{backdrop-filter:blur(10px)}
+
+/* greeting */
+.greet{max-width:1320px;margin:22px auto 0;padding:0 28px}
+.greet h2{font-family:var(--font);font-size:1.7rem;font-weight:700;letter-spacing:-.02em;color:var(--text)}
+.greet p{font-size:.85rem;color:var(--text-soft);margin-top:2px}
+@media(max-width:700px){.greet{padding:0 14px;margin-top:14px}.greet h2{font-size:1.25rem}html body .loc-stat::before{width:26px;height:26px;top:12px;right:12px}}
+@media(prefers-reduced-motion:reduce){html body *{animation:none!important;transition:none!important}}
+</style>
+<style id="glass-rail">
+.rail{position:fixed;left:14px;top:50%;transform:translateY(-50%);z-index:90;display:flex;flex-direction:column;gap:6px;padding:8px;border-radius:999px;background:var(--g-bg);border:1px solid var(--g-brd);box-shadow:var(--g-hi),var(--g-sh);backdrop-filter:blur(24px) saturate(170%);-webkit-backdrop-filter:blur(24px) saturate(170%)}
+.rail button{position:relative;width:42px;height:42px;border:0;border-radius:50%;background:transparent;color:var(--text-soft);cursor:pointer;display:grid;place-items:center;transition:transform .3s var(--spring),background .25s,color .25s}
+.rail button svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.rail button:hover{background:var(--accent-light);color:var(--text);transform:scale(1.1)}
+.rail button.on{background:var(--g-grad);color:#fff;box-shadow:0 6px 16px rgba(0,229,212,.4)}
+.rail button::after{content:attr(data-tip);position:absolute;left:54px;white-space:nowrap;padding:5px 10px;border-radius:10px;font:600 .68rem var(--font);color:var(--text);background:var(--g-bg);border:1px solid var(--g-brd);backdrop-filter:blur(14px);opacity:0;pointer-events:none;transform:translateX(-6px);transition:.2s}
+.rail button:hover::after{opacity:1;transform:none}
+.rail i{display:block;height:1px;margin:2px 10px;background:var(--border-light)}
+@media(min-width:1500px){html body .content,html body .greet{margin-left:max(86px,calc((100vw - 1240px)/2))}}
+@media(max-width:700px){.rail{left:50%;top:auto;bottom:12px;transform:translateX(-50%);flex-direction:row;padding:6px}.rail i{display:none}.rail button{width:40px;height:40px}.rail button::after{display:none}}
+</style>
+
+
 </head>
 <body>
 <div class="arcs-ov" id="arcsOv" onclick="if(event.target===this)closeArchiveSearch()"><div class="arcs-box">
@@ -3528,6 +3598,11 @@ function restyle(st){
 }
 new MutationObserver(function(ms){ms.forEach(function(m){m.addedNodes.forEach(function(n){if(n.nodeType===1&&n.classList&&n.classList.contains("shot-stage"))restyle(n)})})}).observe(document.body,{childList:true});
 })();
+</script>
+<nav class="rail" id="glassRail"><button data-tip="Home" title="Home" onclick="shootWebScrollTop()" class="on"><svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg></button><button data-tip="Refresh" title="Refresh" onclick="loadData()" ><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg></button><button data-tip="Auto refresh" title="Auto refresh" onclick="toggleAutoRefresh()" ><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></button><i></i><button data-tip="Compare" title="Compare" onclick="toggleCompare()" ><svg viewBox="0 0 24 24"><path d="M12 3v18M5 7h14M5 7l-2 6a3 3 0 0 0 4 0zM19 7l-2 6a3 3 0 0 0 4 0z"/></svg></button><button data-tip="Archive search" title="Archive search" onclick="openArchiveSearch()" ><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></button><i></i><button data-tip="Dark / Light" title="Dark / Light" onclick="toggleDark()" ><svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button></nav>
+<script id="glass-greet">
+(function(){var sb=document.querySelector('.shift-banner');if(!sb)return;var g=document.createElement('div');g.className='greet';g.innerHTML='<h2 id="greetH"></h2><p>Here’s what’s happening across your shifts today</p>';sb.parentNode.insertBefore(g,sb);
+function up(){var h=new Date().getHours(),t=h<12?'Good morning':h<18?'Good afternoon':'Good evening';var u=document.getElementById('userName'),n=u?u.textContent.trim().split(/[\s@]/)[0]:'';document.getElementById('greetH').textContent=t+(n?', '+n:'');}up();setInterval(up,2000);})();
 </script>
 </body>
 </html>
