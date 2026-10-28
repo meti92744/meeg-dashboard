@@ -3015,7 +3015,7 @@ function switchTab(loc){
 function sid(k){return k.replace(/[\s()]/g,'_');}
 function goLoc(loc){switchTab(loc);window.scrollTo({top:0,behavior:'smooth'});}
 /* ===== Location colours — one fixed colour per location (same on every screen / device). Pin a colour: LOC_COLOR_PIN['4th Floor']='#e11d48' ===== */
-const LOC_PAL=['#0f8fff','#14b8a6','#8b5cf6','#f59e0b','#ec4899','#22c55e','#ef4444','#6366f1','#06b6d4','#f97316','#a855f7','#84cc16'];
+const LOC_PAL=['#0f8fff','#00c9b7','#6360e6','#10b981','#8b5cf6','#ec4899','#38bdf8','#0d9488','#a78bfa','#4f46e5','#2dd4bf','#0ea5e9'];
 const LOC_COLOR_PIN={};
 function locColor(n){n=String(n==null?'':n);if(LOC_COLOR_PIN[n])return LOC_COLOR_PIN[n];let i=Array.isArray(locations)?locations.indexOf(n):-1;if(i<0){let h=0;for(let k=0;k<n.length;k++)h=(h*31+n.charCodeAt(k))>>>0;i=h;}return LOC_PAL[i%LOC_PAL.length];}
 let _loSort='rows',_loHide=false,_loHm='all';
