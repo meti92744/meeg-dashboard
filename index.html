@@ -913,6 +913,43 @@ html body .loc-stat .sl{margin-top:4px}
  html body .content{padding-left:0!important;padding-right:0!important}
 }
 </style>
+<style id="glass-dedupe">
+html body :is(#cmpBtn,#darkBtn,#arBtn,#refreshBtn,.hdr .btn-d,#scrollTopBtn){display:none!important}
+</style>
+<style id="glass-motion">
+/* ---- perf: no blur on big/many elements, fixed gradient layer instead of fixed body bg ---- */
+:root{--g-bg:rgba(255,255,255,.64);--g-bg2:rgba(255,255,255,.46);--ease-out:cubic-bezier(.22,1,.36,1);--pop:cubic-bezier(.34,1.35,.5,1)}
+html[data-theme="dark"]{--g-bg:rgba(10,24,38,.56);--g-bg2:rgba(14,30,46,.4)}
+html body{background:var(--bg-1)!important;background-attachment:scroll!important}
+html::before{content:'';position:fixed;inset:0;z-index:-2;pointer-events:none;background:radial-gradient(60% 50% at 8% 0%,rgba(0,229,212,.3),transparent 62%),radial-gradient(55% 50% at 100% 100%,rgba(15,143,255,.3),transparent 62%),radial-gradient(40% 40% at 88% 8%,rgba(99,96,230,.18),transparent 60%),linear-gradient(160deg,var(--bg-1),var(--bg-2))}
+html body .orb{display:none!important}
+html body::after{filter:none!important}
+html body :is(.sec,.loc-stat,.cmp-bar,.cmp-col,.fstrip,.btn,.opt-shift-btn,.fchip,.preset,.mod-chip,.dcard,.catcard,.podium-item){backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+html body .sec thead th{backdrop-filter:none!important}
+html body .rail button::after{backdrop-filter:none!important;background:var(--bg-2)!important}
+html body :is(.sec,.loc-stat,.cmp-bar,.cmp-col,.fstrip){background:linear-gradient(180deg,rgba(255,255,255,.08),transparent 45%),var(--g-bg)!important}
+/* ---- framer-style motion: whileHover y:-5 spring, whileTap scale ---- */
+html body :is(.loc-stat,.dcard,.catcard,.podium-item){transition:transform .38s var(--pop),border-color .25s,box-shadow .25s!important;transform:translate3d(0,0,0)}
+html body :is(.loc-stat,.dcard,.catcard,.podium-item):hover{transform:translate3d(0,-5px,0)!important}
+html body :is(.loc-stat,.dcard,.catcard,.podium-item):active{transform:translate3d(0,-2px,0) scale(.985)!important;transition-duration:.12s!important}
+html body .loc-stat:hover{box-shadow:var(--g-hi),var(--g-sh)!important}
+html body .loc-stat::after{opacity:.45;transition:opacity .35s}
+html body .loc-stat:hover::after{opacity:1}
+html body :is(.btn,.opt-shift-btn,.fchip,.preset,.mod-chip,.loc-tab){transition:transform .25s var(--pop),background-color .2s,color .2s,box-shadow .2s,border-color .2s!important}
+html body :is(.btn,.opt-shift-btn,.fchip,.preset,.mod-chip,.loc-tab,.rail button):active{transform:scale(.95)!important;transition-duration:.1s!important}
+html body .rail button{transition:transform .3s var(--pop),background-color .2s,color .2s}
+html body .rail button:hover{transform:scale(1.1) translate3d(0,0,0)}
+html body .sec tbody tr{transition:background-color .15s}
+/* ---- entrance: only on first load + tab click (never on auto-refresh re-render) ---- */
+@keyframes gIn{from{opacity:0;transform:translate3d(0,14px,0) scale(.98)}to{opacity:1;transform:none}}
+html body :is(.loc-stat,.sec,.loc-hdr){animation:none!important}
+html.g-enter body :is(.loc-stat,.sec,.loc-hdr){animation:gIn .5s var(--ease-out) backwards!important}
+html.g-enter body .loc-stat:nth-child(2){animation-delay:.05s!important}html.g-enter body .loc-stat:nth-child(3){animation-delay:.1s!important}html.g-enter body .loc-stat:nth-child(4){animation-delay:.15s!important}html.g-enter body .loc-stat:nth-child(5){animation-delay:.2s!important}
+html.g-enter body .sec:nth-child(2){animation-delay:.08s!important}html.g-enter body .sec:nth-child(3){animation-delay:.16s!important}html.g-enter body .sec:nth-child(n+4){animation-delay:.22s!important}
+@media(hover:none){html body :is(.loc-stat,.dcard,.catcard,.podium-item):hover{transform:none!important}}
+</style>
+
+
 
 
 
@@ -1030,7 +1067,7 @@ html body .loc-stat .sl{margin-top:4px}
 </div>
 <div class="loc-tabs" id="locTabs"><div class="spin" style="width:14px;height:14px;border-width:3px;margin:9px 0"></div></div>
 <div class="content" id="mainContent"><div class="loader"><div class="spin"></div><span class="ltxt">Loading data…</span></div></div>
-<button class="scroll-top-car" id="scrollTopBtn" onclick="shootWebScrollTop()" title="Back to top">▲</button>
+<button class="scroll-top-car" id="scrollTopBtn" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Back to top">▲</button>
 <script>
 /* ============ AUTH GATE ============ */
 const AUTH_KEY='meeg_auth_email';
@@ -3619,7 +3656,16 @@ function restyle(st){
 new MutationObserver(function(ms){ms.forEach(function(m){m.addedNodes.forEach(function(n){if(n.nodeType===1&&n.classList&&n.classList.contains("shot-stage"))restyle(n)})})}).observe(document.body,{childList:true});
 })();
 </script>
-<nav class="rail" id="glassRail"><button data-tip="Home" title="Home" onclick="shootWebScrollTop()" class="on"><svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg></button><button data-tip="Refresh" title="Refresh" onclick="loadData()" ><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg></button><button data-tip="Auto refresh" title="Auto refresh" onclick="toggleAutoRefresh()" ><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></button><i></i><button data-tip="Compare" title="Compare" onclick="toggleCompare()" ><svg viewBox="0 0 24 24"><path d="M12 3v18M5 7h14M5 7l-2 6a3 3 0 0 0 4 0zM19 7l-2 6a3 3 0 0 0 4 0z"/></svg></button><button data-tip="Archive search" title="Archive search" onclick="openArchiveSearch()" ><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></button><i></i><button data-tip="Dark / Light" title="Dark / Light" onclick="toggleDark()" ><svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button></nav>
+<nav class="rail" id="glassRail"><button data-tip="Home" title="Home" onclick="shootWebScrollTop()" class="on"><svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg></button><button data-tip="Refresh" title="Refresh" onclick="loadData()" ><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg></button><button id="railAuto" data-tip="Auto refresh" title="Auto refresh" onclick="toggleAutoRefresh()" ><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></button><i></i><button id="railCmp" data-tip="Compare" title="Compare" onclick="toggleCompare()" ><svg viewBox="0 0 24 24"><path d="M12 3v18M5 7h14M5 7l-2 6a3 3 0 0 0 4 0zM19 7l-2 6a3 3 0 0 0 4 0z"/></svg></button><i></i><button data-tip="Dark / Light" title="Dark / Light" onclick="toggleDark()" ><svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button></nav>
+<script id="glass-rail-sync">
+(function(){function pair(src,dst){var a=document.getElementById(src),b=document.getElementById(dst);if(!a||!b)return;function f(){b.classList.toggle('on',a.classList.contains('active'));}f();new MutationObserver(f).observe(a,{attributes:true,attributeFilter:['class']});}
+pair('arBtn','railAuto');pair('cmpBtn','railCmp');})();
+</script>
+<script id="glass-enter">
+(function(){var r=document.documentElement,t,m=document.getElementById('mainContent');function go(){r.classList.add('g-enter');clearTimeout(t);t=setTimeout(function(){r.classList.remove('g-enter')},900);}
+if(m){var mo=new MutationObserver(function(){if(m.querySelector('.loc-stat')){mo.disconnect();go();}});mo.observe(m,{childList:true,subtree:true});}
+document.addEventListener('click',function(e){if(e.target.closest&&e.target.closest('.loc-tab'))go();},true);})();
+</script>
 <script id="glass-greet">
 (function(){var sb=document.querySelector('.shift-banner');if(!sb)return;var g=document.createElement('div');g.className='greet';g.innerHTML='<h2 id="greetH"></h2><p>Here’s what’s happening across your shifts today</p>';sb.parentNode.insertBefore(g,sb);
 function up(){var h=new Date().getHours(),t=h<12?'Good morning':h<18?'Good afternoon':'Good evening';var u=document.getElementById('userName'),n=u?u.textContent.trim().split(/[\s@]/)[0]:'';document.getElementById('greetH').textContent=t+(n?', '+n:'');}up();setInterval(up,2000);})();
