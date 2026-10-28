@@ -948,6 +948,45 @@ html.g-enter body .loc-stat:nth-child(2){animation-delay:.05s!important}html.g-e
 html.g-enter body .sec:nth-child(2){animation-delay:.08s!important}html.g-enter body .sec:nth-child(3){animation-delay:.16s!important}html.g-enter body .sec:nth-child(n+4){animation-delay:.22s!important}
 @media(hover:none){html body :is(.loc-stat,.dcard,.catcard,.podium-item):hover{transform:none!important}}
 </style>
+<style id="glass-auth">
+/* shared cinematic backdrop (always dark, independent of app theme) */
+html body :is(#loginScreen,#splash){background:linear-gradient(rgba(0,229,212,.045) 1px,transparent 1px) 0 0/34px 34px,linear-gradient(90deg,rgba(0,229,212,.045) 1px,transparent 1px) 0 0/34px 34px,radial-gradient(60% 55% at 12% 0%,rgba(0,229,212,.32),transparent 62%),radial-gradient(55% 55% at 100% 100%,rgba(15,143,255,.34),transparent 62%),radial-gradient(40% 40% at 90% 8%,rgba(99,96,230,.2),transparent 60%),#050a10!important;color:#eafcfb}
+html body :is(#loginScreen,#splash)::before{content:'';position:absolute;z-index:-1;right:-8vmin;bottom:-10vmin;width:80vmin;height:68vmin;opacity:.12;transform:rotate(-8deg);pointer-events:none;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 54 46'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%2300e5d4'/%3E%3Cstop offset='1' stop-color='%230f8fff'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpolygon points='0,4 30,4 21,16 0,16' fill='url(%23g)'/%3E%3Cpolygon points='5,19 35,19 26,31 5,31' fill='url(%23g)'/%3E%3Cpolygon points='10,34 40,34 31,46 10,46' fill='url(%23g)'/%3E%3C/svg%3E") center/contain no-repeat}
+/* ---------- Sign in ---------- */
+html body #loginScreen .login-card{background:rgba(10,24,38,.55)!important;backdrop-filter:blur(26px) saturate(170%)!important;-webkit-backdrop-filter:blur(26px) saturate(170%)!important;border:1px solid rgba(140,240,235,.18)!important;border-radius:28px!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.09),0 24px 70px rgba(0,0,0,.55),0 0 60px rgba(0,229,212,.1)!important;width:min(400px,92vw)!important;padding:40px 32px 28px!important;animation:authIn .7s cubic-bezier(.22,1,.36,1) both}
+@keyframes authIn{from{opacity:0;transform:translate3d(0,22px,0) scale(.97)}to{opacity:1;transform:none}}
+html body #loginScreen .login-card::before{content:'';position:absolute;inset:0 0 auto 0;height:1px;background:linear-gradient(90deg,transparent,#5cf3e2,transparent);opacity:.7}
+html body #loginScreen .login-logo{width:64px!important;height:64px!important;margin:0 auto 16px!important;border-radius:20px!important;background:linear-gradient(135deg,#00e5d4,#0f8fff)!important;box-shadow:0 10px 30px rgba(0,229,212,.4)!important;display:flex!important}
+html body #loginScreen .login-logo svg{width:32px;height:28px;filter:none}
+html body #loginScreen .login-logo svg polygon{fill:#fff!important}
+html body #loginScreen .login-title{font-family:var(--display);font-size:1.9rem!important;letter-spacing:4px!important;background:linear-gradient(90deg,#5cf3e2,#2e9bff);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent!important}
+html body #loginScreen .login-sub{color:#8fc9d6!important;font-size:.72rem!important;font-family:var(--mono);letter-spacing:2px!important;text-transform:uppercase!important;margin:4px 0 26px!important}
+html body #loginScreen .login-input{height:50px;background:rgba(255,255,255,.06)!important;border:1px solid rgba(140,240,235,.18)!important;border-radius:16px!important;color:#eafcfb!important;font-family:var(--font);font-size:.95rem!important;text-align:left;transition:border-color .2s,box-shadow .2s,background-color .2s!important}
+html body #loginScreen .login-input::placeholder{color:rgba(223,248,251,.38)!important}
+html body #loginScreen .login-input:focus{border-color:#00e5d4!important;background:rgba(255,255,255,.09)!important;box-shadow:0 0 0 4px rgba(0,229,212,.16)!important}
+html body #loginScreen .login-input.err{border-color:#ff6b86!important;box-shadow:0 0 0 4px rgba(255,107,134,.15)!important}
+html body #loginScreen .login-input:-webkit-autofill{-webkit-text-fill-color:#eafcfb;-webkit-box-shadow:0 0 0 1000px #0b1e2c inset;caret-color:#eafcfb}
+html body #loginScreen .login-btn{height:50px;border-radius:16px!important;background:linear-gradient(135deg,#00e5d4,#0f8fff)!important;color:#04141c!important;font-weight:700!important;box-shadow:0 10px 28px rgba(15,143,255,.4)!important;transition:transform .3s cubic-bezier(.34,1.35,.5,1),box-shadow .25s,filter .2s,left .16s ease-out,top .16s ease-out!important}
+html body #loginScreen .login-btn:hover:not(.dodging){transform:translate3d(0,-3px,0);box-shadow:0 14px 34px rgba(0,229,212,.45)!important;filter:none}
+html body #loginScreen .login-btn:active{transform:scale(.97)}
+html body #loginScreen .login-btn.dodging{border-radius:999px!important}
+html body #loginScreen .login-err-msg{color:#ff8fa3!important}
+html body #loginScreen .login-hint{color:#9fe9f2}
+html body #loginScreen .login-link{color:#5cf3e2!important}
+/* ---------- Welcome / splash ---------- */
+html body #splash{gap:30px;transition:opacity .7s cubic-bezier(.22,1,.36,1),transform .7s cubic-bezier(.22,1,.36,1)!important}
+html body #splash .splash-brand{background:linear-gradient(90deg,#5cf3e2,#2e9bff)!important;-webkit-background-clip:text!important;background-clip:text!important;-webkit-text-fill-color:transparent!important;color:transparent!important;font-family:var(--display);font-size:2.4rem;font-weight:700!important;letter-spacing:8px!important}
+html body #splash .splash-sub{color:#8fc9d6!important;font-family:var(--mono);font-size:.7rem;letter-spacing:3px!important;text-transform:uppercase!important}
+html body #splash .sw-hello{color:#8fc9d6!important;font-size:.72rem;letter-spacing:7px}
+html body #splash .sw-hello::before,html body #splash .sw-hello::after{display:inline-block!important}
+html body #splash .sw-name{font-size:2.8rem;letter-spacing:1px;color:#fff!important;text-shadow:0 0 36px rgba(0,229,212,.55)}
+html body #splash .sw-label{color:#04141c!important;background:linear-gradient(135deg,#00e5d4,#0f8fff);border:0;font-weight:700;letter-spacing:2px!important;text-transform:uppercase!important;padding:5px 18px;box-shadow:0 8px 24px rgba(15,143,255,.35)}
+html body #splash .splash-road{display:block!important;width:220px}
+html body #splash .splash-road-line{height:4px;border:0;background:rgba(255,255,255,.1)}
+html body #splash .splash-road-fill{box-shadow:0 0 14px rgba(0,229,212,.7)}
+@media(max-width:480px){html body #splash .sw-name{font-size:2rem}html body #splash .splash-brand{font-size:1.9rem}}
+</style>
+
 
 
 
