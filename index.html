@@ -1068,6 +1068,30 @@ html body .fg:has(.dpanel.open){position:relative;z-index:300}
 @media(max-width:700px){html body .dpanel{border-radius:22px 22px 0 0!important}}
 </style>
 <style id="glass-dd-z">html body .fstrip{z-index:90!important}html body .pills-row{backdrop-filter:none!important}</style>
+<style id="glass-all">
+.lo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;padding:6px 20px 22px}
+.lo-card{position:relative;padding:16px 18px;border-radius:18px;background:var(--g-bg2);border:1px solid var(--g-brd);box-shadow:var(--g-hi);cursor:pointer;outline:none;transition:transform .38s var(--pop),border-color .25s,box-shadow .25s}
+.lo-card:hover,.lo-card:focus-visible{transform:translate3d(0,-5px,0);border-color:rgba(0,229,212,.5);box-shadow:var(--g-hi),0 14px 34px rgba(0,229,212,.14)}
+.lo-card:active{transform:translate3d(0,-2px,0) scale(.985);transition-duration:.12s}
+.lo-card.lo-empty{opacity:.55}
+.lo-top{display:flex;align-items:center;gap:8px}
+.lo-rank{font:700 .62rem var(--mono);color:#04141c;background:var(--g-grad);border-radius:8px;padding:2px 7px}
+.lo-name{font-weight:700;font-size:.92rem;color:var(--text)}
+.lo-pct{margin-left:auto;font:700 .7rem var(--mono);color:#0d9488}
+html[data-theme="dark"] .lo-pct{color:#5cf3e2}
+.lo-rows{font:700 2rem var(--display);letter-spacing:-.04em;margin:10px 0 8px;color:var(--text)}
+.lo-rows small{font:600 .7rem var(--font);color:var(--text-soft);margin-left:6px;letter-spacing:0}
+.lo-bar{height:6px;border-radius:6px;background:var(--border-light);overflow:hidden}
+.lo-bar i{display:block;height:100%;border-radius:6px;background:var(--g-grad);box-shadow:0 0 10px rgba(0,229,212,.45)}
+.lo-meta{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:12px;font-size:.7rem;color:var(--text-soft)}
+.lo-meta b{color:var(--text);font-family:var(--mono)}
+.lo-go{position:absolute;right:16px;bottom:14px;font-size:.68rem;font-weight:700;color:#0d9488;opacity:0;transform:translateX(-4px);transition:opacity .25s,transform .3s var(--pop)}
+html[data-theme="dark"] .lo-go{color:#5cf3e2}
+.lo-card:hover .lo-go,.lo-card:focus-visible .lo-go{opacity:1;transform:none}
+@media(max-width:1100px){.lo-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:700px){.lo-grid{grid-template-columns:1fr;padding:6px 14px 18px}.lo-go{opacity:1;transform:none}}
+</style>
+
 
 
 
@@ -2935,7 +2959,21 @@ function switchTab(loc){
   }
 }
 function sid(k){return k.replace(/[\s()]/g,'_');}
-function renderAllSections(){const mc=document.getElementById('mainContent');const cmpRes=document.getElementById('cmpResultSection');if(activeLoc==='__quality__'){mc.innerHTML='';if(cmpRes)mc.appendChild(cmpRes);renderQualitySection(mc);return;}if(fcache.length===0&&rawRows.length===0){mc.innerHTML=`<div style="text-align:center;padding:60px 20px;color:var(--muted)"><svg style="width:52px;height:52px;margin:0 auto 12px;display:block" viewBox="0 0 64 40" xmlns="http://www.w3.org/2000/svg"><path d="M6 26 Q4 26 4 22 L6 18 Q10 12 20 11 L26 6 Q30 3 38 3 L46 6 Q52 8 56 14 L60 18 Q62 20 62 22 L62 26 Z" fill="#dfe6ea" stroke="#7a9dae" stroke-width="1.5"/><path d="M22 11 L28 6 Q31 4 37 4 L44 6 Q48 8 51 12 L52 14 L22 14 Z" fill="#3c6478" opacity=".6"/><circle cx="16" cy="27" r="6" fill="#3c6478"/><circle cx="50" cy="27" r="6" fill="#3c6478"/></svg><div style="font-size:.85rem;font-weight:700;color:var(--text);margin-bottom:6px">No data found — the car's still on its way 🛣️</div><button class="btn" style="margin-top:10px" onclick="loadData()">↻ Retry</button></div>`;return;}if(fcache.length===0&&rawRows.length>0){mc.innerHTML=`<div style="text-align:center;padding:60px 20px;color:var(--muted)"><svg style="width:52px;height:52px;margin:0 auto 12px;display:block" viewBox="0 0 64 40" xmlns="http://www.w3.org/2000/svg"><path d="M6 26 Q4 26 4 22 L6 18 Q10 12 20 11 L26 6 Q30 3 38 3 L46 6 Q52 8 56 14 L60 18 Q62 20 62 22 L62 26 Z" fill="#dfe6ea" stroke="#7a9dae" stroke-width="1.5"/><path d="M22 11 L28 6 Q31 4 37 4 L44 6 Q48 8 51 12 L52 14 L22 14 Z" fill="#3c6478" opacity=".6"/><circle cx="16" cy="27" r="6" fill="#3c6478"/><circle cx="50" cy="27" r="6" fill="#3c6478"/></svg><div style="font-size:.85rem;font-weight:700;color:var(--text);margin-bottom:6px">No rows match current filters — wrong turn 🚧</div><div style="font-size:.7rem;margin-bottom:12px">${rawRows.length} total rows loaded.</div><button class="btn" onclick="clearAll()">✕ Clear all filters</button></div>`;return;}if(activeLoc==='__totalsubmit__'){mc.innerHTML='';if(cmpRes)mc.appendChild(cmpRes);renderTotalSubmitSection(mc);return;}if(activeLoc==='__topperf__'){mc.innerHTML='';if(cmpRes)mc.appendChild(cmpRes);renderTopPerformersSection(mc);return;}const locsToRender=activeLoc==='__all__'?locations:[activeLoc];mc.innerHTML='';if(cmpRes)mc.appendChild(cmpRes);if(locations.length===0||locColIdx<0){const wrap=document.createElement('div');wrap.className='loc-section visible';mc.appendChild(wrap);renderLocSection(wrap,null,fcache);return;}locsToRender.forEach(loc=>{const locRows=fcache.filter(r=>String(r[locColIdx]||'').trim()===loc);const wrap=document.createElement('div');wrap.className='loc-section visible';mc.appendChild(wrap);renderLocSection(wrap,loc,locRows);});}
+function goLoc(loc){switchTab(loc);window.scrollTo({top:0,behavior:'smooth'});}
+function buildLocOverview(){
+  if(!locations.length||locColIdx<0||!fcache.length)return null;
+  const pi=sIdx['Pc No'],qi=hdrs.findIndex(h=>h.toLowerCase()==='queue name'),li=hdrs.findIndex(h=>h.toLowerCase()==='labeler name');
+  const m={};locations.forEach(l=>{m[l]={rows:0,d:new Set(),q:new Set(),l:new Set()};});
+  fcache.forEach(r=>{const o=m[String(r[locColIdx]||'').trim()];if(!o)return;o.rows++;if(pi!==undefined)o.d.add(String(r[pi]||'').trim());if(qi>=0)o.q.add(String(r[qi]||'').trim());if(li>=0)o.l.add(String(r[li]||'').trim());});
+  const list=locations.map(n=>{const o=m[n];o.d.delete('');o.q.delete('');o.l.delete('');return{n:n,rows:o.rows,d:o.d.size,q:o.q.size,l:o.l.size};}).sort((a,b)=>b.rows-a.rows);
+  const tot=fcache.length||1,max=Math.max(1,list[0].rows);
+  const sec=document.createElement('div');sec.className='sec';
+  sec.innerHTML=`<div class="sec-hd"><span class="sec-t">📍 Locations overview</span><span class="sec-m">${list.length} locations · sorted by rows · click a card to open it</span></div><div class="lo-grid">`+list.map((x,i)=>`<div class="lo-card${x.rows?'':' lo-empty'}" role="button" tabindex="0" data-loc="${esc(x.n)}" aria-label="Open ${esc(x.n)}"><div class="lo-top"><span class="lo-rank">#${i+1}</span><span class="lo-name">📍 ${esc(x.n)}</span><span class="lo-pct">${Math.round(x.rows/tot*100)}%</span></div><div class="lo-rows">${x.rows.toLocaleString()}<small>rows</small></div><div class="lo-bar"><i style="width:${Math.round(x.rows/max*100)}%"></i></div><div class="lo-meta"><span><b>${x.d}</b> devices</span><span><b>${x.q}</b> queues</span><span><b>${x.l}</b> labelers</span></div><div class="lo-go">Open →</div></div>`).join('')+`</div>`;
+  sec.addEventListener('click',e=>{const c=e.target.closest('.lo-card');if(c)goLoc(c.dataset.loc);});
+  sec.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.classList.contains('lo-card')){e.preventDefault();goLoc(e.target.dataset.loc);}});
+  return sec;
+}
+function renderAllSections(){const mc=document.getElementById('mainContent');const cmpRes=document.getElementById('cmpResultSection');if(activeLoc==='__quality__'){mc.innerHTML='';if(cmpRes)mc.appendChild(cmpRes);renderQualitySection(mc);return;}if(fcache.length===0&&rawRows.length===0){mc.innerHTML=`<div style="text-align:center;padding:60px 20px;color:var(--muted)"><svg style="width:52px;height:52px;margin:0 auto 12px;display:block" viewBox="0 0 64 40" xmlns="http://www.w3.org/2000/svg"><path d="M6 26 Q4 26 4 22 L6 18 Q10 12 20 11 L26 6 Q30 3 38 3 L46 6 Q52 8 56 14 L60 18 Q62 20 62 22 L62 26 Z" fill="#dfe6ea" stroke="#7a9dae" stroke-width="1.5"/><path d="M22 11 L28 6 Q31 4 37 4 L44 6 Q48 8 51 12 L52 14 L22 14 Z" fill="#3c6478" opacity=".6"/><circle cx="16" cy="27" r="6" fill="#3c6478"/><circle cx="50" cy="27" r="6" fill="#3c6478"/></svg><div style="font-size:.85rem;font-weight:700;color:var(--text);margin-bottom:6px">No data found — the car's still on its way 🛣️</div><button class="btn" style="margin-top:10px" onclick="loadData()">↻ Retry</button></div>`;return;}if(fcache.length===0&&rawRows.length>0){mc.innerHTML=`<div style="text-align:center;padding:60px 20px;color:var(--muted)"><svg style="width:52px;height:52px;margin:0 auto 12px;display:block" viewBox="0 0 64 40" xmlns="http://www.w3.org/2000/svg"><path d="M6 26 Q4 26 4 22 L6 18 Q10 12 20 11 L26 6 Q30 3 38 3 L46 6 Q52 8 56 14 L60 18 Q62 20 62 22 L62 26 Z" fill="#dfe6ea" stroke="#7a9dae" stroke-width="1.5"/><path d="M22 11 L28 6 Q31 4 37 4 L44 6 Q48 8 51 12 L52 14 L22 14 Z" fill="#3c6478" opacity=".6"/><circle cx="16" cy="27" r="6" fill="#3c6478"/><circle cx="50" cy="27" r="6" fill="#3c6478"/></svg><div style="font-size:.85rem;font-weight:700;color:var(--text);margin-bottom:6px">No rows match current filters — wrong turn 🚧</div><div style="font-size:.7rem;margin-bottom:12px">${rawRows.length} total rows loaded.</div><button class="btn" onclick="clearAll()">✕ Clear all filters</button></div>`;return;}if(activeLoc==='__totalsubmit__'){mc.innerHTML='';if(cmpRes)mc.appendChild(cmpRes);renderTotalSubmitSection(mc);return;}if(activeLoc==='__topperf__'){mc.innerHTML='';if(cmpRes)mc.appendChild(cmpRes);renderTopPerformersSection(mc);return;}const locsToRender=activeLoc==='__all__'?locations:[activeLoc];mc.innerHTML='';if(cmpRes)mc.appendChild(cmpRes);if(locations.length===0||locColIdx<0){const wrap=document.createElement('div');wrap.className='loc-section visible';mc.appendChild(wrap);renderLocSection(wrap,null,fcache);return;}if(activeLoc==='__all__'){const wrap=document.createElement('div');wrap.className='loc-section visible';mc.appendChild(wrap);renderLocSection(wrap,null,fcache);const hd=wrap.querySelector('.loc-hdr'),ov=buildLocOverview();if(hd&&ov)hd.after(ov);return;}locsToRender.forEach(loc=>{const locRows=fcache.filter(r=>String(r[locColIdx]||'').trim()===loc);const wrap=document.createElement('div');wrap.className='loc-section visible';mc.appendChild(wrap);renderLocSection(wrap,loc,locRows);});}
 function buildSpeedometer(pct,color){
   pct=Math.max(0,Math.min(100,Math.round(pct)));
   const angle=-90+(pct/100)*180,rad=angle*Math.PI/180,cx=40,cy=40,r=30;
