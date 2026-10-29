@@ -1160,6 +1160,24 @@ html[data-theme="dark"] .lo-go{color:#5cf3e2}
 .lo-lgi.off{opacity:.42;text-decoration:line-through}
 @media(max-width:700px){.lo-dist,.lo-ctl,.lo-lgd{padding-left:14px;padding-right:14px}.lo-hmw{padding-left:14px;padding-right:14px}.lo-tk{width:88px}.lo-stack{height:28px}}
 </style>
+<style id="mobile-safe">
+/* ===== phones / tablets: no GPU-heavy effects =====
+   backdrop-filter, big masked fixed layers and blurred orbs are what makes iOS Safari / Android WebView
+   flicker, go black, reload the tab ("a problem repeatedly occurred") or kill it. Look is kept with solid-ish fills. */
+:root{--m-solid:#ffffff}
+html[data-theme="dark"]{--m-solid:#0b1824}
+@media (max-width:820px),(hover:none) and (pointer:coarse){
+  *,*::before,*::after{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+  html body::before,html body::after,html body .orb{display:none!important}
+  html body :is(.hdr,.rail,#railMenu,#railNow,.dpanel,.arcs-box,.toast,.pn,#mtt,.cmp-bar,.scroll-top-car){background:var(--m-solid)!important}
+  html body #loginScreen .login-card{background:rgba(10,24,38,.97)!important}
+  html body .rail button::after{background:var(--m-solid)!important}
+  html body .arcs-ov,html body .pn-scrim{background:rgba(5,12,20,.6)!important}
+  /* filter sheet must sit ABOVE the floating bar (it was covering Clear / Done) */
+  html body .fstrip:has(.dpanel.open),html body .arcs-filters:has(.dpanel.open){z-index:300!important}
+  html body:has(.dpanel.open) .rail,html body:has(.dpanel.open) #railNow{opacity:0;pointer-events:none}
+}
+</style>
 </head>
 <body>
 <div class="arcs-ov" id="arcsOv" onclick="if(event.target===this)closeArchiveSearch()"><div class="arcs-box">
@@ -1338,13 +1356,23 @@ function loadUsers(force){
 /* ---- live access check: while the dashboard is open, re-read the Users tab; if this person's email was removed → sign out automatically ---- */
 const USERS_WATCH_MS=30000; // how often an open dashboard re-checks the Users tab
 let _usersWatchTimer=null,_usersLastCheck=0;
+const _AUTH_TRANSIENT=/busy|quota|rate|limit|timeout|timed|server|exceed|unavail|retry|try again|internal|temporar/i;
+/* true = the server just had a hiccup (not a real "you are out") → keep the session */
+function authSoftFail(r){ if(!r||typeof r!=='object')return true; if(r.error==='not_allowed')return false; return _AUTH_TRANSIENT.test(String(r.error||'')); }
+let _verifyFails=0;
 function checkUsersAccess(){
+  if(document.hidden||navigator.onLine===false)return;
   const em=getLoggedInEmail();
   if(!em)return;
   _usersLastCheck=Date.now();
   authCall({action:'verify',token:getAuthToken()}).then(r=>{
     if(r&&r.ok){
+      _verifyFails=0;
       loadUsers(true).then(()=>renderUserChip(false)).catch(()=>{}); // picks up renamed users / role changes too
+    }else if(authSoftFail(r)){
+      /* server busy / quota / bad reply → stay signed in, check again later */
+    }else if(!(r&&r.error==='not_allowed')&&++_verifyFails<2){
+      /* first unexplained "no" → wait for the next check before signing out */
     }else{
       try{sessionStorage.setItem('meeg_login_msg',r&&r.error==='not_allowed'?'Your access has been removed 🚫':'Session ended — please sign in again');}catch(e){}
       logoutUser(); // clears the session and reloads → login screen
@@ -1574,26 +1602,35 @@ const CURRENT_APP_VERSION = (document.querySelector('meta[name="app-version"]')|
 let _versionCheckTimer = null;
 
 function checkForNewVersion(){
+  if(!/^https?:$/.test(location.protocol)||navigator.onLine===false)return;   /* file:// , blob: , offline → nothing to compare with */
   const bustUrl = window.location.href.split('#')[0] + (window.location.href.includes('?') ? '&' : '?') + '_v=' + Date.now();
   fetch(bustUrl, {cache:'no-store'})
-    .then(r => r.text())
+    .then(r => { if(!r.ok) throw new Error('HTTP '+r.status); return r.text(); })
     .then(html => {
       const match = html.match(/<meta\s+name=["']app-version["']\s+content=["']([^"']+)["']/i);
       const serverVersion = match ? match[1] : null;
       if(serverVersion && serverVersion !== CURRENT_APP_VERSION){
-        showReloadToast();
+        /* reload at most ONCE per new version per tab — a phone that keeps serving the cached page used to reload forever (every app-switch) */
+        let done=''; try{done=sessionStorage.getItem('meeg_ver_reload')||'';}catch(e){}
+        if(done===serverVersion) return;
+        try{sessionStorage.setItem('meeg_ver_reload',serverVersion);}catch(e){}
+        showReloadToast(serverVersion);
       }
     })
     .catch(()=>{ /* silent fail — don't disrupt the user on a network hiccup */ });
 }
 
-function showReloadToast(){
+function showReloadToast(ver){
   const ex = document.querySelector('.toast'); if(ex) ex.remove();
   const t = document.createElement('div');
   t.className = 'toast';
   t.innerHTML = '🔄 A new dashboard version is available — reloading automatically...';
   document.body.appendChild(t);
-  setTimeout(() => window.location.reload(), 2500);
+  setTimeout(() => {
+    /* new URL (?v=…) forces the browser to fetch the page again instead of re-using its cached copy */
+    try{ const u=new URL(window.location.href); u.searchParams.set('v',ver||Date.now()); window.location.replace(u.toString()); }
+    catch(e){ window.location.reload(); }
+  }, 2500);
 }
 
 function startVersionPolling(){
@@ -2855,6 +2892,7 @@ function mergeBackup(mainTable,bTable){
 }
 let _cacheTried=false;
 function loadData(){
+  if(document.hidden&&rawRows.length>0){window._pendingRefresh=true;return;}   // background tab / phone locked → don't download + rebuild 70k rows for nobody
   setSyncActive(true);setTrafficLight('yellow');
   const b=document.getElementById('refreshBtn');if(b)b.disabled=true;
   const mc=document.getElementById('mainContent');
@@ -2868,36 +2906,46 @@ function loadData(){
   const mainP=fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${SHEET_GID}`).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.text();});
   const backP=BACKUP_SHEET_ID?fetchBackupTable().catch(e=>{console.warn('Backup sheet not readable:',e.message);window._backupErr=e.message;return null;}):Promise.resolve(null);
   Promise.all([mainP,backP]).then(async([txt,bt])=>{
-    let out=txt,added=0;
-    if(bt&&bt.length>1){
-      try{const mt=await parseCSVAsync(txt);added=mergeBackup(mt,bt);if(added>0)out=tableToCSV(mt);}
-      catch(e){console.warn('Backup merge failed:',e.message);added=0;out=txt;}
-    }
+    const hasB=bt&&bt.length>1;
+    /* cheap fingerprint of main sheet + backup sheet → if identical to last time, skip parse / merge / cache write completely (saves ~200 MB of churn on a phone) */
+    const bsig=hasB?(bt.length+':'+String(bt[bt.length-1]||'').slice(0,120)):'';
+    const hh=simpleHash(txt)+'|'+bsig;
+    if(hh===_lastCsvHash&&rawRows.length>0){_csvUnchanged();return;}
+    const table=await parseCSVAsync(txt);let added=0;
+    if(hasB){try{added=mergeBackup(table,bt);}catch(e){console.warn('Backup merge failed:',e.message);added=0;}}
     if(window._backupMissing&&window._backupMissing.length&&!window._backupMissWarned){window._backupMissWarned=true;showToast('⚠️ Backup tab has no column: '+window._backupMissing.join(', '));}
     if(window._lastBackupAdded!==added){const first=window._lastBackupAdded===undefined;window._lastBackupAdded=added;if(!first||added>0)showToast(added>0?('🗂️ Backup sheet merged: +'+added+' rows'):'🗂️ Backup sheet: no new rows');}
-    idbSet('csv',{v:AUTH_VER,ts:Date.now(),text:out});onCsvData(out);
+    const rb=document.getElementById('refreshBtn');if(rb)rb.disabled=false;setSyncActive(false);
+    _lastCsvHash=hh;
+    setTimeout(()=>{idbSet('csv',{v:AUTH_VER,ts:Date.now(),text:txt});},2000);   // cache AFTER the screen is up, and only when the data really changed
+    onCsvTable(table);
   }).catch(e=>{
     setSyncActive(false);setTrafficLight('red');if(b)b.disabled=false;
     if(rawRows.length>0){showToast('⚠️ Could not refresh — showing the last loaded data');}
     else showErr('Failed to load data: '+e.message);
   });
 }
+function _csvUnchanged(){
+  /* PATCH #5: data hasn't actually changed — skip the full rebuild, just refresh the "updated" timestamp */
+  const b=document.getElementById('refreshBtn');if(b)b.disabled=false;setSyncActive(false);
+  lastUpdateTs=Date.now();updateRelativeTime();setTrafficLight('green');
+  if(autoRefreshTimer)clearInterval(autoRefreshTimer);autoRefreshTimer=null;
+  if(autoRefreshEnabled)autoRefreshTimer=setInterval(loadData,REFRESH_INTERVAL*1000);
+}
 function onCsvData(text,fromCache){
   if(!fromCache){const b=document.getElementById('refreshBtn');if(b)b.disabled=false;setSyncActive(false);}
-  const newHash=simpleHash(text);
+  const newHash=simpleHash(text)+'|';
   if(newHash===_lastCsvHash && rawRows.length>0){
-    /* PATCH #5: data hasn't actually changed — skip the full rebuild, just refresh the "updated" timestamp */
-    lastUpdateTs=Date.now();updateRelativeTime();setTrafficLight('green');
-    if(autoRefreshTimer)clearInterval(autoRefreshTimer);autoRefreshTimer=null;
-    if(autoRefreshEnabled)autoRefreshTimer=setInterval(loadData,REFRESH_INTERVAL*1000);
+    _csvUnchanged();
     return;
   }
   _lastCsvHash=newHash;
   parseCSVAsync(text).then(t=>{onCsvTable(t);if(fromCache){setTrafficLight('yellow');showToast('⚡ Showing saved data — updating…');}}).catch(e=>showErr('Parse failed: '+e.message));
 }
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&window._pendingRefresh){window._pendingRefresh=false;try{loadData();}catch(e){}}});
 function cairoToday(){try{return new Date().toLocaleDateString('en-CA',{timeZone:'Africa/Cairo'});}catch(e){const n=new Date();return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');}}
 function onCsvTable(table){
-  if(!table.length){showErr('No data returned.');return;}hdrs=table[0].map(h=>String(h||'').trim());const hLower=hdrs.map(h=>h.toLowerCase());sIdx={};["Shift","Unit","Qtc Name","Yubikey Email","Labeler Name","Pc No","Modality","Queue Name","Location","Pass"].forEach(name=>{const i=hLower.indexOf(name.toLowerCase());if(i>=0)sIdx[name]=i;});tsIdx=hLower.findIndex(h=>h==='timestamp');if(tsIdx<0)tsIdx=hLower.findIndex(h=>h==='created at');if(tsIdx<0)tsIdx=hLower.findIndex(h=>h==='date');if(tsIdx<0)tsIdx=hLower.findIndex(h=>h.includes('date'));locColIdx=hLower.findIndex(h=>h==='location');if(locColIdx<0)locColIdx=hLower.findIndex(h=>h==='unit');if(locColIdx<0)locColIdx=hLower.findIndex(h=>h==='site');rawRows=[];const skippedShift={};for(let ri=1;ri<table.length;ri++){const rowRaw=table[ri];if(!rowRaw||!rowRaw.length)continue;const row=hdrs.map((_,ci)=>rowRaw[ci]!==undefined?String(rowRaw[ci]).trim():'');if(row.every(c=>c===''))continue;const sci=sIdx['Shift'];if(sci!==undefined){const sv=String(row[sci]||'').replace(/\s+/g,' ').trim().toLowerCase();if(!ALL_SHIFTS.some(a=>sv===a)){const kk=sv||'(empty)';skippedShift[kk]=(skippedShift[kk]||0)+1;continue;}}normRow(row);rawRows.push(row);}window._skippedShift=skippedShift;{const ks=Object.keys(skippedShift),tot=ks.reduce((a,k)=>a+skippedShift[k],0);if(tot>0){console.warn('Rows skipped (unknown Shift value):',skippedShift);const sig=JSON.stringify(skippedShift);if(window._skipSig!==sig){window._skipSig=sig;showToast('⚠️ '+tot+' row(s) skipped — unknown Shift: '+ks.slice(0,4).map(k=>'"'+k+'" ×'+skippedShift[k]).join(', ')+(ks.length>4?' …':''));}}}
+  if(!table.length){showErr('No data returned.');return;}hdrs=table[0].map(h=>String(h||'').trim());const hLower=hdrs.map(h=>h.toLowerCase());sIdx={};["Shift","Unit","Qtc Name","Yubikey Email","Labeler Name","Pc No","Modality","Queue Name","Location","Pass"].forEach(name=>{const i=hLower.indexOf(name.toLowerCase());if(i>=0)sIdx[name]=i;});tsIdx=hLower.findIndex(h=>h==='timestamp');if(tsIdx<0)tsIdx=hLower.findIndex(h=>h==='created at');if(tsIdx<0)tsIdx=hLower.findIndex(h=>h==='date');if(tsIdx<0)tsIdx=hLower.findIndex(h=>h.includes('date'));locColIdx=hLower.findIndex(h=>h==='location');if(locColIdx<0)locColIdx=hLower.findIndex(h=>h==='unit');if(locColIdx<0)locColIdx=hLower.findIndex(h=>h==='site');rawRows=[];const skippedShift={};for(let ri=1;ri<table.length;ri++){const rowRaw=table[ri];if(!rowRaw||!rowRaw.length)continue;table[ri]=null;const row=rowRaw;for(let ci=0;ci<hdrs.length;ci++){const v=row[ci];row[ci]=v===undefined?'':String(v).trim();}row.length=hdrs.length;if(row.every(c=>c===''))continue;const sci=sIdx['Shift'];if(sci!==undefined){const sv=String(row[sci]||'').replace(/\s+/g,' ').trim().toLowerCase();if(!ALL_SHIFTS.some(a=>sv===a)){const kk=sv||'(empty)';skippedShift[kk]=(skippedShift[kk]||0)+1;continue;}}normRow(row);rawRows.push(row);}window._skippedShift=skippedShift;{const ks=Object.keys(skippedShift),tot=ks.reduce((a,k)=>a+skippedShift[k],0);if(tot>0){console.warn('Rows skipped (unknown Shift value):',skippedShift);const sig=JSON.stringify(skippedShift);if(window._skipSig!==sig){window._skipSig=sig;showToast('⚠️ '+tot+' row(s) skipped — unknown Shift: '+ks.slice(0,4).map(k=>'"'+k+'" ×'+skippedShift[k]).join(', ')+(ks.length>4?' …':''));}}}
 sOpts={};["Shift","Unit","Qtc Name","Yubikey Email","Labeler Name","Pc No","Modality","Queue Name","Location","Pass"].forEach(name=>{const ci=sIdx[name];if(ci===undefined)return;const set=new Set();rawRows.forEach(r=>{const v=String(r[ci]||'').trim();if(v)set.add(v);});sOpts[name]=[...set].sort();});const dateSet=new Set();rawRows.forEach(r=>{const d=extractDate(r[tsIdx]);if(d)dateSet.add(d);});sOpts['_dates']=[...dateSet].sort().reverse();const locSet=new Set();if(locColIdx>=0)rawRows.forEach(r=>{const v=String(r[locColIdx]||'').trim();if(v)locSet.add(v);});locations=[...locSet].sort();todayStr=cairoToday();document.getElementById('todayLabel').textContent=todayStr;lastUpdateTs=Date.now();updateRelativeTime();setTrafficLight('green');window._firstDataReady=true;document.getElementById('totalBadge').textContent=rawRows.length+' rows';SC.forEach(s=>{if(!sel[s.key])sel[s.key]=new Set();});if(!_filtersRestored){restoreFilters();_filtersRestored=true;}buildStrip();buildTabs();applyAll();if(autoRefreshTimer)clearInterval(autoRefreshTimer);autoRefreshTimer=null;if(autoRefreshEnabled)autoRefreshTimer=setInterval(loadData,REFRESH_INTERVAL*1000);applyAutoRefreshUI();if(cmpMode)populateCmpSelects();try{loadArchiveIds();}catch(e){}
 }
 const _MONTH_NAMES={jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12};
@@ -3502,6 +3550,7 @@ window.addEventListener('load',()=>{
   const withNames=()=>{ if(usersLoaded)enter(); else loadUsers().then(enter).catch(enter); };
   authCall({action:'verify',token:getAuthToken()}).then(r=>{
     if(r&&r.ok)withNames();
+    else if(authSoftFail(r))withNames();   // server hiccup → don't throw a signed-in person back to the login screen
     else{
       clearSession();
       showLogin(r&&r.error==='not_allowed'?'Your access has been removed 🚫':'Session ended — please sign in again');
