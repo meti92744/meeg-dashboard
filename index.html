@@ -5,6 +5,26 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>MEEG Productivity</title>
 <meta name="app-version" content="7"/>
+<script id="lite-guard">
+/* Crash guard: "meeg_boot" is set while the page is starting / rebuilding a screen and cleared once it settled.
+   If the browser KILLS the tab in between, the flag is still there on the next start → we open in LITE mode
+   (no animations / shadows / blur, charts at 1x, no chart animation). Turn it off with the ⚡ button, or ?lite=0 / ?lite=1 */
+(function(){
+  var R=document.documentElement;
+  function LS(k,v){try{if(v===undefined)return localStorage.getItem(k);if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v);}catch(e){}return null;}
+  var q=/[?&]lite=([01])/.exec(location.search);if(q)LS('meeg_lite',q[1]);
+  var pref=LS('meeg_lite');
+  if(LS('meeg_boot')==='1'){LS('meeg_boot',null);if(pref===null){LS('meeg_lite','1');pref='1';window._liteAuto=true;}}
+  var lowMem=navigator.deviceMemory&&navigator.deviceMemory<=2;
+  if(pref==='1'||(pref===null&&lowMem))R.classList.add('lite');
+  window._lite=R.classList.contains('lite');
+  LS('meeg_boot','1');
+  window._settle=function(){LS('meeg_boot',null);};
+  window._arm=function(ms){LS('meeg_boot','1');clearTimeout(window._armT);window._armT=setTimeout(window._settle,ms||4000);};
+  addEventListener('pagehide',function(){LS('meeg_boot',null);});   /* normal close / reload / navigation — NOT fired when the browser kills a crashed tab */
+  window.toggleLite=function(){LS('meeg_lite',R.classList.contains('lite')?'0':'1');location.reload();};
+})();
+</script>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 54 46'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%2300e5d4'/%3E%3Cstop offset='100%25' stop-color='%230f8fff'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpolygon points='0,4 30,4 21,16 0,16' fill='url(%23g)'/%3E%3Cpolygon points='5,19 35,19 26,31 5,31' fill='url(%23g)'/%3E%3Cpolygon points='10,34 40,34 31,46 10,46' fill='url(%23g)'/%3E%3C/svg%3E"/>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -1164,6 +1184,8 @@ html[data-theme="dark"] .lo-go{color:#5cf3e2}
 /* ===== phones / tablets: no GPU-heavy effects =====
    backdrop-filter, big masked fixed layers and blurred orbs are what makes iOS Safari / Android WebView
    flicker, go black, reload the tab ("a problem repeatedly occurred") or kill it. Look is kept with solid-ish fills. */
+/* chart placeholders: the endless shimmer kept the page repainting ~100% of the time (even idle) → phone froze / tab got killed. Static placeholder instead. */
+.ins-cv:not(.rdy)::before{animation:none!important;background:linear-gradient(90deg,transparent 15%,rgba(127,127,127,.09) 50%,transparent 85%)!important;background-size:100% 100%!important}
 :root{--m-solid:#ffffff}
 html[data-theme="dark"]{--m-solid:#0b1824}
 @media (max-width:820px),(hover:none) and (pointer:coarse){
@@ -1177,6 +1199,22 @@ html[data-theme="dark"]{--m-solid:#0b1824}
   html body .fstrip:has(.dpanel.open),html body .arcs-filters:has(.dpanel.open){z-index:300!important}
   html body:has(.dpanel.open) .rail,html body:has(.dpanel.open) #railNow{opacity:0;pointer-events:none}
 }
+</style>
+<style id="lite-mode">
+.rail-lite{display:none!important}
+@media (max-width:820px){.rail-lite{display:grid!important}}
+html.lite .rail-lite{background:var(--g-grad)!important;color:#04141c!important}
+/* LITE: no shadows / entry animations / hover lift, flat background, charts at 1x without animation (JS) → least GPU + paint work.
+   (kept to a few class selectors on purpose: a "*" rule made every style recalculation slower) */
+html.lite{scroll-behavior:auto!important}
+html.lite::before{background:var(--bg-1)!important}
+html.lite body::before,html.lite body::after,html.lite .orb{display:none!important}
+html.lite body :is(.sec,.loc-stat,.dcard,.catcard,.podium-item,.lo-card,.cmp-bar,.fstrip,.loc-tabs,.hdr,.rail,.loc-tab,.shift-banner){box-shadow:none!important;text-shadow:none!important}
+html.lite body :is(.sec,.loc-stat,.dcard,.catcard,.podium-item,.lo-card,.cmp-bar,.fstrip,.loc-tabs,.hdr,.rail){border:1px solid var(--border)!important}
+html.lite.g-enter body :is(.loc-stat,.sec,.loc-hdr){animation:none!important}
+html.lite body :is(.loc-stat,.dcard,.catcard,.podium-item,.lo-card,.btn,.fchip):hover{transform:none!important}
+.lite-toast{position:fixed;left:12px;right:12px;bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:400;display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:16px;background:var(--m-solid,#fff);color:var(--text);border:1px solid var(--g-brd);font:600 .74rem var(--font);box-shadow:0 10px 30px rgba(0,0,0,.35)}
+.lite-toast button{margin-left:auto;border:0;border-radius:99px;padding:6px 12px;background:var(--g-grad);color:#04141c;font:700 .7rem var(--font);cursor:pointer}
 </style>
 </head>
 <body>
@@ -2834,6 +2872,10 @@ loadTeamsMap();
 
 /* ===== PATCH #5: smart auto-refresh — skip re-render if data unchanged ===== */
 let _lastCsvHash='';
+function fastHash(s){
+  try{ if(window.crypto&&crypto.subtle&&window.TextEncoder) return crypto.subtle.digest('SHA-1',new TextEncoder().encode(s)).then(function(b){var a=new Uint8Array(b),h='';for(var i=0;i<a.length;i++)h+=(a[i]<16?'0':'')+a[i].toString(16);return h;}); }catch(e){}
+  return Promise.resolve(String(simpleHash(s)));
+}
 function simpleHash(s){let h=0;for(let i=0;i<s.length;i++){h=(h<<5)-h+s.charCodeAt(i);h|=0;}return h;}
 
 /* ===== PATCH #3: loading overlay only on first load, sync-bar handles refresh feedback ===== */
@@ -2909,7 +2951,7 @@ function loadData(){
     const hasB=bt&&bt.length>1;
     /* cheap fingerprint of main sheet + backup sheet → if identical to last time, skip parse / merge / cache write completely (saves ~200 MB of churn on a phone) */
     const bsig=hasB?(bt.length+':'+String(bt[bt.length-1]||'').slice(0,120)):'';
-    const hh=simpleHash(txt)+'|'+bsig;
+    const hh=(await fastHash(txt))+'|'+bsig;
     if(hh===_lastCsvHash&&rawRows.length>0){_csvUnchanged();return;}
     const table=await parseCSVAsync(txt);let added=0;
     if(hasB){try{added=mergeBackup(table,bt);}catch(e){console.warn('Backup merge failed:',e.message);added=0;}}
@@ -2934,13 +2976,15 @@ function _csvUnchanged(){
 }
 function onCsvData(text,fromCache){
   if(!fromCache){const b=document.getElementById('refreshBtn');if(b)b.disabled=false;setSyncActive(false);}
-  const newHash=simpleHash(text)+'|';
-  if(newHash===_lastCsvHash && rawRows.length>0){
-    _csvUnchanged();
-    return;
-  }
-  _lastCsvHash=newHash;
-  parseCSVAsync(text).then(t=>{onCsvTable(t);if(fromCache){setTrafficLight('yellow');showToast('⚡ Showing saved data — updating…');}}).catch(e=>showErr('Parse failed: '+e.message));
+  fastHash(text).then(h=>{
+    const newHash=h+'|';
+    if(newHash===_lastCsvHash && rawRows.length>0){
+      _csvUnchanged();
+      return;
+    }
+    _lastCsvHash=newHash;
+    return parseCSVAsync(text).then(t=>{onCsvTable(t);if(fromCache){setTrafficLight('yellow');showToast('⚡ Showing saved data — updating…');}});
+  }).catch(e=>showErr('Parse failed: '+e.message));
 }
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&window._pendingRefresh){window._pendingRefresh=false;try{loadData();}catch(e){}}});
 function cairoToday(){try{return new Date().toLocaleDateString('en-CA',{timeZone:'Africa/Cairo'});}catch(e){const n=new Date();return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');}}
@@ -3776,8 +3820,8 @@ el.innerHTML=(t.title[0]?'<b>'+t.title[0]+'</b><br>':'')+t.dataPoints.map(d=>'<d
 el.style.opacity=1;el.style.left=Math.min(r.left+t.caretX+14,innerWidth-190)+'px';el.style.top=(r.top+t.caretY-20)+'px'}
 const ax={grid:{display:false},border:{display:false}};
 function grad(c,col){const g=c.createLinearGradient(0,0,0,250);g.addColorStop(0,col+'55');g.addColorStop(1,col+'00');return g}
-function mk(cv,build,anim){const c=cv.getContext('2d');Chart.defaults.font.family=cs('--font');Chart.defaults.color=cs('--muted');Chart.defaults.font.size=12;
-const cfg=build(PAL[th()],c);cfg.options=Object.assign({maintainAspectRatio:false,animation:anim?{duration:1000,easing:'easeOutQuart'}:false},cfg.options);const ch=new Chart(cv,cfg);if(cv.parentNode)cv.parentNode.classList.add('rdy');return ch}
+function mk(cv,build,anim){const c=cv.getContext('2d');Chart.defaults.font.family=cs('--font');Chart.defaults.color=cs('--muted');Chart.defaults.font.size=12;Chart.defaults.devicePixelRatio=window._lite?1:Math.min(2,window.devicePixelRatio||1);
+const cfg=build(PAL[th()],c);cfg.options=Object.assign({maintainAspectRatio:false,animation:(anim&&!window._lite)?{duration:1000,easing:'easeOutQuart'}:false},cfg.options);const ch=new Chart(cv,cfg);if(cv.parentNode)cv.parentNode.classList.add('rdy');return ch}
 function redraw(anim){reg=reg.filter(o=>o.cv.isConnected);reg.forEach(o=>{if(o.ch){o.ch.destroy();o.ch=mk(o.cv,o.build,anim)}});if(window._pnlRedraw)window._pnlRedraw()}
 const seen=new Set();
 function add(cv,build){const o={cv,build,ch:null},key=cv.dataset.k||'',first=!seen.has(key);seen.add(key);reg.push(o);
@@ -3985,7 +4029,7 @@ function restyle(st){
 new MutationObserver(function(ms){ms.forEach(function(m){m.addedNodes.forEach(function(n){if(n.nodeType===1&&n.classList&&n.classList.contains("shot-stage"))restyle(n)})})}).observe(document.body,{childList:true});
 })();
 </script>
-<div id="railNow" aria-live="polite"></div><nav class="rail" id="glassRail"><button data-tip="Home" title="Home" onclick="shootWebScrollTop()" class="on"><svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg></button><div class="rail-sec" id="railSec"></div><i class="rs-i"></i><button data-tip="Refresh" title="Refresh" onclick="loadData()" ><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg></button><button id="railAuto" data-tip="Auto refresh" title="Auto refresh" onclick="toggleAutoRefresh()" ><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></button><i></i><button id="railCmp" data-tip="Compare" title="Compare" onclick="toggleCompare()" ><svg viewBox="0 0 24 24"><path d="M12 3v18M5 7h14M5 7l-2 6a3 3 0 0 0 4 0zM19 7l-2 6a3 3 0 0 0 4 0z"/></svg></button><i></i><button data-tip="Dark / Light" title="Dark / Light" onclick="toggleDark()" ><svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button></nav>
+<div id="railNow" aria-live="polite"></div><nav class="rail" id="glassRail"><button data-tip="Home" title="Home" onclick="shootWebScrollTop()" class="on"><svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg></button><div class="rail-sec" id="railSec"></div><i class="rs-i"></i><button data-tip="Refresh" title="Refresh" onclick="loadData()" ><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg></button><button id="railAuto" data-tip="Auto refresh" title="Auto refresh" onclick="toggleAutoRefresh()" ><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></button><i></i><button id="railCmp" data-tip="Compare" title="Compare" onclick="toggleCompare()" ><svg viewBox="0 0 24 24"><path d="M12 3v18M5 7h14M5 7l-2 6a3 3 0 0 0 4 0zM19 7l-2 6a3 3 0 0 0 4 0z"/></svg></button><i></i><button data-tip="Dark / Light" title="Dark / Light" onclick="toggleDark()" ><svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button><button id="railLite" class="rail-lite" data-tip="Lite mode (for slow phones)" title="Lite mode" onclick="toggleLite()"><svg viewBox="0 0 24 24"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg></button></nav>
 <script id="glass-rail-sync">
 (function(){function pair(src,dst){var a=document.getElementById(src),b=document.getElementById(dst);if(!a||!b)return;function f(){b.classList.toggle('on',a.classList.contains('active'));}f();new MutationObserver(f).observe(a,{attributes:true,attributeFilter:['class']});}
 pair('arBtn','railAuto');pair('cmpBtn','railCmp');})();
@@ -4029,6 +4073,20 @@ new MutationObserver(function(){clearTimeout(tm);tm=setTimeout(build,120);}).obs
 <script id="glass-greet">
 (function(){var sb=document.querySelector('.shift-banner');if(!sb)return;var g=document.createElement('div');g.className='greet';g.innerHTML='<h2 id="greetH"></h2><p>Here’s what’s happening across your shifts today</p>';sb.parentNode.insertBefore(g,sb);
 function up(){var h=new Date().getHours(),t=h<12?'Good morning':h<18?'Good afternoon':'Good evening';var u=document.getElementById('userName'),n=u?u.textContent.trim().split(/[\s@]/)[0]:'';document.getElementById('greetH').textContent=t+(n?', '+n:'');}up();setInterval(up,2000);})();
+</script>
+<script id="lite-wrap">
+(function(){
+  var st=window.switchTab,ct=window.onCsvTable;
+  if(typeof st==='function')window.switchTab=function(){window._arm(4000);return st.apply(this,arguments);};
+  if(typeof ct==='function')window.onCsvTable=function(){window._arm(5000);return ct.apply(this,arguments);};
+  var b=document.getElementById('railLite');if(b&&window._lite)b.classList.add('on');
+  if(window._liteAuto){
+    var t=document.createElement('div');t.className='lite-toast';
+    t.innerHTML='<span>⚡ Lite mode is on — the page stopped unexpectedly last time.</span><button type="button">Turn off</button>';
+    t.querySelector('button').onclick=function(){try{localStorage.setItem('meeg_lite','0');}catch(e){}location.reload();};
+    document.body.appendChild(t);setTimeout(function(){if(t.parentNode)t.remove();},15000);
+  }
+})();
 </script>
 </body>
 </html>
