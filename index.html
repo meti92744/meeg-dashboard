@@ -1734,11 +1734,11 @@ let sel={},selD=new Set(),selWeeks=new Set();
 let idFilter='';
 /* ===== TIME-OF-DAY FILTER (From → To, minutes since midnight; From later than To = overnight range) ===== */
 let timeFrom='',timeTo='',timePreset='';
-/* Shift presets — every room has its own window (minutes are inclusive). 102 runs 30 min later than the other rooms. */
+/* Shift presets — every room has its own window (minutes are inclusive). Each shift has +10 min at the end. 102 runs 30 min later than the other rooms. */
 const TIME_SHIFTS={
-  M :{ic:'🌅',base:['08:00','15:45'],r102:['08:30','16:15']},
-  N :{ic:'🌆',base:['16:00','23:45'],r102:['16:30','00:15']},
-  ON:{ic:'🌙',base:['00:00','07:45'],r102:['00:30','08:15']}
+  M :{ic:'🌅',base:['08:00','15:55'],r102:['08:30','16:25']},
+  N :{ic:'🌆',base:['16:00','23:55'],r102:['16:30','00:25']},
+  ON:{ic:'🌙',base:['00:00','07:55'],r102:['00:30','08:25']}
 };
 function isRoom102(r){
   for(const idx of [sIdx['Location'],sIdx['Unit'],locColIdx]){
@@ -1787,7 +1787,7 @@ function timeChipHtml(){
    +`<div class="tm-row"><label>From</label><input type="time" class="tm-in" id="tmFrom" value="${timeFrom}" onchange="setTime('from',this.value)"/></div>`
    +`<div class="tm-row"><label>To</label><input type="time" class="tm-in" id="tmTo" value="${timeTo}" onchange="setTime('to',this.value)"/></div>`
    +`<div class="tm-presets">${Object.keys(TIME_SHIFTS).map(k=>`<button data-tp="${k}" class="${timePreset===k?'on':''}" onclick="setTimePreset('${k}');event.stopPropagation()">${TIME_SHIFTS[k].ic} ${k}</button>`).join('')}</div>`
-   +`<div class="tm-note"><b>M</b> 104·105·106·108: 08:00–15:45 · 102: 08:30–16:15<br><b>N</b> 104·105·106·108: 16:00–23:45 · 102: 16:30–00:15<br><b>ON</b> 104·105·106·108: 00:00–07:45 · 102: 00:30–08:15<br>Or pick a custom From/To above (From later than To = overnight). Rows without a time are hidden while this filter is on.</div>`
+   +`<div class="tm-note"><b>M</b> 104·105·106·108: 08:00–15:55 · 102: 08:30–16:25<br><b>N</b> 104·105·106·108: 16:00–23:55 · 102: 16:30–00:25<br><b>ON</b> 104·105·106·108: 00:00–07:55 · 102: 00:30–08:25<br>Or pick a custom From/To above (From later than To = overnight). Rows without a time are hidden while this filter is on.</div>`
    +`<div class="dp-foot"><button onclick="clrTime();event.stopPropagation()">✕ Clear</button><button onclick="closeDr('__time');event.stopPropagation()">✓ Done</button></div></div></div>`;
 }
 let sortC=-1,sortDr=1,fcache=[],openK=null,locSearch={};
