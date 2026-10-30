@@ -3332,7 +3332,7 @@ function updPills(){const w=document.getElementById('pillsRow');const ps=[];let 
 
 /* ===== PATCH #2: race-condition-safe tab switching (token guard) ===== */
 let _tabRenderToken=0;
-function buildTabs(){const c=document.getElementById('locTabs');const _sl=c.scrollLeft,_first=!c.dataset.built;let h=`<div class="loc-tab loc-all-tab${activeLoc==='__all__'?' act':''}" data-loc="__all__" onclick="switchTab('__all__')">🌐 All <span class="tab-cnt">${fcache.length}</span></div>`;h+=`<div class="loc-tab loc-all-tab${activeLoc==='__totalsubmit__'?' act':''}" data-loc="__totalsubmit__" onclick="switchTab('__totalsubmit__')">📊 Total Submit</div>`;h+=`<div class="loc-tab loc-all-tab${activeLoc==='__topperf__'?' act':''}" data-loc="__topperf__" onclick="switchTab('__topperf__')">🏆 Top Performers</div>`;h+=`<div class="loc-tab loc-all-tab${activeLoc==='__quality__'?' act':''}" data-loc="__quality__" onclick="switchTab('__quality__')">🎯 Quality</div>`;if(anAllowed())h+=`<div class="loc-tab loc-all-tab${activeLoc==='__analysis__'?' act':''}" data-loc="__analysis__" onclick="anLogLoaded=false;switchTab('__analysis__')">🧪 Analysis</div>`;locations.forEach(loc=>{const cnt=fcache.filter(r=>locColIdx>=0?String(r[locColIdx]||'').trim()===loc:true).length;h+=`<div class="loc-tab${activeLoc===loc?' act':''}" data-loc="${esc(loc)}" onclick="switchTab('${esc(loc)}')">📍 ${esc(loc)} <span class="tab-cnt">${cnt}</span></div>`;});c.innerHTML=h;c.dataset.built='1';c.scrollLeft=_sl;if(_first)centerActiveTab(false);}
+function buildTabs(){const c=document.getElementById('locTabs');const _sl=c.scrollLeft,_first=!c.dataset.built;let h=`<div class="loc-tab loc-all-tab${activeLoc==='__all__'?' act':''}" data-loc="__all__" onclick="switchTab('__all__')">🌐 All <span class="tab-cnt">${fcache.length}</span></div>`;h+=`<div class="loc-tab loc-all-tab${activeLoc==='__totalsubmit__'?' act':''}" data-loc="__totalsubmit__" onclick="switchTab('__totalsubmit__')">📊 Total Submit</div>`;h+=`<div class="loc-tab loc-all-tab${activeLoc==='__topperf__'?' act':''}" data-loc="__topperf__" onclick="switchTab('__topperf__')">🏆 Top Performers</div>`;h+=`<div class="loc-tab loc-all-tab${activeLoc==='__quality__'?' act':''}" data-loc="__quality__" onclick="switchTab('__quality__')">🎯 Quality</div>`;if(anAllowed())h+=`<div class="loc-tab loc-all-tab${activeLoc==='__analysis__'?' act':''}" data-loc="__analysis__" onclick="anLogLoaded=false;switchTab('__analysis__')">🔎 Analysis</div>`;locations.forEach(loc=>{const cnt=fcache.filter(r=>locColIdx>=0?String(r[locColIdx]||'').trim()===loc:true).length;h+=`<div class="loc-tab${activeLoc===loc?' act':''}" data-loc="${esc(loc)}" onclick="switchTab('${esc(loc)}')">📍 ${esc(loc)} <span class="tab-cnt">${cnt}</span></div>`;});c.innerHTML=h;c.dataset.built='1';c.scrollLeft=_sl;if(_first)centerActiveTab(false);}
 function centerActiveTab(smooth){const c=document.getElementById('locTabs'),a=c&&c.querySelector('.loc-tab.act');if(!a)return;const x=Math.max(0,a.offsetLeft-(c.clientWidth-a.offsetWidth)/2);if(smooth&&c.scrollTo)c.scrollTo({left:x,behavior:'smooth'});else c.scrollLeft=x;}
 function switchTab(loc){
   activeLoc=loc;
@@ -4343,7 +4343,7 @@ function up(){var h=new Date().getHours(),t=h<12?'Good morning':h<18?'Good after
 .an-fg{position:relative;display:inline-block}
 .an-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:4px 24px 14px}
 .an-bar label{font-size:.78rem;color:var(--muted);font-weight:500}
-.an-bar select,.an-bar input,.an-t select,.an-iss{background:var(--elevated);border:1px solid var(--border-light);color:var(--text);border-radius:999px;padding:7px 14px;font:500 .78rem var(--font);outline:0}
+.an-bar select,.an-bar input,.an-fg input[type=date],.an-t select,.an-iss{background:var(--elevated);border:1px solid var(--border-light);color:var(--text);border-radius:999px;padding:7px 14px;font:500 .78rem var(--font);outline:0}
 .an-bar select:focus,.an-bar input:focus,.an-iss:focus{border-color:var(--accent)}
 .an-iss{width:280px;border-radius:12px}
 .an-t td{max-width:none!important;overflow:visible!important}
@@ -4369,7 +4369,7 @@ function anIsSV(){return (ANALYSIS_USERS[anMe()]||[])[1]==='SV';}
 function anLocked(id){const l=anLog[id];return !!(l&&l.analyst&&l.analyst!==anMyName()&&!anIsSV());}   // a rating belongs to who made it (SV can edit any)
 const RATE_W={Excellent:1,Good:.75,Average:.5,Poor:0};                               // Score = Σ(rating×weight) ÷ tasks
 const RATES=['Excellent','Good','Average','Poor'];
-let anView='tasks',anGroup='QC',anLog={},anLogLoaded=false,anF={days:new Set(),lab:new Set(),qc:new Set(),q:'',type:new Set(),pass:new Set(),status:'',shift:'',mine:false,chart:''};
+let anView='tasks',anGroup='QC',anLog={},anLogLoaded=false,anF={from:'',to:'',lab:new Set(),qc:new Set(),q:'',type:new Set(),pass:new Set(),status:'',shift:'',mine:false,chart:''};
 function anCol(n){return hdrs.findIndex(h=>h.toLowerCase()===n.toLowerCase());}
 function anYmd(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 function anTasks(){
@@ -4401,17 +4401,26 @@ function anSetView(v){anView=v;renderAnalysis(document.getElementById('mainConte
 function anOpts(arr,sel,all){return `<option value="">${all}</option>`+arr.map(x=>`<option${x===sel?' selected':''}>${esc(x)}</option>`).join('');}
 function anFiltered(all){
   return all.filter(t=>{const l=anLog[t.id];
-    if(anF.days.size&&!anF.days.has(t.day))return false;
+    if(anF.from&&t.day<anF.from)return false;if(anF.to&&t.day>anF.to)return false;
     if(anF.lab.size&&!anF.lab.has(t.lab))return false;if(anF.qc.size&&!anF.qc.has(t.qc))return false;
     if(anF.type.size&&!anF.type.has(t.type))return false;if(anF.shift&&t.shift!==anF.shift)return false;if(anF.mine&&!(l&&l.analyst===anMyName()))return false;if(anF.pass.size&&!anF.pass.has(t.pass))return false;
     if(anF.q&&!(t.id.includes(anF.q)||t.lab.toLowerCase().includes(anF.q.toLowerCase())))return false;
     if(anF.status==='Not analyzed'&&l)return false;if(anF.status==='Analyzed'&&!l)return false;if(anF.status==='Has issue'&&!(l&&l.issue))return false;return true;});
 }
 function anRateBtns(id,who,cur,lock){return `<span class="an-rg" title="${who==='L'?'Labeler':'QC'}">`+RATES.map(k=>`<button class="an-rb ${k[0].toLowerCase()}${cur===k?' on':''}"${lock?' disabled style="opacity:.45;cursor:not-allowed"':''} onclick="anRate('${id}','${who}','${k}')">${k}</button>`).join('')+'</span>';}
-function anTabs(){return `<div class="an-bar" style="padding-bottom:6px">`+[['tasks','📝 Tasks'],['ratings','⭐ Ratings'],['analysts','👥 Analysts'],['issues','⚠️ Issues']].map(([k,l])=>`<button class="preset${anView===k?' on':''}" onclick="anSetView('${k}')">${l}</button>`).join('')+'<button class="preset" title="Reload from the sheet" onclick="anLogLoaded=false;anSetView(anView)">↻</button></div>';}
+function anTabs(){return `<div class="an-bar" style="padding-bottom:6px">`+[['tasks','📋 Tasks'],['ratings','⭐ Ratings'],['analysts','👥 Analysts'],['issues','⚠️ Issues']].map(([k,l])=>`<button class="preset${anView===k?' on':''}" onclick="anSetView('${k}')">${l}</button>`).join('')+'<button class="preset" title="Reload from the sheet" onclick="anLogLoaded=false;anSetView(anView)">↻</button></div>';}
 let anAllCache=[],anOpen='',anDirty=false;
 function anCount(arr,fn,desc){const m={};arr.forEach(t=>{const v=fn(t);if(v)m[v]=(m[v]||0)+1;});const k=Object.keys(m).sort();if(desc)k.reverse();return k.map(v=>({v,n:m[v]}));}
-function anDateBar(){return `<div class="an-bar">${anDD('days','📅 Date',anCount(anAllCache,t=>t.day,true))}</div>`;}
+function anDateBar(){return `<div class="an-bar">${anRange()}</div>`;}
+function anWk(off){const d=new Date();d.setDate(d.getDate()-((d.getDay()+6)%7)+off*7);const e=new Date(d);e.setDate(d.getDate()+6);return[anYmd(d),anYmd(e)];}
+function anPreset(k){const t=new Date(),y=new Date();y.setDate(t.getDate()-1);let r=k==='today'?[anYmd(t),anYmd(t)]:k==='yday'?[anYmd(y),anYmd(y)]:k==='week'?anWk(0):anWk(-1);anF.from=r[0];anF.to=r[1];anDone();}
+function anRange(){
+  const P=[['today','Today',(()=>{const d=anYmd(new Date());return [d,d];})()],['yday','Yesterday',(()=>{const d=new Date();d.setDate(d.getDate()-1);const x=anYmd(d);return [x,x];})()],['week','This week',anWk(0)],['last','Last week',anWk(-1)]];
+  const on=k=>{const r=P.find(x=>x[0]===k)[2];return anF.from===r[0]&&anF.to===r[1];};
+  const lab=(anF.from||anF.to)?(anF.from||'…')+' → '+(anF.to||'…'):'Date range';
+  return P.map(x=>`<button class="preset${on(x[0])?' on':''}" onclick="anPreset('${x[0]}')">${x[1]}</button>`).join('')+
+   `<div class="fg an-fg" id="anfg_range"><div class="fchip${(anF.from||anF.to)?' has-sel':''}" onclick="anTog('range')">📅 ${lab} <span class="chk-arr">▾</span></div><div class="dpanel${anOpen==='range'?' open':''}" id="andp_range" style="min-width:250px;max-width:none"><div style="padding:12px;display:grid;grid-template-columns:48px 1fr;gap:10px;align-items:center"><label style="font-size:.74rem;color:var(--muted)">From</label><input type="date" id="anFrom" value="${anF.from}"><label style="font-size:.74rem;color:var(--muted)">To</label><input type="date" id="anTo" value="${anF.to}"></div><div class="dp-foot"><button onclick="anF.from=anF.to='';anDone()">✕ Clear</button><button onclick="anF.from=document.getElementById('anFrom').value;anF.to=document.getElementById('anTo').value;anDone()">✓ Apply</button></div></div></div>`;
+}
 function anDD(key,label,opts,single){
   const sel=single?new Set(anF[key]?[anF[key]]:[]):anF[key];
   const items=opts.map(o=>`<div class="dp-item${sel.has(o.v)?' on':''}" data-v="${esc(o.v)}" onclick="anPick('${key}',this,${single?1:0})"><span class="dp-cb">${sel.has(o.v)?'✓':''}</span><span>${esc(o.v)}</span>${o.n!=null?`<span class="dp-cnt">${o.n}</span>`:''}</div>`).join('');
@@ -4431,14 +4440,14 @@ function anChart(rated){
   rated.forEach(t=>{const r=rate(t),n=key(t);if(!r||!t.day||!n)return;ds.add(t.day);by[n]=by[n]||{};by[n][t.day]=by[n][t.day]||{};by[n][t.day][r]=(by[n][t.day][r]||0)+1;tot[n]=(tot[n]||0)+1;});
   const days=[...ds].sort(),names=Object.keys(by).sort((a,b)=>tot[b]-tot[a]),show=anF.chart&&by[anF.chart]?[anF.chart]:names.slice(0,5);
   const sel=`<div class="an-bar">${anDD('chart',(anGroup==='QC'?'QTC':'Labeler')+(anF.chart?'':' · Top 5'),names.map(n=>({v:n,n:tot[n]})),true)}</div>`;
-  if(!days.length)return `<div class="sec" style="margin-top:12px"><div class="sec-hd"><div class="sec-t">📈 Score trend</div></div><div class="an-note">No rated tasks in this range.</div></div>`;
+  if(!days.length)return `<div class="sec" style="margin-top:12px"><div class="sec-hd"><div class="sec-t">📊 Score trend</div></div><div class="an-note">No rated tasks in this range.</div></div>`;
   const W=900,H=260,L=44,R=16,T=14,B=34,col=['#1f6feb','#0d9488','#b7791f','#c4293f','#7c3aed'],x=i=>L+(days.length>1?i*(W-L-R)/(days.length-1):(W-L-R)/2),y=v=>T+(100-v)/100*(H-T-B);
   let g='';[0,25,50,75,100].forEach(v=>g+=`<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--border-light)"/><text x="${L-6}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="var(--muted)">${v}</text>`);
   const step=Math.ceil(days.length/10);days.forEach((d,i)=>{if(i%step===0)g+=`<text x="${x(i)}" y="${H-12}" text-anchor="middle" font-size="11" fill="var(--muted)">${d.slice(5)}</text>`;});
   show.forEach((n,k)=>{const pts=days.map((d,i)=>by[n][d]?[x(i),y(anScore(by[n][d]))]:null).filter(Boolean);
     g+=`<polyline fill="none" stroke="${col[k%5]}" stroke-width="2.4" stroke-linejoin="round" points="${pts.map(q=>q.join(',')).join(' ')}"/>`+pts.map(q=>`<circle cx="${q[0]}" cy="${q[1]}" r="3.4" fill="${col[k%5]}"/>`).join('');});
   const leg=show.map((n,k)=>`<span style="display:inline-flex;align-items:center;gap:6px;margin-right:16px;font-size:.78rem;color:var(--text)"><i style="width:10px;height:10px;border-radius:50%;background:${col[k%5]}"></i>${esc(n)}</span>`).join('');
-  return `<div class="sec" style="margin-top:12px;overflow:visible!important"><div class="sec-hd"><div class="sec-t">📈 Score trend</div><div class="sec-m">daily Score % · Lidar + Lane Line</div></div>${sel}<div style="padding:0 24px 8px">${leg}</div><div style="padding:0 16px 18px;overflow-x:auto"><svg viewBox="0 0 ${W} ${H}" style="width:100%;min-width:560px;height:auto">${g}</svg></div></div>`;
+  return `<div class="sec" style="margin-top:12px;overflow:visible!important"><div class="sec-hd"><div class="sec-t">📊 Score trend</div><div class="sec-m">daily Score % · Lidar + Lane Line</div></div>${sel}<div style="padding:0 24px 8px">${leg}</div><div style="padding:0 16px 18px;overflow-x:auto"><svg viewBox="0 0 ${W} ${H}" style="width:100%;min-width:560px;height:auto">${g}</svg></div></div>`;
 }
 async function anShot(btn){
   const src=document.getElementById('anRatingsBox');if(!src){showToast('⚠️ Nothing to capture');return;}
@@ -4447,7 +4456,7 @@ async function anShot(btn){
     await loadLib('h2c');if(document.fonts&&document.fonts.ready)await document.fonts.ready;
     const bg=(getComputedStyle(document.documentElement).getPropertyValue('--bg')||'').trim()||'#eef2f7';
     stage=document.createElement('div');stage.className='shot-stage';stage.style.background=bg;
-    const rng=anF.days.size?[...anF.days].sort().join(', '):'All dates';
+    const rng=(anF.from||anF.to)?(anF.from||'…')+' → '+(anF.to||'…'):'All dates';
     stage.innerHTML=`<div class="shot-head"><div class="shot-title">⭐ MEEG Analysis — Ratings by ${anGroup==='QC'?'QTC':'Labeler'}</div><div class="shot-sub">${esc(rng)}${anF.shift?' · Shift '+anF.shift:''} · ${esc(new Date().toLocaleString())}</div></div>`;
     const clone=src.cloneNode(true);clone.removeAttribute('id');
     clone.querySelectorAll('.tbl-w').forEach(e=>{e.style.maxHeight='none';e.style.overflow='visible';});
@@ -4470,7 +4479,7 @@ function renderAnalysis(mc){
   const _sc=mc.querySelector('.tbl-w'),_st=_sc?_sc.scrollTop:0,_wy=window.scrollY;
   if(anView==='tasks'){
     const labs=[...new Set(all.map(t=>t.lab))].sort(),qcs=[...new Set(all.map(t=>t.qc))].sort(),shown=tasks.sort((a,b)=>b.time-a.time).slice(0,300);meta=tasks.length+' tasks';
-    body=`<div class="an-bar">${anDD('days','📅 Date',anCount(all,t=>t.day,true))}${anDD('lab','👤 Labeler',anCount(all,t=>t.lab))}${anDD('qc','🏷 QTC',anCount(all,t=>t.qc))}${anDD('type','Type',anCount(all,t=>t.type))}${anDD('pass','✔ Pass',anCount(all,t=>t.pass))}${anDD('status','Status',['Not analyzed','Analyzed','Has issue'].map(v=>({v})),true)}<input placeholder="Task id / name…" value="${esc(anF.q)}" onchange="anSet('q',this.value)"><button class="preset${anF.mine?' on':''}" onclick="anSet('mine',!anF.mine)">🙋 My tasks</button></div>
+    body=`<div class="an-bar">${anRange()}${anDD('lab','👤 Labeler',anCount(all,t=>t.lab))}${anDD('qc','🏷 QTC',anCount(all,t=>t.qc))}${anDD('type','Type',anCount(all,t=>t.type))}${anDD('pass','✅ Pass',anCount(all,t=>t.pass))}${anDD('status','Status',['Not analyzed','Analyzed','Has issue'].map(v=>({v})),true)}<input placeholder="Task id / name…" value="${esc(anF.q)}" onchange="anSet('q',this.value)"><button class="preset${anF.mine?' on':''}" onclick="anSet('mine',!anF.mine)">👤 My tasks</button></div>
       <div class="tbl-w" style="max-height:620px"><table class="an-t"><tr><th>Task</th><th>Time</th><th>Labeler</th><th>QTC</th><th>Type</th><th>Analyst</th><th>Labeler rating</th><th>QTC rating</th><th>Issue / Problem</th></tr>`+
       shown.map(t=>{const l=anLog[t.id]||{},lock=anLocked(t.id);return `<tr><td><a href="${esc(t.link)}" target="_blank" rel="noopener">${t.id} ↗</a></td><td>${t.ts}</td><td>${esc(t.lab)}</td><td>${esc(t.qc)}</td><td>${t.type} · ${t.pass}</td>
         <td>${esc(l.analyst||'—')}</td>
@@ -4495,7 +4504,7 @@ function renderAnalysis(mc){
     const iss=tasks.filter(t=>anLog[t.id]&&anLog[t.id].issue);meta=iss.length+' issues';
     body=anDateBar()+`<div class="tbl-w" style="max-height:620px"><table class="an-t"><tr><th>Task</th><th>Time</th><th>Labeler</th><th>QTC</th><th>Type</th><th>Analyst</th><th>Issue / Problem</th></tr>`+iss.map(t=>`<tr><td><a href="${esc(t.link)}" target="_blank" rel="noopener">${t.id} ↗</a></td><td>${t.ts}</td><td>${esc(t.lab)}</td><td>${esc(t.qc)}</td><td>${t.type}</td><td>${esc(anLog[t.id].analyst||'')}</td><td style="white-space:normal">${esc(anLog[t.id].issue)}</td></tr>`).join('')+'</table></div>';
   }
-  mc.innerHTML=`<div class="an-wrap"><div class="sec" style="overflow:visible!important"><div class="sec-hd"><div class="sec-t">🧪 Analysis</div><div class="sec-m">${meta}</div></div>${anTabs()}${note}${body}</div></div>`;
+  mc.innerHTML=`<div class="an-wrap"><div class="sec" style="overflow:visible!important"><div class="sec-hd"><div class="sec-t">🔎 Analysis</div><div class="sec-m">${meta}</div></div>${anTabs()}${note}${body}</div></div>`;
   const _n=mc.querySelector('.tbl-w');if(_n)_n.scrollTop=_st;window.scrollTo(0,_wy);
 }
 </script>
