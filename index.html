@@ -4367,11 +4367,15 @@ function up(){var h=new Date().getHours(),t=h<12?'Good morning':h<18?'Good after
 .an-rt i{margin-bottom:4px}
 .an-row .an-iss{flex:1;min-width:220px;width:auto}
 .an-row .an-rb{padding:4px 9px;font-size:.7rem}
+.an-save{background:var(--elevated);border:1px solid var(--border-light);color:var(--muted);border-radius:12px;padding:7px 14px;font:600 .76rem var(--font);cursor:pointer;opacity:.55;white-space:nowrap}
+.an-save.on{background:var(--accent);border-color:var(--accent);color:#fff;opacity:1}
+.an-save:disabled{cursor:not-allowed}
+.an-row.an-dirty{box-shadow:inset 3px 0 0 var(--accent)}
 .an-note{margin:0 24px 12px;padding:10px 14px;border-radius:12px;background:var(--elevated);font-size:.74rem;color:var(--muted)}
 </style>
 <script id="analysis-js">
 /* ===== Analysis tab ===== */
-const ANALYSIS_API_URL='https://script.google.com/macros/s/AKfycbwyXe34WVgvCO6PD-yYvjXiYZ7u-upT1ESLVzbKhWQZO8HDlLwNcUuNXUp4O7IU6-oa/exec';            // paste the Apps Script /exec URL here (see analysis_script.gs). '' = ratings stay in this browser only
+const ANALYSIS_API_URL='https://script.google.com/macros/s/AKfycby2ScR1XhMgv3wZWG3r7Qhn7rbId6E3b5zJ4HPwfKX4lNOehJRpEt369c6rTpMp31Nf/exec';            // paste the Apps Script /exec URL here (see analysis_script.gs). '' = ratings stay in this browser only
 const ANALYSIS_LOG_SHEET='Analysis Log';
 const ANALYSIS_USERS={'mahmoudseif589@gmail.com':['Seeif Waleed','SV'],'heshamnaser996@gmail.com':['Hesham','SV'],'me917993@meti.ai':['Ahmed Sayed','QT'],'fpd.sobhy@gmail.com':['Mohmed Sobhy','QT'],'m6945663@gmail.com':['Mickey','QT'],'mohamedd.hafez.7@gmail.com':['Hafez','QT'],'mohamed.nasrr55@gmail.com':['Nasr','QT'],'mk2275489@gmail.com':['Mahmoud Khaled','QT']};  // only these accounts see the Analysis tab
 const ANALYSTS=['Ahmed Sayed','Mohmed Sobhy','Mickey','Hafez','Nasr','Mahmoud Khaled'];   // analyst dropdown (the QT accounts)
@@ -4397,26 +4401,74 @@ function anLoadLog(cb){
   fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&headers=1&sheet=${encodeURIComponent(ANALYSIS_LOG_SHEET)}`,{cache:'no-store'})
    .then(r=>r.ok?r.text():Promise.reject()).then(t=>{const rows=parseCSV(t);if(rows.length&&!/task id/i.test(rows[0].join(',')))throw 0;anLog={};if(rows.length>1){const h=rows[0].map(x=>x.trim().toLowerCase());
      const ix=n=>h.indexOf(n);rows.slice(1).forEach(r=>{const id=String(r[ix('task id')]||'').trim();if(id)anLog[id]={analyst:r[ix('analyst')]||'',lr:r[ix('labeler rating')]||'',qr:r[ix('qc rating')]||'',issue:String(r[ix('issue')]||'').trim(),date:r[ix('analysis date')]||''};});}
-     try{localStorage.setItem('an_log',JSON.stringify(anLog));}catch(_){}anLogLoaded=true;cb&&cb();}).catch(()=>{try{anLog=JSON.parse(localStorage.getItem('an_log')||'{}');}catch(_){anLog={};}anLogLoaded=true;cb&&cb();});
+     try{localStorage.setItem('an_log',JSON.stringify(anLog));}catch(_){}anLogLoaded=true;cb&&cb();}).catch(()=>{
+     const local=()=>{try{anLog=JSON.parse(localStorage.getItem('an_log')||'{}');}catch(_){anLog={};}anLogLoaded=true;cb&&cb();};
+     if(!ANALYSIS_API_URL)return local();
+     /* the sheet can't be read directly (e.g. the Analysis Log tab is hidden) → ask the script for it */
+     fetch(ANALYSIS_API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},cache:'no-store',body:JSON.stringify({action:'log',email:anMe(),token:getAuthToken()})})
+      .then(r=>r.json()).then(j=>{if(!j||!j.ok||!Array.isArray(j.rows))throw 0;anLog={};j.rows.forEach(r=>{const id=String(r[0]||'').trim();if(id)anLog[id]={analyst:r[1]||'',lr:r[2]||'',qr:r[3]||'',issue:String(r[4]||'').trim(),date:r[5]||''};});
+        try{localStorage.setItem('an_log',JSON.stringify(anLog));}catch(_){}anLogLoaded=true;cb&&cb();}).catch(local);
+   });
 }
-function anSave(id,patch){
-  if(!anAllowed()||anLocked(id))return;
-  const cur=anLog[id]||{analyst:(ANALYSIS_USERS[anMe()]&&ANALYSTS.includes(ANALYSIS_USERS[anMe()][0])?ANALYSIS_USERS[anMe()][0]:ANALYSTS[0]),lr:'',qr:'',issue:''};
-  const e=Object.assign({},cur,patch,{analyst:(anLog[id]&&anLog[id].analyst&&anIsSV()?anLog[id].analyst:ANALYSIS_USERS[anMe()][0]),date:anYmd(new Date())});anLog[id]=e;
-  try{localStorage.setItem('an_log',JSON.stringify(anLog));}catch(_){}
-  if(ANALYSIS_API_URL)fetch(ANALYSIS_API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'rate',email:anMe(),token:getAuthToken(),taskId:id,analyst:e.analyst,labelerRating:e.lr,qcRating:e.qr,issue:e.issue||'',date:e.date})}).then(r=>r.json()).then(j=>{if(!j||!j.ok)showToast('⚠️ Not saved — '+((j&&j.error)||'server error'));}).catch(()=>showToast('⚠️ Not saved — no connection'));
-  renderAnalysis(document.getElementById('mainContent'));
+/* ---- Analysis save model: edits stay as a DRAFT until Enter (in the problem box) or the Save button ---- */
+let anDraft={},anSaving=new Set(),anQueue=Promise.resolve();
+function anCur(id){const l=anLog[id]||{},d=anDraft[id]||{};return{lr:'lr' in d?d.lr:(l.lr||''),qr:'qr' in d?d.qr:(l.qr||''),issue:'issue' in d?d.issue:(l.issue||'')};}
+function anNeedIssue(v){return !!(((v.lr&&v.lr!=='Excellent')||(v.qr&&v.qr!=='Excellent'))&&!String(v.issue||'').trim());}
+function anDraftSet(id,patch){anDraft[id]=Object.assign({},anDraft[id],patch);}
+function anIsDirty(id){const d=anDraft[id];if(!d)return false;const l=anLog[id]||{};return['lr','qr','issue'].some(k=>k in d&&String(d[k]||'').trim()!==String(l[k]||'').trim());}
+function anMark(id){
+  const row=document.querySelector('.an-row[data-id="'+id+'"]');if(!row)return;
+  const dirty=anIsDirty(id),btn=row.querySelector('.an-save'),inp=row.querySelector('.an-iss');
+  row.classList.toggle('an-dirty',dirty);
+  if(btn){btn.disabled=!dirty||anSaving.has(id);btn.classList.toggle('on',dirty);}
+  if(inp)inp.classList.toggle('an-need',anNeedIssue(anCur(id)));
 }
+function anTyping(id,val){anDraftSet(id,{issue:val});anMark(id);}
 function anRate(id,who,val){
-  if(anLocked(id))return;const cur=anLog[id]||{},was=who==='L'?cur.lr:cur.qr;
-  anSave(id,who==='L'?{lr:was===val?'':val}:{qr:was===val?'':val});
-  const l=anLog[id]||{};
-  if(val!=='Excellent'&&was!==val&&!String(l.issue||'').trim()){   // any rating below Excellent needs the problem written
-    showToast('⚠️ '+anMyName()+' — write the problem for task '+id+' (rating is not Excellent)');
+  if(!anAllowed()||anLocked(id))return;
+  const v=anCur(id),was=who==='L'?v.lr:v.qr;
+  anDraftSet(id,who==='L'?{lr:was===val?'':val}:{qr:was===val?'':val});
+  renderAnalysis(document.getElementById('mainContent'));
+  if(anNeedIssue(anCur(id))){   // any rating below Excellent needs the problem written
+    showToast('⚠️ '+anMyName()+' — write the problem for task '+id+', then press Enter or Save');
     const i=document.querySelector('.an-iss[data-id="'+id+'"]');if(i)i.focus();
   }
 }
-function anIssue(id,v){anSave(id,{issue:String(v||'').trim()});}
+/* one request at a time; if the server says the auth check failed → refresh the token and retry */
+async function anSend(e){
+  let err='';
+  for(let i=0;i<3;i++){
+    try{
+      const r=await fetch(ANALYSIS_API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},cache:'no-store',body:JSON.stringify({action:'rate',email:anMe(),token:getAuthToken(),taskId:e.id,analyst:e.analyst,labelerRating:e.lr,qcRating:e.qr,issue:e.issue||'',date:e.date})});
+      const j=await r.json();
+      if(j&&j.ok)return{ok:true};
+      err=(j&&j.error)||'server error';
+      if(!/auth|token|session|unauthor|denied|not.?allowed/i.test(err)&&!_AUTH_TRANSIENT.test(err))break;
+      try{const v=await authCall({action:'verify',token:getAuthToken()});keepToken(v);if(v&&v.error==='not_allowed'){err='access removed';break;}}catch(_){}
+    }catch(_){err='no connection';}
+    await new Promise(r=>setTimeout(r,900*(i+1)));
+  }
+  return{ok:false,error:err};
+}
+function anCommit(id){
+  if(!anAllowed()||anLocked(id)||anSaving.has(id))return;
+  if(!anIsDirty(id)){showToast('Nothing to save for task '+id);return;}
+  const v=anCur(id);
+  if(anNeedIssue(v)){showToast('⚠️ Write the problem for task '+id+' first (rating is not Excellent)');const i=document.querySelector('.an-iss[data-id="'+id+'"]');if(i)i.focus();return;}
+  const e={id:id,lr:v.lr||'',qr:v.qr||'',issue:String(v.issue||'').trim(),analyst:(anLog[id]&&anLog[id].analyst&&anIsSV()?anLog[id].analyst:ANALYSIS_USERS[anMe()][0]),date:anYmd(new Date())};
+  anSaving.add(id);
+  const row=document.querySelector('.an-row[data-id="'+id+'"] .an-save');if(row){row.disabled=true;row.textContent='Saving…';}
+  anQueue=anQueue.then(()=>ANALYSIS_API_URL?anSend(e):{ok:true}).then(res=>{
+    anSaving.delete(id);
+    if(res.ok){
+      anLog[id]={analyst:e.analyst,lr:e.lr,qr:e.qr,issue:e.issue,date:e.date};delete anDraft[id];
+      try{localStorage.setItem('an_log',JSON.stringify(anLog));}catch(_){}
+      showToast('✅ Saved task '+id);
+    }else showToast('⚠️ Not saved — '+res.error+' · press Save to retry');
+    if(activeLoc==='__analysis__')renderAnalysis(document.getElementById('mainContent'));
+  });
+}
+window.addEventListener('beforeunload',ev=>{if(Object.keys(anDraft).some(anIsDirty)){ev.preventDefault();ev.returnValue='';}});
 function anSet(k,v){anF[k]=v;renderAnalysis(document.getElementById('mainContent'));}
 function anSetView(v){anView=v;renderAnalysis(document.getElementById('mainContent'));}
 function anOpts(arr,sel,all){return `<option value="">${all}</option>`+arr.map(x=>`<option${x===sel?' selected':''}>${esc(x)}</option>`).join('');}
@@ -4502,7 +4554,7 @@ function renderAnalysis(mc){
     const labs=[...new Set(all.map(t=>t.lab))].sort(),qcs=[...new Set(all.map(t=>t.qc))].sort(),shown=tasks.sort((a,b)=>b.time-a.time).slice(0,300);meta=tasks.length+' tasks';
     body=`<div class="an-bar">${anRange()}${anDD('lab','👤 Labeler',anCount(all,t=>t.lab))}${anDD('qc','🏷 QTC',anCount(all,t=>t.qc))}${anDD('type','Type',anCount(all,t=>t.type))}${anDD('pass','✅ Pass',anCount(all,t=>t.pass))}${anDD('status','Status',['Not analyzed','Analyzed','Has issue'].map(v=>({v})),true)}<input placeholder="Task id / name…" value="${esc(anF.q)}" onchange="anSet('q',this.value)"><button class="preset${anF.mine?' on':''}" onclick="anSet('mine',!anF.mine)">👤 My tasks</button></div>
       <div class="an-list">`+
-      shown.map(t=>{const l=anLog[t.id]||{},lock=anLocked(t.id);return `<div class="an-row"><div class="an-c1"><a href="${esc(t.link)}" target="_blank" rel="noopener">${t.id} ↗</a><small>${t.ts}</small></div><div class="an-c2"><span><i>Labeler</i>${esc(t.lab)}</span><span><i>QTC</i>${esc(t.qc)}</span></div><div class="an-c3">${t.type} · ${t.pass}<small>${esc(l.analyst||'—')}</small></div><div class="an-rt"><i>Labeler rating</i>${anRateBtns(t.id,'L',l.lr,lock)}</div><div class="an-rt"><i>QTC rating</i>${anRateBtns(t.id,'Q',l.qr,lock)}</div><input class="an-iss${((l.lr&&l.lr!=='Excellent')||(l.qr&&l.qr!=='Excellent'))&&!l.issue?' an-need':''}" data-id="${t.id}" placeholder="${((l.lr&&l.lr!=='Excellent')||(l.qr&&l.qr!=='Excellent'))&&!l.issue?'Required — write the problem…':'Write the problem…'}" value="${esc(l.issue||'')}"${lock?' disabled':''} onchange="anIssue('${t.id}',this.value)" onkeydown="if(event.key==='Enter')this.blur()"></div>`;}).join('')+'</div>'+(tasks.length>300?'<div class="an-note">Showing the latest 300 — narrow the filters to see more.</div>':'');
+      shown.map(t=>{const l=anLog[t.id]||{},v=anCur(t.id),lock=anLocked(t.id),dirty=anIsDirty(t.id),need=anNeedIssue(v);return `<div class="an-row${dirty?' an-dirty':''}" data-id="${t.id}"><div class="an-c1"><a href="${esc(t.link)}" target="_blank" rel="noopener">${t.id} ↗</a><small>${t.ts}</small></div><div class="an-c2"><span><i>Labeler</i>${esc(t.lab)}</span><span><i>QTC</i>${esc(t.qc)}</span></div><div class="an-c3">${t.type} · ${t.pass}<small>${esc(l.analyst||'—')}</small></div><div class="an-rt"><i>Labeler rating</i>${anRateBtns(t.id,'L',v.lr,lock)}</div><div class="an-rt"><i>QTC rating</i>${anRateBtns(t.id,'Q',v.qr,lock)}</div><input class="an-iss${need?' an-need':''}" data-id="${t.id}" placeholder="${need?'Required — write the problem…':'Write the problem… (Enter to save)'}" value="${esc(v.issue||'')}"${lock?' disabled':''} oninput="anTyping('${t.id}',this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();anCommit('${t.id}')}"><button class="an-save${dirty?' on':''}" data-id="${t.id}"${(lock||!dirty||anSaving.has(t.id))?' disabled':''} onclick="anCommit('${t.id}')">${anSaving.has(t.id)?'Saving…':'💾 Save'}</button></div>`;}).join('')+'</div>'+(tasks.length>300?'<div class="an-note">Showing the latest 300 — narrow the filters to see more.</div>':'');
   }else if(anView==='ratings'){
     const rated=tasks.filter(t=>anLog[t.id]&&(anLog[t.id].lr||anLog[t.id].qr));meta=rated.length+' rated tasks';
     body=anDateBar()+`<div class="an-bar"><label>Group by</label><button class="preset${anGroup==='QC'?' on':''}" onclick="anGroup='QC';anSetView('ratings')">QTC</button><button class="preset${anGroup==='Labeler'?' on':''}" onclick="anGroup='Labeler';anSetView('ratings')">Labeler</button><label>Shift</label>${['','M','N','ON'].map(v=>`<button class="preset${anF.shift===v?' on':''}" onclick="anSet('shift','${v}')">${v||'All'}</button>`).join('')}<button class="btn" onclick="anShot(this)">📸 Screenshot</button></div>`;
