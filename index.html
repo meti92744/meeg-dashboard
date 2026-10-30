@@ -4371,6 +4371,15 @@ function up(){var h=new Date().getHours(),t=h<12?'Good morning':h<18?'Good after
 .an-save.on{background:var(--accent);border-color:var(--accent);color:#fff;opacity:1}
 .an-save:disabled{cursor:not-allowed}
 .an-row.an-dirty{box-shadow:inset 3px 0 0 var(--accent)}
+#anBig{position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.72);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:20px}
+.an-big-card{max-width:560px;width:100%;text-align:center;background:var(--surface,#10141c);border:2px solid var(--danger,#c4293f);border-radius:22px;padding:36px 32px;box-shadow:0 24px 80px rgba(196,41,63,.45);animation:anPop .18s ease-out}
+.an-big-ico{font-size:3.4rem;line-height:1;margin-bottom:10px}
+.an-big-t{font:800 1.9rem var(--font);color:var(--danger,#ff5a6e);margin-bottom:12px}
+.an-big-m{font:500 1.05rem/1.6 var(--font);color:var(--text);margin-bottom:24px}
+.an-big-ok{background:var(--danger,#c4293f);color:#fff;border:0;border-radius:14px;padding:13px 30px;font:700 1rem var(--font);cursor:pointer}
+.an-shake{animation:anShake .45s}
+@keyframes anPop{from{transform:scale(.9);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes anShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-7px)}40%{transform:translateX(7px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
 .an-note{margin:0 24px 12px;padding:10px 14px;border-radius:12px;background:var(--elevated);font-size:.74rem;color:var(--muted)}
 </style>
 <script id="analysis-js">
@@ -4454,7 +4463,7 @@ function anCommit(id){
   if(!anAllowed()||anLocked(id)||anSaving.has(id))return;
   if(!anIsDirty(id)){showToast('Nothing to save for task '+id);return;}
   const v=anCur(id);
-  if(anNeedIssue(v)){showToast('⚠️ Write the problem for task '+id+' first (rating is not Excellent)');const i=document.querySelector('.an-iss[data-id="'+id+'"]');if(i)i.focus();return;}
+  if(anNeedIssue(v)){anBigAlert(id);return;}
   const e={id:id,lr:v.lr||'',qr:v.qr||'',issue:String(v.issue||'').trim(),analyst:(anLog[id]&&anLog[id].analyst&&anIsSV()?anLog[id].analyst:ANALYSIS_USERS[anMe()][0]),date:anYmd(new Date())};
   anSaving.add(id);
   const row=document.querySelector('.an-row[data-id="'+id+'"] .an-save');if(row){row.disabled=true;row.textContent='Saving…';}
@@ -4467,6 +4476,20 @@ function anCommit(id){
     }else showToast('⚠️ Not saved — '+res.error+' · press Save to retry');
     if(activeLoc==='__analysis__')renderAnalysis(document.getElementById('mainContent'));
   });
+}
+/* big blocking alert: Enter/Save pressed on a rating below Excellent with no problem written */
+function anBigAlert(id){
+  const old=document.getElementById('anBig');if(old)old.remove();
+  const v=anCur(id),parts=[];if(v.lr&&v.lr!=='Excellent')parts.push('Labeler: '+v.lr);if(v.qr&&v.qr!=='Excellent')parts.push('QTC: '+v.qr);
+  const o=document.createElement('div');o.id='anBig';
+  o.innerHTML='<div class="an-big-card" role="alertdialog"><div class="an-big-ico">⚠️</div><div class="an-big-t">Write the problem first!</div><div class="an-big-m">Task <b>'+esc(id)+'</b> has a rating below Excellent ('+esc(parts.join(' · '))+').<br>You must write the problem, then press <b>Enter</b> or <b>Save</b>.</div><button class="an-big-ok" type="button">OK, I\'ll write it</button></div>';
+  document.body.appendChild(o);
+  const close=()=>{o.remove();document.removeEventListener('keydown',onKey,true);
+    const i=document.querySelector('.an-iss[data-id="'+id+'"]');if(i){i.focus();i.classList.remove('an-shake');void i.offsetWidth;i.classList.add('an-shake');}};
+  const onKey=ev=>{if(ev.repeat)return;if(ev.key==='Escape'||ev.key==='Enter'){ev.preventDefault();ev.stopPropagation();close();}};
+  o.addEventListener('click',ev=>{if(ev.target===o||ev.target.classList.contains('an-big-ok'))close();});
+  setTimeout(()=>document.addEventListener('keydown',onKey,true),0);   // not in the same tick, so the Enter that opened it doesn't close it
+  o.querySelector('.an-big-ok').focus();
 }
 window.addEventListener('beforeunload',ev=>{if(Object.keys(anDraft).some(anIsDirty)){ev.preventDefault();ev.returnValue='';}});
 function anSet(k,v){anF[k]=v;renderAnalysis(document.getElementById('mainContent'));}
