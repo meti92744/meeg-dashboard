@@ -4354,6 +4354,7 @@ function up(){var h=new Date().getHours(),t=h<12?'Good morning':h<18?'Good after
 .an-rb:hover{transform:scale(1.05)}
 .an-rb.on.e{background:#0d9488;color:#fff}.an-rb.on.g{background:#1f6feb;color:#fff}
 .an-rb.on.a{background:#b7791f;color:#fff}.an-rb.on.p{background:#c4293f;color:#fff}
+.an-need{border-color:var(--danger)!important;background:rgba(196,41,63,.1)!important}
 .an-list{max-height:72vh;overflow-y:auto;padding:0 12px 6px}
 .an-row{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;padding:12px;border-top:1px solid var(--border-light)}
 .an-row:hover{background:var(--primary-light)}
@@ -4406,7 +4407,15 @@ function anSave(id,patch){
   if(ANALYSIS_API_URL)fetch(ANALYSIS_API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'rate',email:anMe(),token:getAuthToken(),taskId:id,analyst:e.analyst,labelerRating:e.lr,qcRating:e.qr,issue:e.issue||'',date:e.date})}).then(r=>r.json()).then(j=>{if(!j||!j.ok)showToast('⚠️ Not saved — '+((j&&j.error)||'server error'));}).catch(()=>showToast('⚠️ Not saved — no connection'));
   renderAnalysis(document.getElementById('mainContent'));
 }
-function anRate(id,who,val){const cur=anLog[id]||{};anSave(id,who==='L'?{lr:cur.lr===val?'':val}:{qr:cur.qr===val?'':val});}
+function anRate(id,who,val){
+  if(anLocked(id))return;const cur=anLog[id]||{},was=who==='L'?cur.lr:cur.qr;
+  anSave(id,who==='L'?{lr:was===val?'':val}:{qr:was===val?'':val});
+  const l=anLog[id]||{};
+  if(val!=='Excellent'&&was!==val&&!String(l.issue||'').trim()){   // any rating below Excellent needs the problem written
+    showToast('⚠️ '+anMyName()+' — write the problem for task '+id+' (rating is not Excellent)');
+    const i=document.querySelector('.an-iss[data-id="'+id+'"]');if(i)i.focus();
+  }
+}
 function anIssue(id,v){anSave(id,{issue:String(v||'').trim()});}
 function anSet(k,v){anF[k]=v;renderAnalysis(document.getElementById('mainContent'));}
 function anSetView(v){anView=v;renderAnalysis(document.getElementById('mainContent'));}
@@ -4493,7 +4502,7 @@ function renderAnalysis(mc){
     const labs=[...new Set(all.map(t=>t.lab))].sort(),qcs=[...new Set(all.map(t=>t.qc))].sort(),shown=tasks.sort((a,b)=>b.time-a.time).slice(0,300);meta=tasks.length+' tasks';
     body=`<div class="an-bar">${anRange()}${anDD('lab','👤 Labeler',anCount(all,t=>t.lab))}${anDD('qc','🏷 QTC',anCount(all,t=>t.qc))}${anDD('type','Type',anCount(all,t=>t.type))}${anDD('pass','✅ Pass',anCount(all,t=>t.pass))}${anDD('status','Status',['Not analyzed','Analyzed','Has issue'].map(v=>({v})),true)}<input placeholder="Task id / name…" value="${esc(anF.q)}" onchange="anSet('q',this.value)"><button class="preset${anF.mine?' on':''}" onclick="anSet('mine',!anF.mine)">👤 My tasks</button></div>
       <div class="an-list">`+
-      shown.map(t=>{const l=anLog[t.id]||{},lock=anLocked(t.id);return `<div class="an-row"><div class="an-c1"><a href="${esc(t.link)}" target="_blank" rel="noopener">${t.id} ↗</a><small>${t.ts}</small></div><div class="an-c2"><span><i>Labeler</i>${esc(t.lab)}</span><span><i>QTC</i>${esc(t.qc)}</span></div><div class="an-c3">${t.type} · ${t.pass}<small>${esc(l.analyst||'—')}</small></div><div class="an-rt"><i>Labeler rating</i>${anRateBtns(t.id,'L',l.lr,lock)}</div><div class="an-rt"><i>QTC rating</i>${anRateBtns(t.id,'Q',l.qr,lock)}</div><input class="an-iss" placeholder="Write the problem…" value="${esc(l.issue||'')}"${lock?' disabled':''} onchange="anIssue('${t.id}',this.value)" onkeydown="if(event.key==='Enter')this.blur()"></div>`;}).join('')+'</div>'+(tasks.length>300?'<div class="an-note">Showing the latest 300 — narrow the filters to see more.</div>':'');
+      shown.map(t=>{const l=anLog[t.id]||{},lock=anLocked(t.id);return `<div class="an-row"><div class="an-c1"><a href="${esc(t.link)}" target="_blank" rel="noopener">${t.id} ↗</a><small>${t.ts}</small></div><div class="an-c2"><span><i>Labeler</i>${esc(t.lab)}</span><span><i>QTC</i>${esc(t.qc)}</span></div><div class="an-c3">${t.type} · ${t.pass}<small>${esc(l.analyst||'—')}</small></div><div class="an-rt"><i>Labeler rating</i>${anRateBtns(t.id,'L',l.lr,lock)}</div><div class="an-rt"><i>QTC rating</i>${anRateBtns(t.id,'Q',l.qr,lock)}</div><input class="an-iss${((l.lr&&l.lr!=='Excellent')||(l.qr&&l.qr!=='Excellent'))&&!l.issue?' an-need':''}" data-id="${t.id}" placeholder="${((l.lr&&l.lr!=='Excellent')||(l.qr&&l.qr!=='Excellent'))&&!l.issue?'Required — write the problem…':'Write the problem…'}" value="${esc(l.issue||'')}"${lock?' disabled':''} onchange="anIssue('${t.id}',this.value)" onkeydown="if(event.key==='Enter')this.blur()"></div>`;}).join('')+'</div>'+(tasks.length>300?'<div class="an-note">Showing the latest 300 — narrow the filters to see more.</div>':'');
   }else if(anView==='ratings'){
     const rated=tasks.filter(t=>anLog[t.id]&&(anLog[t.id].lr||anLog[t.id].qr));meta=rated.length+' rated tasks';
     body=anDateBar()+`<div class="an-bar"><label>Group by</label><button class="preset${anGroup==='QC'?' on':''}" onclick="anGroup='QC';anSetView('ratings')">QTC</button><button class="preset${anGroup==='Labeler'?' on':''}" onclick="anGroup='Labeler';anSetView('ratings')">Labeler</button><label>Shift</label>${['','M','N','ON'].map(v=>`<button class="preset${anF.shift===v?' on':''}" onclick="anSet('shift','${v}')">${v||'All'}</button>`).join('')}<button class="btn" onclick="anShot(this)">📸 Screenshot</button></div>`;
