@@ -4339,24 +4339,21 @@ function up(){var h=new Date().getHours(),t=h<12?'Good morning':h<18?'Good after
 })();
 </script>
 <style id="analysis-css">
-.an-wrap{display:flex;flex-direction:column;gap:14px;padding:4px 0}
-.an-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:6px 20px 14px}
-.an-bar label{font-size:.62rem;font-weight:700;color:var(--muted);font-family:var(--mono)}
-.an-bar select,.an-bar input{background:var(--card);border:1px solid var(--border);color:var(--text);border-radius:var(--radius);padding:5px 9px;font:600 .68rem var(--font)}
-.an-chip{cursor:pointer;padding:5px 12px;border-radius:var(--radius);border:1px solid var(--border);background:var(--card);color:var(--text-soft);font:700 .66rem var(--font)}
-.an-chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
-html[data-theme="dark"] .an-chip.on{background:#0a2a36;border-color:#5cf3e2;color:#5cf3e2}
-.an-t{width:100%;border-collapse:collapse;font-size:.7rem}
-.an-t th{position:sticky;top:0;background:var(--elevated);color:var(--muted);font:700 .6rem var(--mono);text-align:left;padding:8px 10px;border-bottom:1px solid var(--border);white-space:nowrap}
-.an-t td{padding:7px 10px;border-bottom:1px solid var(--border-light);color:var(--text);white-space:nowrap}
-.an-t td.c,.an-t th.c{text-align:center}
-.an-t tr.tot td{font-weight:800;background:var(--primary-light)}
-.an-t a{color:var(--accent);font-weight:700;text-decoration:none}
-.an-rg{display:inline-flex;gap:3px;margin-right:8px}
-.an-rb{cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text-soft);border-radius:var(--radius);padding:2px 7px;font:700 .58rem var(--font)}
-.an-rb.on.e{background:#0d9488;color:#fff;border-color:#0d9488}.an-rb.on.g{background:#1f6feb;color:#fff;border-color:#1f6feb}
-.an-rb.on.a{background:#b7791f;color:#fff;border-color:#b7791f}.an-rb.on.p{background:#c4293f;color:#fff;border-color:#c4293f}
-.an-note{margin:0 20px 10px;padding:8px 12px;border:1px dashed var(--border);border-radius:var(--radius);font-size:.64rem;color:var(--muted)}
+.an-wrap{display:flex;flex-direction:column;gap:14px}
+.an-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:4px 24px 14px}
+.an-bar label{font-size:.78rem;color:var(--muted);font-weight:500}
+.an-bar select,.an-bar input,.an-t select,.an-iss{background:var(--elevated);border:1px solid var(--border-light);color:var(--text);border-radius:999px;padding:7px 14px;font:500 .78rem var(--font);outline:0}
+.an-bar select:focus,.an-bar input:focus,.an-iss:focus{border-color:var(--accent)}
+.an-iss{width:280px;border-radius:12px}
+.an-t td{max-width:none!important;overflow:visible!important}
+.an-t th.c,.an-t td.c{text-align:center}
+.an-t tr.tot td{font-weight:700;background:var(--primary-light)}
+.an-rg{display:inline-flex;gap:4px}
+.an-rb{cursor:pointer;border:0;border-radius:999px;background:var(--elevated);color:var(--text-soft);padding:5px 11px;font:500 .72rem var(--font);transition:all .15s}
+.an-rb:hover{transform:scale(1.05)}
+.an-rb.on.e{background:#0d9488;color:#fff}.an-rb.on.g{background:#1f6feb;color:#fff}
+.an-rb.on.a{background:#b7791f;color:#fff}.an-rb.on.p{background:#c4293f;color:#fff}
+.an-note{margin:0 24px 12px;padding:10px 14px;border-radius:12px;background:var(--elevated);font-size:.74rem;color:var(--muted)}
 </style>
 <script id="analysis-js">
 /* ===== Analysis tab ===== */
@@ -4383,19 +4380,19 @@ function anLoadLog(cb){
   try{const l=JSON.parse(localStorage.getItem('an_log')||'{}');anLog=l;}catch(e){}
   fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&headers=1&sheet=${encodeURIComponent(ANALYSIS_LOG_SHEET)}`,{cache:'no-store'})
    .then(r=>r.ok?r.text():Promise.reject()).then(t=>{const rows=parseCSV(t);if(rows.length>1){const h=rows[0].map(x=>x.trim().toLowerCase());
-     const ix=n=>h.indexOf(n);rows.slice(1).forEach(r=>{const id=String(r[ix('task id')]||'').trim();if(id)anLog[id]={analyst:r[ix('analyst')]||'',lr:r[ix('labeler rating')]||'',qr:r[ix('qc rating')]||'',issue:/^(1|true|yes)$/i.test(r[ix('issue')]||''),date:r[ix('analysis date')]||''};});}
+     const ix=n=>h.indexOf(n);rows.slice(1).forEach(r=>{const id=String(r[ix('task id')]||'').trim();if(id)anLog[id]={analyst:r[ix('analyst')]||'',lr:r[ix('labeler rating')]||'',qr:r[ix('qc rating')]||'',issue:String(r[ix('issue')]||'').trim(),date:r[ix('analysis date')]||''};});}
      anLogLoaded=true;cb&&cb();}).catch(()=>{anLogLoaded=true;cb&&cb();});
 }
 function anSave(id,patch){
-  const cur=anLog[id]||{analyst:(ANALYSIS_USERS[anMe()]&&ANALYSTS.includes(ANALYSIS_USERS[anMe()][0])?ANALYSIS_USERS[anMe()][0]:ANALYSTS[0]),lr:'',qr:'',issue:false};
-  const e=Object.assign({},cur,patch,{date:anYmd(new Date())});if(!e.analyst)e.analyst=ANALYSTS[0];anLog[id]=e;
+  if(!anAllowed())return;
+  const cur=anLog[id]||{analyst:(ANALYSIS_USERS[anMe()]&&ANALYSTS.includes(ANALYSIS_USERS[anMe()][0])?ANALYSIS_USERS[anMe()][0]:ANALYSTS[0]),lr:'',qr:'',issue:''};
+  const e=Object.assign({},cur,patch,{analyst:ANALYSIS_USERS[anMe()][0],date:anYmd(new Date())});anLog[id]=e;
   try{localStorage.setItem('an_log',JSON.stringify(anLog));}catch(_){}
-  if(ANALYSIS_API_URL)fetch(ANALYSIS_API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'rate',email:anMe(),taskId:id,analyst:e.analyst,labelerRating:e.lr,qcRating:e.qr,issue:e.issue?1:0,date:e.date})}).catch(()=>{});
+  if(ANALYSIS_API_URL)fetch(ANALYSIS_API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'rate',email:anMe(),taskId:id,analyst:e.analyst,labelerRating:e.lr,qcRating:e.qr,issue:e.issue||'',date:e.date})}).catch(()=>{});
   renderAnalysis(document.getElementById('mainContent'));
 }
 function anRate(id,who,val){const cur=anLog[id]||{};anSave(id,who==='L'?{lr:cur.lr===val?'':val}:{qr:cur.qr===val?'':val});}
-function anSetAnalyst(id,v){anSave(id,{analyst:v});}
-function anIssue(id){anSave(id,{issue:!(anLog[id]&&anLog[id].issue)});}
+function anIssue(id,v){anSave(id,{issue:String(v||'').trim()});}
 function anSet(k,v){anF[k]=v;renderAnalysis(document.getElementById('mainContent'));}
 function anSetView(v){anView=v;renderAnalysis(document.getElementById('mainContent'));}
 function anOpts(arr,sel,all){return `<option value="">${all}</option>`+arr.map(x=>`<option${x===sel?' selected':''}>${esc(x)}</option>`).join('');}
@@ -4407,27 +4404,28 @@ function anFiltered(all){
     if(anF.q&&!(t.id.includes(anF.q)||t.lab.toLowerCase().includes(anF.q.toLowerCase())))return false;
     if(anF.status==='n'&&l)return false;if(anF.status==='a'&&!l)return false;if(anF.status==='i'&&!(l&&l.issue))return false;return true;});
 }
-function anRateBtns(id,who,cur){return `<span class="an-rg" title="${who==='L'?'Labeler':'QC'}">`+RATES.map(k=>`<button class="an-rb ${k[0].toLowerCase()}${cur===k?' on':''}" onclick="anRate('${id}','${who}','${k}')">${k==='Average'?'Avg':k.slice(0,3)}</button>`).join('')+'</span>';}
-function anTabs(){return `<div class="an-bar" style="padding-bottom:6px">`+[['tasks','📝 Tasks'],['ratings','⭐ Ratings'],['analysts','👥 Analysts'],['issues','⚠️ Issues']].map(([k,l])=>`<button class="an-chip${anView===k?' on':''}" onclick="anSetView('${k}')">${l}</button>`).join('')+'</div>';}
-function anDateBar(){return `<div class="an-bar"><label>From</label><input type="date" value="${anF.from}" onchange="anSet('from',this.value)"><label>To</label><input type="date" value="${anF.to}" onchange="anSet('to',this.value)"><button class="an-chip" onclick="anF.from=anF.to='';anSet('x','')">All dates</button></div>`;}
+function anRateBtns(id,who,cur){return `<span class="an-rg" title="${who==='L'?'Labeler':'QC'}">`+RATES.map(k=>`<button class="an-rb ${k[0].toLowerCase()}${cur===k?' on':''}" onclick="anRate('${id}','${who}','${k}')">${k}</button>`).join('')+'</span>';}
+function anTabs(){return `<div class="an-bar" style="padding-bottom:6px">`+[['tasks','📝 Tasks'],['ratings','⭐ Ratings'],['analysts','👥 Analysts'],['issues','⚠️ Issues']].map(([k,l])=>`<button class="preset${anView===k?' on':''}" onclick="anSetView('${k}')">${l}</button>`).join('')+'</div>';}
+function anDateBar(){return `<div class="an-bar"><label>From</label><input type="date" value="${anF.from}" onchange="anSet('from',this.value)"><label>To</label><input type="date" value="${anF.to}" onchange="anSet('to',this.value)"><button class="preset" onclick="anF.from=anF.to='';anSet('x','')">All dates</button></div>`;}
 function renderAnalysis(mc){
   if(!mc)return;
   if(!anLogLoaded){mc.innerHTML='<div class="loader"><span class="ltxt">Loading analysis…</span></div>';anLoadLog(()=>{if(activeLoc==='__analysis__')renderAnalysis(mc);});return;}
   const all=anTasks(),tasks=anFiltered(all);let body='',meta='';
   const note=ANALYSIS_API_URL?'':'<div class="an-note">⚠ ANALYSIS_API_URL is empty — ratings are saved in this browser only. Deploy analysis_script.gs and paste its URL to share them.</div>';
+  const _sc=mc.querySelector('.tbl-w'),_st=_sc?_sc.scrollTop:0,_wy=window.scrollY;
   if(anView==='tasks'){
     const labs=[...new Set(all.map(t=>t.lab))].sort(),qcs=[...new Set(all.map(t=>t.qc))].sort(),shown=tasks.sort((a,b)=>b.time-a.time).slice(0,300);meta=tasks.length+' tasks';
     body=anDateBar()+`<div class="an-bar"><select onchange="anSet('lab',this.value)">${anOpts(labs,anF.lab,'All Labelers')}</select><select onchange="anSet('qc',this.value)">${anOpts(qcs,anF.qc,'All QC')}</select>
       <input placeholder="Task id / name…" value="${esc(anF.q)}" onchange="anSet('q',this.value)">
       <select onchange="anSet('type',this.value)">${anOpts(['Lidar','Lane Line'],anF.type,'All Types')}</select><select onchange="anSet('pass',this.value)">${anOpts(['FP','QA'],anF.pass,'All Pass')}</select>
       <select onchange="anSet('status',this.value)"><option value="">All Status</option><option value="n"${anF.status==='n'?' selected':''}>Not analyzed</option><option value="a"${anF.status==='a'?' selected':''}>Analyzed</option><option value="i"${anF.status==='i'?' selected':''}>Has issue</option></select></div>
-      <div class="tbl-w" style="max-height:620px"><table class="an-t"><tr><th>Task</th><th>Time</th><th>Labeler</th><th>QC</th><th>Type</th><th>Analyst</th><th>Rate: Labeler | QC</th><th class="c">Issue</th></tr>`+
+      <div class="tbl-w" style="max-height:620px"><table class="an-t"><tr><th>Task</th><th>Time</th><th>Labeler</th><th>QC</th><th>Type</th><th>Analyst</th><th>Labeler rating</th><th>QC rating</th><th>Issue / Problem</th></tr>`+
       shown.map(t=>{const l=anLog[t.id]||{};return `<tr><td><a href="${esc(t.link)}" target="_blank" rel="noopener">${t.id} ↗</a></td><td>${t.ts}</td><td>${esc(t.lab)}</td><td>${esc(t.qc)}</td><td>${t.type} · ${t.pass}</td>
-        <td><select onchange="anSetAnalyst('${t.id}',this.value)">${ANALYSTS.map(a=>`<option${(l.analyst||'')===a?' selected':''}>${a}</option>`).join('')}</select></td>
-        <td>${anRateBtns(t.id,'L',l.lr)}${anRateBtns(t.id,'Q',l.qr)}</td><td class="c"><input type="checkbox"${l.issue?' checked':''} onclick="anIssue('${t.id}')"></td></tr>`;}).join('')+'</table></div>'+(tasks.length>300?'<div class="an-note">Showing the latest 300 — narrow the filters to see more.</div>':'');
+        <td>${esc(l.analyst||'—')}</td>
+        <td>${anRateBtns(t.id,'L',l.lr)}</td><td>${anRateBtns(t.id,'Q',l.qr)}</td><td><input class="an-iss" placeholder="Write the problem…" value="${esc(l.issue||'')}" onchange="anIssue('${t.id}',this.value)"></td></tr>`;}).join('')+'</table></div>'+(tasks.length>300?'<div class="an-note">Showing the latest 300 — narrow the filters to see more.</div>':'');
   }else if(anView==='ratings'){
     const rated=tasks.filter(t=>anLog[t.id]&&(anLog[t.id].lr||anLog[t.id].qr));meta=rated.length+' rated tasks';
-    body=anDateBar()+`<div class="an-bar"><label>Group by</label><button class="an-chip${anGroup==='QC'?' on':''}" onclick="anGroup='QC';anSetView('ratings')">QC</button><button class="an-chip${anGroup==='Labeler'?' on':''}" onclick="anGroup='Labeler';anSetView('ratings')">Labeler</button></div>`;
+    body=anDateBar()+`<div class="an-bar"><label>Group by</label><button class="preset${anGroup==='QC'?' on':''}" onclick="anGroup='QC';anSetView('ratings')">QC</button><button class="preset${anGroup==='Labeler'?' on':''}" onclick="anGroup='Labeler';anSetView('ratings')">Labeler</button></div>`;
     ['Lidar','Lane Line'].forEach(type=>{const rows=rated.filter(t=>t.type===type),g={};
       rows.forEach(t=>{const nm=anGroup==='QC'?t.qc:t.lab,rt=anGroup==='QC'?anLog[t.id].qr:anLog[t.id].lr;if(!rt)return;(g[nm]=g[nm]||{})[rt]=(g[nm][rt]||0)+1;});
       const names=Object.keys(g).sort((a,b)=>RATES.reduce((s,k)=>s+(g[b][k]||0),0)-RATES.reduce((s,k)=>s+(g[a][k]||0),0));const tot={};
@@ -4444,9 +4442,10 @@ function renderAnalysis(mc){
       Object.keys(days).sort().reverse().map(d=>`<tr><td>${d}</td>${an.map(a=>`<td class="c">${days[d][a]||0}</td>`).join('')}<td class="c"><b>${Object.values(days[d]).reduce((s,x)=>s+x,0)}</b></td></tr>`).join('')+'</table></div></div>';
   }else{
     const iss=tasks.filter(t=>anLog[t.id]&&anLog[t.id].issue);meta=iss.length+' issues';
-    body=anDateBar()+`<div class="tbl-w" style="max-height:620px"><table class="an-t"><tr><th>Task</th><th>Time</th><th>Labeler</th><th>QC</th><th>Type</th><th>Analyst</th></tr>`+iss.map(t=>`<tr><td><a href="${esc(t.link)}" target="_blank" rel="noopener">${t.id} ↗</a></td><td>${t.ts}</td><td>${esc(t.lab)}</td><td>${esc(t.qc)}</td><td>${t.type}</td><td>${esc(anLog[t.id].analyst||'')}</td></tr>`).join('')+'</table></div>';
+    body=anDateBar()+`<div class="tbl-w" style="max-height:620px"><table class="an-t"><tr><th>Task</th><th>Time</th><th>Labeler</th><th>QC</th><th>Type</th><th>Analyst</th><th>Issue / Problem</th></tr>`+iss.map(t=>`<tr><td><a href="${esc(t.link)}" target="_blank" rel="noopener">${t.id} ↗</a></td><td>${t.ts}</td><td>${esc(t.lab)}</td><td>${esc(t.qc)}</td><td>${t.type}</td><td>${esc(anLog[t.id].analyst||'')}</td><td style="white-space:normal">${esc(anLog[t.id].issue)}</td></tr>`).join('')+'</table></div>';
   }
   mc.innerHTML=`<div class="an-wrap"><div class="sec"><div class="sec-hd"><div class="sec-t">🧪 Analysis</div><div class="sec-m">${meta}</div></div>${anTabs()}${note}${body}</div></div>`;
+  const _n=mc.querySelector('.tbl-w');if(_n)_n.scrollTop=_st;window.scrollTo(0,_wy);
 }
 </script>
 
