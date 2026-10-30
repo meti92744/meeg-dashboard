@@ -4357,22 +4357,25 @@ function up(){var h=new Date().getHours(),t=h<12?'Good morning':h<18?'Good after
 </style>
 <script id="analysis-js">
 /* ===== Analysis tab ===== */
-const ANALYSIS_API_URL='https://script.google.com/macros/s/AKfycbz4HOvb162Lf_2yjNFg90AQsrfE5KRASioNEzEruqWXbDTDXOx95ItuOu9VAIFr-Zw/exec';            // paste the Apps Script /exec URL here (see analysis_script.gs). '' = ratings stay in this browser only
+const ANALYSIS_API_URL='https://script.google.com/macros/s/AKfycbwyXe34WVgvCO6PD-yYvjXiYZ7u-upT1ESLVzbKhWQZO8HDlLwNcUuNXUp4O7IU6-oa/exec';            // paste the Apps Script /exec URL here (see analysis_script.gs). '' = ratings stay in this browser only
 const ANALYSIS_LOG_SHEET='Analysis Log';
-const ANALYSIS_USERS={'mahmoudseif589@gmail.com':['Seeif Waleed','SV'],'heshamnaser996@gmail.com':['Hesham','SV'],'me917993@meti.ai':['Ahmed Sayed','QT'],'fpd.sobhy@gmail.com':['Mohmed Sobhy','QT'],'m6945663@gmail.com':['Mickey','QT'],'mohamedd.hafez.7@gmail.com':['Hafez','QT'],'mohamed.nasrr55@gmail.com':['Nasr','QT']};  // only these accounts see the Analysis tab
-const ANALYSTS=['Ahmed Sayed','Mohmed Sobhy','Mickey','Hafez','Nasr'];   // analyst dropdown (the QT accounts)
+const ANALYSIS_USERS={'mahmoudseif589@gmail.com':['Seeif Waleed','SV'],'heshamnaser996@gmail.com':['Hesham','SV'],'me917993@meti.ai':['Ahmed Sayed','QT'],'fpd.sobhy@gmail.com':['Mohmed Sobhy','QT'],'m6945663@gmail.com':['Mickey','QT'],'mohamedd.hafez.7@gmail.com':['Hafez','QT'],'mohamed.nasrr55@gmail.com':['Nasr','QT'],'mk2275489@gmail.com':['Mahmoud Khaled','QT']};  // only these accounts see the Analysis tab
+const ANALYSTS=['Ahmed Sayed','Mohmed Sobhy','Mickey','Hafez','Nasr','Mahmoud Khaled'];   // analyst dropdown (the QT accounts)
 function anMe(){return String(getLoggedInEmail()||'').trim().toLowerCase();}
 function anAllowed(){return !!ANALYSIS_USERS[anMe()];}
+function anMyName(){return ANALYSIS_USERS[anMe()]?ANALYSIS_USERS[anMe()][0]:'';}
+function anIsSV(){return (ANALYSIS_USERS[anMe()]||[])[1]==='SV';}
+function anLocked(id){const l=anLog[id];return !!(l&&l.analyst&&l.analyst!==anMyName()&&!anIsSV());}   // a rating belongs to who made it (SV can edit any)
 const RATE_W={Excellent:1,Good:.75,Average:.5,Poor:0};                               // Score = Σ(rating×weight) ÷ tasks
 const RATES=['Excellent','Good','Average','Poor'];
-let anView='tasks',anGroup='QC',anLog={},anLogLoaded=false,anF={from:'',to:'',lab:'',qc:'',q:'',type:'',pass:'',status:'',analyst:''};
+let anView='tasks',anGroup='QC',anLog={},anLogLoaded=false,anF={from:'',to:'',lab:'',qc:'',q:'',type:'',pass:'',status:'',analyst:'',shift:'',mine:false,chart:''};
 function anCol(n){return hdrs.findIndex(h=>h.toLowerCase()===n.toLowerCase());}
 function anYmd(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 function anTasks(){
-  const c={id:anCol('Id'),lab:anCol('Labeler Name'),qc:anCol('Qtc Name'),st:anCol('Stage'),pass:anCol('Pass'),at:anCol('Created At'),lnk:anCol('Task Link')};
+  const c={id:anCol('Id'),lab:anCol('Labeler Name'),qc:anCol('Qtc Name'),st:anCol('Stage'),pass:anCol('Pass'),at:anCol('Created At'),lnk:anCol('Task Link'),sh:anCol('Shift')};
   return rawRows.map(r=>{const d=new Date(r[c.at]);const ok=!isNaN(d);const stage=String(r[c.st]||'');
     return{id:String(r[c.id]||'').trim(),lab:String(r[c.lab]||'').trim(),qc:String(r[c.qc]||'').replace(/\s*\([^)]*\)\s*$/,'').trim(),
-      type:/lidar/i.test(stage)?'Lidar':'Lane Line',pass:String(r[c.pass]||'').trim(),link:String(r[c.lnk]||''),time:ok?d.getTime():0,day:ok?anYmd(d):'',ts:ok?anYmd(d)+' '+d.toTimeString().slice(0,8):''};
+      type:/lidar/i.test(stage)?'Lidar':'Lane Line',pass:String(r[c.pass]||'').trim(),link:String(r[c.lnk]||''),shift:(v=>/over/.test(v)?'ON':/night/.test(v)?'N':/morn|day/.test(v)?'M':'')(String(r[c.sh]||'').toLowerCase()),time:ok?d.getTime():0,day:ok?anYmd(d):'',ts:ok?anYmd(d)+' '+d.toTimeString().slice(0,8):''};
   }).filter(t=>t.id);
 }
 function anScore(cnt){const n=RATES.reduce((s,k)=>s+(cnt[k]||0),0);return n?RATES.reduce((s,k)=>s+(cnt[k]||0)*RATE_W[k],0)/n*100:0;}
@@ -4384,11 +4387,11 @@ function anLoadLog(cb){
      anLogLoaded=true;cb&&cb();}).catch(()=>{anLogLoaded=true;cb&&cb();});
 }
 function anSave(id,patch){
-  if(!anAllowed())return;
+  if(!anAllowed()||anLocked(id))return;
   const cur=anLog[id]||{analyst:(ANALYSIS_USERS[anMe()]&&ANALYSTS.includes(ANALYSIS_USERS[anMe()][0])?ANALYSIS_USERS[anMe()][0]:ANALYSTS[0]),lr:'',qr:'',issue:''};
-  const e=Object.assign({},cur,patch,{analyst:ANALYSIS_USERS[anMe()][0],date:anYmd(new Date())});anLog[id]=e;
+  const e=Object.assign({},cur,patch,{analyst:(anLog[id]&&anLog[id].analyst&&anIsSV()?anLog[id].analyst:ANALYSIS_USERS[anMe()][0]),date:anYmd(new Date())});anLog[id]=e;
   try{localStorage.setItem('an_log',JSON.stringify(anLog));}catch(_){}
-  if(ANALYSIS_API_URL)fetch(ANALYSIS_API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'rate',email:anMe(),taskId:id,analyst:e.analyst,labelerRating:e.lr,qcRating:e.qr,issue:e.issue||'',date:e.date})}).catch(()=>{});
+  if(ANALYSIS_API_URL)fetch(ANALYSIS_API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'rate',email:anMe(),token:getAuthToken(),taskId:id,analyst:e.analyst,labelerRating:e.lr,qcRating:e.qr,issue:e.issue||'',date:e.date})}).then(r=>r.json()).then(j=>{if(!j||!j.ok)showToast('⚠️ Not saved — '+((j&&j.error)||'server error'));}).catch(()=>showToast('⚠️ Not saved — no connection'));
   renderAnalysis(document.getElementById('mainContent'));
 }
 function anRate(id,who,val){const cur=anLog[id]||{};anSave(id,who==='L'?{lr:cur.lr===val?'':val}:{qr:cur.qr===val?'':val});}
@@ -4400,13 +4403,50 @@ function anFiltered(all){
   return all.filter(t=>{const l=anLog[t.id];
     if(anF.from&&t.day<anF.from)return false;if(anF.to&&t.day>anF.to)return false;
     if(anF.lab&&t.lab!==anF.lab)return false;if(anF.qc&&t.qc!==anF.qc)return false;
-    if(anF.type&&t.type!==anF.type)return false;if(anF.pass&&t.pass!==anF.pass)return false;
+    if(anF.type&&t.type!==anF.type)return false;if(anF.shift&&t.shift!==anF.shift)return false;if(anF.mine&&!(l&&l.analyst===anMyName()))return false;if(anF.pass&&t.pass!==anF.pass)return false;
     if(anF.q&&!(t.id.includes(anF.q)||t.lab.toLowerCase().includes(anF.q.toLowerCase())))return false;
     if(anF.status==='n'&&l)return false;if(anF.status==='a'&&!l)return false;if(anF.status==='i'&&!(l&&l.issue))return false;return true;});
 }
-function anRateBtns(id,who,cur){return `<span class="an-rg" title="${who==='L'?'Labeler':'QC'}">`+RATES.map(k=>`<button class="an-rb ${k[0].toLowerCase()}${cur===k?' on':''}" onclick="anRate('${id}','${who}','${k}')">${k}</button>`).join('')+'</span>';}
+function anRateBtns(id,who,cur,lock){return `<span class="an-rg" title="${who==='L'?'Labeler':'QC'}">`+RATES.map(k=>`<button class="an-rb ${k[0].toLowerCase()}${cur===k?' on':''}"${lock?' disabled style="opacity:.45;cursor:not-allowed"':''} onclick="anRate('${id}','${who}','${k}')">${k}</button>`).join('')+'</span>';}
 function anTabs(){return `<div class="an-bar" style="padding-bottom:6px">`+[['tasks','📝 Tasks'],['ratings','⭐ Ratings'],['analysts','👥 Analysts'],['issues','⚠️ Issues']].map(([k,l])=>`<button class="preset${anView===k?' on':''}" onclick="anSetView('${k}')">${l}</button>`).join('')+'</div>';}
 function anDateBar(){return `<div class="an-bar"><label>From</label><input type="date" value="${anF.from}" onchange="anSet('from',this.value)"><label>To</label><input type="date" value="${anF.to}" onchange="anSet('to',this.value)"><button class="preset" onclick="anF.from=anF.to='';anSet('x','')">All dates</button></div>`;}
+
+function anChart(rated){
+  const key=t=>anGroup==='QC'?t.qc:t.lab,rate=t=>anGroup==='QC'?anLog[t.id].qr:anLog[t.id].lr,by={},tot={},ds=new Set();
+  rated.forEach(t=>{const r=rate(t),n=key(t);if(!r||!t.day||!n)return;ds.add(t.day);by[n]=by[n]||{};by[n][t.day]=by[n][t.day]||{};by[n][t.day][r]=(by[n][t.day][r]||0)+1;tot[n]=(tot[n]||0)+1;});
+  const days=[...ds].sort(),names=Object.keys(by).sort((a,b)=>tot[b]-tot[a]),show=anF.chart&&by[anF.chart]?[anF.chart]:names.slice(0,5);
+  const sel=`<div class="an-bar"><label>${anGroup==='QC'?'QTC':'Labeler'}</label><select onchange="anSet('chart',this.value)">${anOpts(names,anF.chart,'Top 5 (most rated)')}</select></div>`;
+  if(!days.length)return `<div class="sec" style="margin-top:12px"><div class="sec-hd"><div class="sec-t">📈 Score trend</div></div><div class="an-note">No rated tasks in this range.</div></div>`;
+  const W=900,H=260,L=44,R=16,T=14,B=34,col=['#1f6feb','#0d9488','#b7791f','#c4293f','#7c3aed'],x=i=>L+(days.length>1?i*(W-L-R)/(days.length-1):(W-L-R)/2),y=v=>T+(100-v)/100*(H-T-B);
+  let g='';[0,25,50,75,100].forEach(v=>g+=`<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--border-light)"/><text x="${L-6}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="var(--muted)">${v}</text>`);
+  const step=Math.ceil(days.length/10);days.forEach((d,i)=>{if(i%step===0)g+=`<text x="${x(i)}" y="${H-12}" text-anchor="middle" font-size="11" fill="var(--muted)">${d.slice(5)}</text>`;});
+  show.forEach((n,k)=>{const pts=days.map((d,i)=>by[n][d]?[x(i),y(anScore(by[n][d]))]:null).filter(Boolean);
+    g+=`<polyline fill="none" stroke="${col[k%5]}" stroke-width="2.4" stroke-linejoin="round" points="${pts.map(q=>q.join(',')).join(' ')}"/>`+pts.map(q=>`<circle cx="${q[0]}" cy="${q[1]}" r="3.4" fill="${col[k%5]}"/>`).join('');});
+  const leg=show.map((n,k)=>`<span style="display:inline-flex;align-items:center;gap:6px;margin-right:16px;font-size:.78rem;color:var(--text)"><i style="width:10px;height:10px;border-radius:50%;background:${col[k%5]}"></i>${esc(n)}</span>`).join('');
+  return `<div class="sec" style="margin-top:12px"><div class="sec-hd"><div class="sec-t">📈 Score trend</div><div class="sec-m">daily Score % · Lidar + Lane Line</div></div>${sel}<div style="padding:0 24px 8px">${leg}</div><div style="padding:0 16px 18px;overflow-x:auto"><svg viewBox="0 0 ${W} ${H}" style="width:100%;min-width:560px;height:auto">${g}</svg></div></div>`;
+}
+async function anShot(btn){
+  const src=document.getElementById('anRatingsBox');if(!src){showToast('⚠️ Nothing to capture');return;}
+  const old=btn.innerHTML;btn.innerHTML='⏳ Rendering…';btn.style.pointerEvents='none';let stage=null;
+  try{
+    await loadLib('h2c');if(document.fonts&&document.fonts.ready)await document.fonts.ready;
+    const bg=(getComputedStyle(document.documentElement).getPropertyValue('--bg')||'').trim()||'#eef2f7';
+    stage=document.createElement('div');stage.className='shot-stage';stage.style.background=bg;
+    const rng=(anF.from||anF.to)?(anF.from||'…')+' → '+(anF.to||'…'):'All dates';
+    stage.innerHTML=`<div class="shot-head"><div class="shot-title">⭐ MEEG Analysis — Ratings by ${anGroup==='QC'?'QTC':'Labeler'}</div><div class="shot-sub">${esc(rng)}${anF.shift?' · Shift '+anF.shift:''} · ${esc(new Date().toLocaleString())}</div></div>`;
+    const clone=src.cloneNode(true);clone.removeAttribute('id');
+    clone.querySelectorAll('.tbl-w').forEach(e=>{e.style.maxHeight='none';e.style.overflow='visible';});
+    stage.appendChild(clone);document.body.appendChild(stage);
+    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+    const scale=Math.min(5,Math.max(3,(window.devicePixelRatio||1)*2));
+    const canvas=await html2canvas(stage,{scale,backgroundColor:bg,useCORS:true,logging:false,scrollX:0,scrollY:0,onclone:d=>{const x=d.querySelector('.shot-stage');if(x){x.style.left='0';x.style.top='0';}}});
+    const blob=await new Promise(r=>canvas.toBlob(r,'image/png'));if(!blob)throw new Error('empty image');
+    downloadBlob(blob,'MEEG_Analysis_Ratings_'+expStamp()+'.png');
+    let copied=false;try{if(navigator.clipboard&&window.ClipboardItem){await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);copied=true;}}catch(e){}
+    showToast(copied?'📸 Screenshot saved & copied to clipboard':'📸 Screenshot saved');
+  }catch(e){showToast('⚠️ Screenshot failed'+(e&&e.message?' — '+e.message:''));}
+  finally{if(stage)stage.remove();btn.innerHTML=old;btn.style.pointerEvents='';}
+}
 function renderAnalysis(mc){
   if(!mc)return;
   if(!anLogLoaded){mc.innerHTML='<div class="loader"><span class="ltxt">Loading analysis…</span></div>';anLoadLog(()=>{if(activeLoc==='__analysis__')renderAnalysis(mc);});return;}
@@ -4415,24 +4455,23 @@ function renderAnalysis(mc){
   const _sc=mc.querySelector('.tbl-w'),_st=_sc?_sc.scrollTop:0,_wy=window.scrollY;
   if(anView==='tasks'){
     const labs=[...new Set(all.map(t=>t.lab))].sort(),qcs=[...new Set(all.map(t=>t.qc))].sort(),shown=tasks.sort((a,b)=>b.time-a.time).slice(0,300);meta=tasks.length+' tasks';
-    body=anDateBar()+`<div class="an-bar"><select onchange="anSet('lab',this.value)">${anOpts(labs,anF.lab,'All Labelers')}</select><select onchange="anSet('qc',this.value)">${anOpts(qcs,anF.qc,'All QC')}</select>
+    body=anDateBar()+`<div class="an-bar"><select onchange="anSet('lab',this.value)">${anOpts(labs,anF.lab,'All Labelers')}</select><select onchange="anSet('qc',this.value)">${anOpts(qcs,anF.qc,'All QTC')}</select>
       <input placeholder="Task id / name…" value="${esc(anF.q)}" onchange="anSet('q',this.value)">
       <select onchange="anSet('type',this.value)">${anOpts(['Lidar','Lane Line'],anF.type,'All Types')}</select><select onchange="anSet('pass',this.value)">${anOpts(['FP','QA'],anF.pass,'All Pass')}</select>
-      <select onchange="anSet('status',this.value)"><option value="">All Status</option><option value="n"${anF.status==='n'?' selected':''}>Not analyzed</option><option value="a"${anF.status==='a'?' selected':''}>Analyzed</option><option value="i"${anF.status==='i'?' selected':''}>Has issue</option></select></div>
-      <div class="tbl-w" style="max-height:620px"><table class="an-t"><tr><th>Task</th><th>Time</th><th>Labeler</th><th>QC</th><th>Type</th><th>Analyst</th><th>Labeler rating</th><th>QC rating</th><th>Issue / Problem</th></tr>`+
-      shown.map(t=>{const l=anLog[t.id]||{};return `<tr><td><a href="${esc(t.link)}" target="_blank" rel="noopener">${t.id} ↗</a></td><td>${t.ts}</td><td>${esc(t.lab)}</td><td>${esc(t.qc)}</td><td>${t.type} · ${t.pass}</td>
+      <select onchange="anSet('status',this.value)"><option value="">All Status</option><option value="n"${anF.status==='n'?' selected':''}>Not analyzed</option><option value="a"${anF.status==='a'?' selected':''}>Analyzed</option><option value="i"${anF.status==='i'?' selected':''}>Has issue</option></select><button class="preset${anF.mine?' on':''}" onclick="anSet('mine',!anF.mine)">🙋 My tasks</button></div>
+      <div class="tbl-w" style="max-height:620px"><table class="an-t"><tr><th>Task</th><th>Time</th><th>Labeler</th><th>QTC</th><th>Type</th><th>Analyst</th><th>Labeler rating</th><th>QTC rating</th><th>Issue / Problem</th></tr>`+
+      shown.map(t=>{const l=anLog[t.id]||{},lock=anLocked(t.id);return `<tr><td><a href="${esc(t.link)}" target="_blank" rel="noopener">${t.id} ↗</a></td><td>${t.ts}</td><td>${esc(t.lab)}</td><td>${esc(t.qc)}</td><td>${t.type} · ${t.pass}</td>
         <td>${esc(l.analyst||'—')}</td>
-        <td>${anRateBtns(t.id,'L',l.lr)}</td><td>${anRateBtns(t.id,'Q',l.qr)}</td><td><input class="an-iss" placeholder="Write the problem…" value="${esc(l.issue||'')}" onchange="anIssue('${t.id}',this.value)"></td></tr>`;}).join('')+'</table></div>'+(tasks.length>300?'<div class="an-note">Showing the latest 300 — narrow the filters to see more.</div>':'');
+        <td>${anRateBtns(t.id,'L',l.lr,lock)}</td><td>${anRateBtns(t.id,'Q',l.qr,lock)}</td><td><input class="an-iss" placeholder="Write the problem…" value="${esc(l.issue||'')}"${lock?' disabled':''} onchange="anIssue('${t.id}',this.value)"></td></tr>`;}).join('')+'</table></div>'+(tasks.length>300?'<div class="an-note">Showing the latest 300 — narrow the filters to see more.</div>':'');
   }else if(anView==='ratings'){
     const rated=tasks.filter(t=>anLog[t.id]&&(anLog[t.id].lr||anLog[t.id].qr));meta=rated.length+' rated tasks';
-    body=anDateBar()+`<div class="an-bar"><label>Group by</label><button class="preset${anGroup==='QC'?' on':''}" onclick="anGroup='QC';anSetView('ratings')">QC</button><button class="preset${anGroup==='Labeler'?' on':''}" onclick="anGroup='Labeler';anSetView('ratings')">Labeler</button></div>`;
-    ['Lidar','Lane Line'].forEach(type=>{const rows=rated.filter(t=>t.type===type),g={};
+    body=anDateBar()+`<div class="an-bar"><label>Group by</label><button class="preset${anGroup==='QC'?' on':''}" onclick="anGroup='QC';anSetView('ratings')">QTC</button><button class="preset${anGroup==='Labeler'?' on':''}" onclick="anGroup='Labeler';anSetView('ratings')">Labeler</button><label>Shift</label>${['','M','N','ON'].map(v=>`<button class="preset${anF.shift===v?' on':''}" onclick="anSet('shift','${v}')">${v||'All'}</button>`).join('')}<button class="btn" onclick="anShot(this)">📸 Screenshot</button></div>`;
+    body+='<div id="anRatingsBox">';['Lidar','Lane Line'].forEach(type=>{const rows=rated.filter(t=>t.type===type),g={};
       rows.forEach(t=>{const nm=anGroup==='QC'?t.qc:t.lab,rt=anGroup==='QC'?anLog[t.id].qr:anLog[t.id].lr;if(!rt)return;(g[nm]=g[nm]||{})[rt]=(g[nm][rt]||0)+1;});
-      const names=Object.keys(g).sort((a,b)=>RATES.reduce((s,k)=>s+(g[b][k]||0),0)-RATES.reduce((s,k)=>s+(g[a][k]||0),0));const tot={};
-      body+=`<div class="sec" style="margin:0 0 12px"><div class="sec-hd"><div class="sec-t">${type}</div><div class="sec-m">${names.reduce((s,n)=>s+RATES.reduce((x,k)=>x+(g[n][k]||0),0),0)} tasks</div></div><div class="tbl-w"><table class="an-t"><tr><th>${anGroup}</th>${RATES.map(k=>`<th class="c">${k}</th>`).join('')}<th class="c">Total</th><th class="c">Score %</th></tr>`+
+      const names=Object.keys(g).sort((a,b)=>anScore(g[b])-anScore(g[a]));const tot={};
+      body+=`<div class="sec" style="margin:0 0 12px"><div class="sec-hd"><div class="sec-t">${type}</div><div class="sec-m">${names.reduce((s,n)=>s+RATES.reduce((x,k)=>x+(g[n][k]||0),0),0)} tasks</div></div><div class="tbl-w"><table class="an-t"><tr><th>${anGroup==='QC'?'QTC':anGroup}</th>${RATES.map(k=>`<th class="c">${k}</th>`).join('')}<th class="c">Total</th><th class="c">Score %</th></tr>`+
         names.map(n=>{const c=g[n],T=RATES.reduce((s,k)=>s+(c[k]||0),0);RATES.forEach(k=>tot[k]=(tot[k]||0)+(c[k]||0));return `<tr><td>${esc(n)}</td>${RATES.map(k=>`<td class="c">${c[k]||0}</td>`).join('')}<td class="c"><b>${T}</b></td><td class="c">${anScore(c).toFixed(1)}%</td></tr>`;}).join('')+
-        (names.length?`<tr class="tot"><td>TOTAL</td>${RATES.map(k=>`<td class="c">${tot[k]||0}</td>`).join('')}<td class="c">${RATES.reduce((s,k)=>s+(tot[k]||0),0)}</td><td class="c">${anScore(tot).toFixed(1)}%</td></tr>`:'<tr><td colspan="7" style="text-align:center;color:var(--muted)">No rated tasks</td></tr>')+'</table></div></div>';});
-  }else if(anView==='analysts'){
+        (names.length?`<tr class="tot"><td>TOTAL</td>${RATES.map(k=>`<td class="c">${tot[k]||0}</td>`).join('')}<td class="c">${RATES.reduce((s,k)=>s+(tot[k]||0),0)}</td><td class="c">${anScore(tot).toFixed(1)}%</td></tr>`:'<tr><td colspan="7" style="text-align:center;color:var(--muted)">No rated tasks</td></tr>')+'</table></div></div>';});body+='</div>'+anChart(rated);}else if(anView==='analysts'){
     const done=tasks.filter(t=>anLog[t.id]);meta=done.length+' analyzed';const per={};const days={};
     done.forEach(t=>{const l=anLog[t.id],a=l.analyst||'—';per[a]=per[a]||{Lidar:0,'Lane Line':0,issues:0,total:0};per[a][t.type]++;per[a].total++;if(l.issue)per[a].issues++;const d=l.date||t.day;(days[d]=days[d]||{})[a]=(days[d][a]||0)+1;});
     const an=Object.keys(per).sort();
@@ -4442,7 +4481,7 @@ function renderAnalysis(mc){
       Object.keys(days).sort().reverse().map(d=>`<tr><td>${d}</td>${an.map(a=>`<td class="c">${days[d][a]||0}</td>`).join('')}<td class="c"><b>${Object.values(days[d]).reduce((s,x)=>s+x,0)}</b></td></tr>`).join('')+'</table></div></div>';
   }else{
     const iss=tasks.filter(t=>anLog[t.id]&&anLog[t.id].issue);meta=iss.length+' issues';
-    body=anDateBar()+`<div class="tbl-w" style="max-height:620px"><table class="an-t"><tr><th>Task</th><th>Time</th><th>Labeler</th><th>QC</th><th>Type</th><th>Analyst</th><th>Issue / Problem</th></tr>`+iss.map(t=>`<tr><td><a href="${esc(t.link)}" target="_blank" rel="noopener">${t.id} ↗</a></td><td>${t.ts}</td><td>${esc(t.lab)}</td><td>${esc(t.qc)}</td><td>${t.type}</td><td>${esc(anLog[t.id].analyst||'')}</td><td style="white-space:normal">${esc(anLog[t.id].issue)}</td></tr>`).join('')+'</table></div>';
+    body=anDateBar()+`<div class="tbl-w" style="max-height:620px"><table class="an-t"><tr><th>Task</th><th>Time</th><th>Labeler</th><th>QTC</th><th>Type</th><th>Analyst</th><th>Issue / Problem</th></tr>`+iss.map(t=>`<tr><td><a href="${esc(t.link)}" target="_blank" rel="noopener">${t.id} ↗</a></td><td>${t.ts}</td><td>${esc(t.lab)}</td><td>${esc(t.qc)}</td><td>${t.type}</td><td>${esc(anLog[t.id].analyst||'')}</td><td style="white-space:normal">${esc(anLog[t.id].issue)}</td></tr>`).join('')+'</table></div>';
   }
   mc.innerHTML=`<div class="an-wrap"><div class="sec"><div class="sec-hd"><div class="sec-t">🧪 Analysis</div><div class="sec-m">${meta}</div></div>${anTabs()}${note}${body}</div></div>`;
   const _n=mc.querySelector('.tbl-w');if(_n)_n.scrollTop=_st;window.scrollTo(0,_wy);
