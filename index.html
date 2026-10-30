@@ -3038,7 +3038,7 @@ function updDateChip(){const fc=document.getElementById('fc___date');if(!fc)retu
 function tgDrop(k){if(openK&&openK!==k)closeDr(openK);const pid=k==='__week'?'dp___week':k==='__date'?'dp___date':k==='__time'?'dp___time':'dp_'+sid(k);const cid=k==='__week'?'fc___week':k==='__date'?'fc___date':k==='__time'?'fc___time':'fc_'+sid(k);const p=document.getElementById(pid),fc=document.getElementById(cid);if(!p)return;if(p.classList.contains('open'))closeDr(k);else{p.classList.add('open');fc.classList.add('open');openK=k;if(k==='__week')rdropWeek();else if(k==='__date')rdropDate();else rdrop(k);}}
 function closeDr(k){const pid=k==='__week'?'dp___week':k==='__date'?'dp___date':k==='__time'?'dp___time':'dp_'+sid(k);const cid=k==='__week'?'fc___week':k==='__date'?'fc___date':k==='__time'?'fc___time':'fc_'+sid(k);const p=document.getElementById(pid),fc=document.getElementById(cid);if(p)p.classList.remove('open');if(fc)fc.classList.remove('open');if(openK===k)openK=null;}
 function closeAll(){if(openK)closeDr(openK);}
-function rdrop(k){const listEl=document.getElementById('dl_'+sid(k));if(!listEl)return;const q=(document.getElementById('ds_'+sid(k))||{}).value||'';const opts=sOpts[k]||[],vis=q?opts.filter(v=>v.toLowerCase().includes(q.toLowerCase())):opts;const ss=sel[k]||new Set(),cm=cntFor(k);listEl.innerHTML=vis.map(v=>{const on=ss.has(v);return`<div class="dp-item${on?' on':''}" onclick="tgVal('${k}','${esc(v)}');event.stopPropagation()"><div class="dp-cb">${on?'✓':''}</div><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">${esc(v)}</span><span class="dp-cnt">${cm[v]||0}</span></div>`;}).join('')||'<div style="padding:8px;font-size:.62rem;color:var(--muted)">No results</div>';}
+function rdrop(k){const listEl=document.getElementById('dl_'+sid(k));if(!listEl)return;const _pn=listEl.closest('.dpanel');if(_pn&&!_pn.classList.contains('open')){if(listEl.firstChild)listEl.textContent='';return;}const q=(document.getElementById('ds_'+sid(k))||{}).value||'';const opts=sOpts[k]||[],vis=q?opts.filter(v=>v.toLowerCase().includes(q.toLowerCase())):opts;const ss=sel[k]||new Set(),cm=cntFor(k);listEl.innerHTML=vis.map(v=>{const on=ss.has(v);return`<div class="dp-item${on?' on':''}" onclick="tgVal('${k}','${esc(v)}');event.stopPropagation()"><div class="dp-cb">${on?'✓':''}</div><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">${esc(v)}</span><span class="dp-cnt">${cm[v]||0}</span></div>`;}).join('')||'<div style="padding:8px;font-size:.62rem;color:var(--muted)">No results</div>';}
 function updChip(k){const fc=document.getElementById('fc_'+sid(k));if(!fc)return;const ss=sel[k]||new Set(),cnt=ss.size;const sc=SC.find(s=>s.key===k);fc.className='fchip'+(cnt?' has-sel':'');fc.innerHTML=`${sc?sc.ic:''} ${sc?sc.lbl:k}${cnt?` <span class="chk-cnt">${cnt}</span>`:''} <span class="chk-arr">▾</span>`;}
 function cntFor(tk){const f=rawRows.filter(r=>{if(!isRowAllowed(r))return false;if(selWeeks.size){const wl=getWeekLabel(rDate(r));if(!selWeeks.has(wl))return false;}if(tk!=='_dates'&&selD.size&&!selD.has(rDate(r)))return false;if(!timeOk(r))return false;for(const[k,ss]of Object.entries(sel)){if(k===tk||!ss.size)continue;const ci=sIdx[k];if(ci===undefined)continue;if(!ss.has(String(r[ci]||'').trim()))return false;}return true;});const m={};f.forEach(r=>{let v;if(tk==='_dates'){v=rDate(r);}else{const ci=sIdx[tk];v=ci!==undefined?String(r[ci]||'').trim():'';}if(v)m[v]=(m[v]||0)+1;});return m;}
 function tgVal(k,v){if(!sel[k])sel[k]=new Set();if(sel[k].has(v))sel[k].delete(v);else sel[k].add(v);rdrop(k);updChip(k);SC.forEach(sc=>{if(sc.key!==k)rdrop(sc.key);});applyAll();}
@@ -3508,7 +3508,8 @@ function renderCards(locKey,rows){
   if(metaEl)metaEl.textContent=`${sorted.length} device${sorted.length!==1?'s':''}`;
   if(!sorted.length){g.innerHTML='<div class="empty"><span>🌙</span>No data.</div>';return;}
   const pcs=sel['Pc No']||new Set();
-  g.innerHTML=sorted.map((d,i)=>{
+  const DC_STEP=(window.innerWidth<=700)?24:60;   // phones: fewer cards at a time keeps the page short + light
+  const _dcPaint=(n)=>{ g.innerHTML=sorted.slice(0,n).map((d,i)=>{
     const tags=Object.entries(d.queues).sort((a,b)=>b[1]-a[1]).map(([q,c])=>`<span class="qtag">${esc(q)}: ${c}</span>`).join('');
     const cardCls=d.cardType==='qtc'?' qtc-card':d.cardType==='sl'?' sl-card':d.cardType==='sv'?' sv-card':'';
     const badgeIcon=d.cardType==='qtc'?'🏷️':d.cardType==='sl'?'🛡️':d.cardType==='sv'?'🧭':'';
@@ -3520,7 +3521,8 @@ function renderCards(locKey,rows){
       <div class="dc-meta"><span class="dc-mi">✉</span><span class="dc-mt">${esc(d.em)||'—'}</span></div>
       <div class="dc-qs">${tags||'<span class="qtag">—</span>'}</div>
     </div>`;
-  }).join('');
+  }).join('')+(sorted.length>n?`<button type="button" class="btn btn-c dc-more" style="grid-column:1/-1;justify-self:center;margin:10px 0;padding:10px 22px;font-weight:700" onclick="(function(b){var g=b.parentNode;g._dcN+=${DC_STEP};g._dcPaint(g._dcN)})(this)">Show more (${sorted.length-n} left)</button>`:''); g._dcN=n; };
+  g._dcPaint=_dcPaint; _dcPaint(DC_STEP);
 }
 
 /* ===== PATCH #1: debounce table search (locSrch) ===== */
