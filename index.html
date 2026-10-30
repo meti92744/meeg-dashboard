@@ -1494,7 +1494,7 @@ html.lite .lg-dots,html.lite .lg-arc,html.lite .lg-core{animation:none!important
 <script>
 /* ============ AUTH GATE ============ */
 const AUTH_KEY='meeg_auth_email';
-const AUTH_VER=(document.querySelector('meta[name="app-version"]')||{}).content||'v2'; /* tied to the <meta name="app-version"> tag at the top of the file — bump that ONE number on deploy and it both force-reloads open tabs (see FORCE REFRESH below) AND logs everyone out, no second edit needed */
+const AUTH_VER='auth-1'; /* independent of <meta app-version>: deploying a new page version no longer signs people out. Change this text ONLY when you want to log EVERYONE out. */
 const AUTH_VER_KEY='meeg_auth_ver';
 
 function isValidEmailFormat(e){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);}
@@ -1557,19 +1557,20 @@ let _usersWatchTimer=null,_usersLastCheck=0;
 const _AUTH_TRANSIENT=/busy|quota|rate|limit|timeout|timed|server|exceed|unavail|retry|try again|internal|temporar/i;
 /* true = the server just had a hiccup (not a real "you are out") → keep the session */
 function authSoftFail(r){ if(!r||typeof r!=='object')return true; if(r.error==='not_allowed')return false; return _AUTH_TRANSIENT.test(String(r.error||'')); }
-let _verifyFails=0;
+let _verifyFails=0,_naStrikes=0;
 function checkUsersAccess(){
   if(document.hidden||navigator.onLine===false)return;
   const em=getLoggedInEmail();
   if(!em)return;
   _usersLastCheck=Date.now();
   authCall({action:'verify',token:getAuthToken()}).then(r=>{
-    if(r&&r.ok){
-      _verifyFails=0;
+    if(r&&r.error==='not_allowed'&&++_naStrikes<2){ /* confirm once more on the next check (a sheet edit in progress can look like a removal) */ }
+    else if(r&&r.ok){
+      _verifyFails=0;_naStrikes=0;keepToken(r);
       loadUsers(true).then(()=>renderUserChip(false)).catch(()=>{}); // picks up renamed users / role changes too
     }else if(authSoftFail(r)){
       /* server busy / quota / bad reply → stay signed in, check again later */
-    }else if(!(r&&r.error==='not_allowed')&&++_verifyFails<2){
+    }else if(!(r&&r.error==='not_allowed')&&++_verifyFails<3){
       /* first unexplained "no" → wait for the next check before signing out */
     }else{
       try{sessionStorage.setItem('meeg_login_msg',r&&r.error==='not_allowed'?'Your access has been removed 🚫':'Session ended — please sign in again');}catch(e){}
@@ -1587,9 +1588,10 @@ function startUsersWatch(){
 
 /* ============ PASSWORD AUTH (server = Google Apps Script web app, see auth-server.gs) ============
    Paste the web-app /exec URL below. Until it is set, nobody can sign in (fails closed). */
-const AUTH_API_URL='https://script.google.com/macros/s/AKfycbzIDb0-m7sSa1QK-VkAxg3V2wrNe8g6hQDZuecTvti5jCKNgz7iHS48wdeGVMaIoFvD/exec';
+const AUTH_API_URL='https://script.google.com/macros/s/AKfycbwgwAHWdMuEUh-Ep5TAQmJ79MB6jxgpzT30wQ4_x7I61sAlRkWcMMQtsv9PSqMbCa5-/exec';
 const AUTH_TOKEN_KEY='meeg_auth_token';
 function getAuthToken(){try{return localStorage.getItem(AUTH_TOKEN_KEY)||'';}catch(e){return '';}}
+function keepToken(r){ if(r&&r.ok&&r.token){try{localStorage.setItem(AUTH_TOKEN_KEY,r.token);}catch(e){}} }
 function authCall(body){
   if(!AUTH_API_URL)return Promise.reject(new Error('AUTH_API_URL is not set'));
   return fetch(AUTH_API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body),cache:'no-store'}).then(r=>r.json());
@@ -1762,6 +1764,7 @@ async function attemptLogin(){
       localStorage.setItem(AUTH_TOKEN_KEY,r.token);
     }catch(e){}
     pIn.value='';p2In.value='';errEl.textContent='';
+    try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist();}catch(e){}
     lgSteps(3,-1,'Access granted');
     await new Promise(res=>setTimeout(res,window._lite?0:800));
     try{await loadUsers(true);}catch(e){} // names / roles for the header chip (non-blocking on failure)
@@ -3834,7 +3837,12 @@ window.addEventListener('load',()=>{
   document.getElementById('loginScreen').classList.add('hidden');
   const enter=()=>{startApp();};
   const withNames=()=>{ if(usersLoaded)enter(); else loadUsers().then(enter).catch(enter); };
-  authCall({action:'verify',token:getAuthToken()}).then(r=>{
+  const verifyBoot=()=>authCall({action:'verify',token:getAuthToken()}).then(r=>{
+    if(r&&r.ok||authSoftFail(r))return r;
+    return new Promise(res=>setTimeout(res,1500)).then(()=>authCall({action:'verify',token:getAuthToken()})).catch(()=>r); /* one retry before treating it as a real logout */
+  });
+  verifyBoot().then(r=>{
+    keepToken(r);
     if(r&&r.ok)withNames();
     else if(authSoftFail(r))withNames();   // server hiccup → don't throw a signed-in person back to the login screen
     else{
