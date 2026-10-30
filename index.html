@@ -1216,6 +1216,19 @@ html.lite body :is(.loc-stat,.dcard,.catcard,.podium-item,.lo-card,.btn,.fchip):
 .lite-toast{position:fixed;left:12px;right:12px;bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:400;display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:16px;background:var(--m-solid,#fff);color:var(--text);border:1px solid var(--g-brd);font:600 .74rem var(--font);box-shadow:0 10px 30px rgba(0,0,0,.35)}
 .lite-toast button{margin-left:auto;border:0;border-radius:99px;padding:6px 12px;background:var(--g-grad);color:#04141c;font:700 .7rem var(--font);cursor:pointer}
 </style>
+<style id="mobile-filters-fix">
+/* phones: show ALL filters (they used to sit in one hidden sideways-scroll row, off-screen to the right) */
+@media(max-width:700px){
+  html body .fstrip{flex-wrap:wrap!important;overflow:visible!important;gap:8px!important;align-items:stretch!important;padding:10px 12px!important}
+  html body .fstrip>.presets{flex:1 1 100%!important;display:flex!important;flex-wrap:wrap!important;gap:6px!important;overflow:visible!important}
+  html body .fstrip>.fsep{display:none!important}
+  html body .fstrip>.id-filter-box{flex:1 1 100%!important;min-width:0!important}
+  html body .fstrip>.fg{flex:1 1 calc(33.333% - 8px)!important;min-width:0!important}
+  html body .fstrip>.fg>.fchip{width:100%!important;justify-content:center!important;white-space:nowrap!important;box-sizing:border-box}
+  html body .fstrip .fchip{border:1px solid var(--border-light,rgba(21,82,184,.15))!important;background:rgba(15,40,80,.04)!important}
+  html body .lo-seg span{display:none!important}   /* 'Room 1…' was cut off in the narrow bar — the legend underneath already names each room */
+}
+</style>
 </head>
 <body>
 <div class="arcs-ov" id="arcsOv" onclick="if(event.target===this)closeArchiveSearch()"><div class="arcs-box">
@@ -1848,7 +1861,7 @@ function _getCsvWorker(){
 self.onmessage=function(e){try{const t=parseCSV(e.data.text).filter(function(r){return r&&r.length&&!(r.length===1&&String(r[0]||'').trim()==='');});self.postMessage({id:e.data.id,table:t});}catch(err){self.postMessage({id:e.data.id,error:String(err&&err.message||err)});}};`;
     const url=URL.createObjectURL(new Blob([src],{type:'text/javascript'}));
     const w=new Worker(url);
-    w.onmessage=e=>{const j=_csvJobs[e.data.id];if(!j)return;delete _csvJobs[e.data.id];e.data.error?j.rej(new Error(e.data.error)):j.res(e.data.table);};
+    w.onmessage=e=>{const j=_csvJobs[e.data.id];if(!j)return;delete _csvJobs[e.data.id];e.data.error?j.rej(new Error(e.data.error)):j.res(e.data.table);if(!Object.keys(_csvJobs).length){try{w.terminate();}catch(_){}if(_csvWorker===w)_csvWorker=null;try{URL.revokeObjectURL(url);}catch(_){}}};   /* free the worker's copy of all rows as soon as the parse is done (phones kill tabs that hold too much memory) */
     w.onerror=()=>{_csvWorker=false;Object.values(_csvJobs).forEach(j=>j.rej(new Error('worker failed')));_csvJobs={};};
     _csvWorker=w;
   }catch(e){_csvWorker=false;}
