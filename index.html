@@ -4446,7 +4446,7 @@ function anTasks(){
 }
 function anScore(cnt){const n=RATES.reduce((s,k)=>s+(cnt[k]||0),0);return n?RATES.reduce((s,k)=>s+(cnt[k]||0)*RATE_W[k],0)/n*100:0;}
 function anLoadLog(cb){
-  fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&headers=1&sheet=${encodeURIComponent(ANALYSIS_LOG_SHEET)}`,{cache:'no-store'})
+  fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&headers=1&sheet=${encodeURIComponent(ANALYSIS_LOG_SHEET)}&_=${Date.now()}`,{cache:'no-store'})
    .then(r=>r.ok?r.text():Promise.reject()).then(t=>{const rows=parseCSV(t);if(rows.length&&!/task id/i.test(rows[0].join(',')))throw 0;anLog={};if(rows.length>1){const h=rows[0].map(x=>x.trim().toLowerCase());
      const ix=n=>h.indexOf(n);rows.slice(1).forEach(r=>{const id=String(r[ix('task id')]||'').trim();if(id)anLog[id]={analyst:r[ix('analyst')]||'',lr:r[ix('labeler rating')]||'',qr:r[ix('qc rating')]||'',issue:String(r[ix('issue')]||'').trim(),date:r[ix('analysis date')]||''};});}
      try{localStorage.setItem('an_log',JSON.stringify(anLog));}catch(_){}anFinishLoad(cb);}).catch(()=>{
@@ -4556,8 +4556,10 @@ async function anFlush(){   // background upload queue
 function anFinishLoad(cb){
   Object.keys(anPending).forEach(id=>{const e=anPending[id];anLog[id]={analyst:e.analyst,lr:e.lr,qr:e.qr,issue:e.issue,date:e.date};});
   const now=Date.now();
-  Object.keys(anRecent).forEach(id=>{const r=anRecent[id];if(now-r.ts>120000){delete anRecent[id];return;}   // a save from the last 2 min may not show in the sheet read yet
-    const x=anLog[id];if(!x||['lr','qr','issue'].some(k=>String(x[k]||'')!==String(r.e[k]||'')))anLog[id]=r.e;});
+  Object.keys(anRecent).forEach(id=>{const r=anRecent[id],x=anLog[id];
+    if(x&&['lr','qr','issue'].every(k=>String(x[k]||'')===String(r.e[k]||''))){delete anRecent[id];return;}   // the sheet shows it now → from here on the SHEET decides (delete the row there → it goes back to "not rated")
+    if(now-r.ts>120000){delete anRecent[id];return;}                                                       // gave up waiting for the sheet to show it
+    if(!x)anLog[id]=r.e;});                                                                                // just saved, the sheet read hasn't caught up yet → keep it for now
   try{localStorage.setItem('an_log',JSON.stringify(anLog));}catch(_){}
   anLogLoaded=true;cb&&cb();
   if(Object.keys(anPending).length)anFlush();
@@ -4566,10 +4568,17 @@ function anResync(){anLoadLog(()=>{if(activeLoc==='__analysis__')renderAnalysis(
 ['pointerdown','keydown','input'].forEach(ev=>document.addEventListener(ev,()=>{anLastAct=Date.now();},true));
 setInterval(()=>{   // quiet auto-sync every 30s while the Analysis tab is open and you are idle
   if(activeLoc!=='__analysis__'||document.hidden||!anLogLoaded||anFlushing)return;
-  if(Date.now()-anLastAct<6000)return;
+  if(Date.now()-anLastAct<4000)return;
   const ae=document.activeElement;if(ae&&ae.classList&&ae.classList.contains('an-iss'))return;
   anResync();
-},30000);
+},10000);
+function anBackSync(){   // you come back from the Google Sheet tab → re-read it right away
+  if(document.hidden||activeLoc!=='__analysis__'||!anLogLoaded||anFlushing)return;
+  if(Object.keys(anDraft).some(anIsDirty))return;
+  anResync();
+}
+document.addEventListener('visibilitychange',anBackSync);
+window.addEventListener('focus',anBackSync);
 window.addEventListener('online',()=>{anFlush();});
 setTimeout(()=>{if(Object.keys(anPending).length)anFlush();},5000);   // anything left from a previous session
 /* copy one row for WhatsApp etc.: link + names + ratings + problem — NOT the analyst's name */
@@ -4620,7 +4629,7 @@ let anAllCache=[],anOpen='',anDirty=false;
 function anCount(arr,fn,desc){const m={};arr.forEach(t=>{const v=fn(t);if(v)m[v]=(m[v]||0)+1;});const k=Object.keys(m).sort();if(desc)k.reverse();return k.map(v=>({v,n:m[v]}));}
 function anDateBar(){return `<div class="an-bar">${anRange()}</div>`;}
 function anWk(off){const d=new Date();d.setDate(d.getDate()-((d.getDay()+6)%7)+off*7);const e=new Date(d);e.setDate(d.getDate()+6);return[anYmd(d),anYmd(e)];}
-function anPreset(k){const t=new Date(),y=new Date();y.setDate(t.getDate()-1);let r=k==='today'?[anYmd(t),anYmd(t)]:k==='yday'?[anYmd(y),anYmd(y)]:k==='week'?anWk(0):anWk(-1);anF.from=r[0];anF.to=r[1];anDone();}
+function anPreset(k){const t=new Date(),y=new Date();y.setDate(t.getDate()-1);let r=k==='today'?[anYmd(t),anYmd(t)]:k==='yday'?[anYmd(y),anYmd(y)]:k==='week'?anWk(0):anWk(-1);if(anF.from===r[0]&&anF.to===r[1]){anF.from=anF.to='';}else{anF.from=r[0];anF.to=r[1];}anDone();}   // click the active preset again → clear it
 function anRange(){
   const P=[['today','Today',(()=>{const d=anYmd(new Date());return [d,d];})()],['yday','Yesterday',(()=>{const d=new Date();d.setDate(d.getDate()-1);const x=anYmd(d);return [x,x];})()],['week','This week',anWk(0)],['last','Last week',anWk(-1)]];
   const on=k=>{const r=P.find(x=>x[0]===k)[2];return anF.from===r[0]&&anF.to===r[1];};
