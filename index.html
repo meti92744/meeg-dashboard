@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>MEEG Productivity</title>
-<meta name="app-version" content="8"/>
+<meta name="app-version" content="7"/>
 <script id="lite-guard">
 /* Crash guard: "meeg_boot" is set while the page is starting / rebuilding a screen and cleared once it settled.
    If the browser KILLS the tab in between, the flag is still there on the next start → we open in LITE mode
@@ -1587,7 +1587,7 @@ function startUsersWatch(){
 
 /* ============ PASSWORD AUTH (server = Google Apps Script web app, see auth-server.gs) ============
    Paste the web-app /exec URL below. Until it is set, nobody can sign in (fails closed). */
-const AUTH_API_URL='https://script.google.com/macros/s/AKfycbx8g-SRBIS1BKxEVZ486cMNr-LSOBOm0nblQ_IK-BXcV8FT6ZlLITTmp_pjpvszMqTP/exec';
+const AUTH_API_URL='https://script.google.com/macros/s/AKfycbzIDb0-m7sSa1QK-VkAxg3V2wrNe8g6hQDZuecTvti5jCKNgz7iHS48wdeGVMaIoFvD/exec';
 const AUTH_TOKEN_KEY='meeg_auth_token';
 function getAuthToken(){try{return localStorage.getItem(AUTH_TOKEN_KEY)||'';}catch(e){return '';}}
 function authCall(body){
