@@ -27,7 +27,9 @@
 </script>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 54 46'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%2300e5d4'/%3E%3Cstop offset='100%25' stop-color='%230f8fff'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpolygon points='0,4 30,4 21,16 0,16' fill='url(%23g)'/%3E%3Cpolygon points='5,19 35,19 26,31 5,31' fill='url(%23g)'/%3E%3Cpolygon points='10,34 40,34 31,46 10,46' fill='url(%23g)'/%3E%3C/svg%3E"/>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<link rel="preconnect" href="https://docs.google.com">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -83,6 +85,17 @@ html[data-theme="dark"] .orb-1,html[data-theme="dark"] .orb-2{opacity:.5;}
 ::-webkit-scrollbar-track{background:transparent}
 #splash{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px;background:radial-gradient(circle at 50% 30%,#0a3247 0%,#040a13 70%);transition:opacity .6s ease,transform .6s ease;}
 #splash.fade-out{opacity:0;transform:scale(1.06);pointer-events:none;}
+html body #splash{transition:opacity .45s ease,transform .45s ease!important}
+#splash .splash-svg{animation-duration:.5s!important}
+#splash .splash-brand{animation-delay:.05s!important;animation-duration:.4s!important}
+#splash .splash-sub{animation-delay:.12s!important;animation-duration:.4s!important}
+#splash .splash-road{animation-delay:.15s!important;animation-duration:.3s!important}
+#splash .splash-road-fill{animation:swLoad 1.4s cubic-bezier(.2,.7,.3,1) .15s both!important}
+#splash .splash-car{animation-delay:.15s!important;animation-duration:1.2s!important}
+#splash .splash-dots{animation-delay:.2s!important}
+#splash .sw-hello{animation-delay:.1s!important;animation-duration:.4s!important}
+#splash .sw-name span{animation-duration:.4s!important}
+#splash .sw-label{animation-duration:.35s!important}
 .splash-svg{animation:splashSpin .9s cubic-bezier(.34,1.56,.64,1) both;filter:drop-shadow(0 0 24px rgba(0,229,212,.6));}
 @keyframes splashSpin{from{opacity:0;transform:rotate(-25deg) scale(.6)}to{opacity:1;transform:rotate(0) scale(1)}}
 .splash-brand{font-family:var(--display);font-size:2.2rem;font-weight:700;letter-spacing:4px;animation:splashFade .6s ease .3s both;background:linear-gradient(90deg,#00e5d4,#2e9bff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;filter:drop-shadow(0 2px 10px rgba(0,229,212,.4));}
@@ -1926,14 +1939,14 @@ function startVersionPolling(){
 /* splash stays until the first data load finishes (min 3.6s so the welcome animation plays fully, max 9s safety) */
 function hideSplash(){
   const s=document.getElementById('splash');if(!s)return;
-  const t0=Date.now(),MIN=3600,MAX=9000;
+  const t0=Date.now(),MIN=1100,MAX=9000;
   const iv=setInterval(()=>{
     const el=Date.now()-t0;
     if(el<MIN||(!window._firstDataReady&&el<MAX))return;
     clearInterval(iv);
     const f=s.querySelector('.splash-road-fill');
-    if(f){const w=getComputedStyle(f).width;f.style.animation='none';f.style.width=w;void f.offsetWidth;f.style.transition='width .3s ease';f.style.width='100%';}
-    setTimeout(()=>{s.classList.add('fade-out');setTimeout(()=>s.remove(),650);},400);
+    if(f){const w=getComputedStyle(f).width;f.style.animation='none';f.style.width=w;void f.offsetWidth;f.style.transition='width .2s ease';f.style.width='100%';}
+    setTimeout(()=>{s.classList.add('fade-out');setTimeout(()=>s.remove(),450);},150);
   },120);
 }
 function fillWelcome(){
@@ -1941,9 +1954,9 @@ function fillWelcome(){
   if(!email||!nm)return;
   const name=getDisplayName(email);
   nm.innerHTML='';
-  [...name].forEach((ch,i)=>{const sp=document.createElement('span');sp.textContent=ch===' '?'\u00A0':ch;sp.style.animationDelay=(1.2+i*0.06)+'s';nm.appendChild(sp);});
+  [...name].forEach((ch,i)=>{const sp=document.createElement('span');sp.textContent=ch===' '?'\u00A0':ch;sp.style.animationDelay=(0.15+i*0.035)+'s';nm.appendChild(sp);});
   const l=document.getElementById('swLabel');
-  if(l){l.textContent=getUserRole(email);l.style.animationDelay=(1.4+name.length*0.06)+'s';}
+  if(l){l.textContent=getUserRole(email);l.style.animationDelay=(0.3+name.length*0.035)+'s';}
 }
 function toggleDark(){const html=document.documentElement;const isDark=html.getAttribute('data-theme')==='dark';const t=isDark?'light':'dark';html.setAttribute('data-theme',t);const btn=document.getElementById('darkBtn');if(btn){btn.classList.toggle('active',t==='dark');btn.innerHTML=t==='dark'?'🌙 Dark':'☀️ Light';}localStorage.setItem('meeg_theme',t);}
 let autoRefreshEnabled=(function(){try{const v=localStorage.getItem('meeg_autorefresh');return v===null?true:v==='1';}catch(e){return true;}})();
@@ -3176,6 +3189,17 @@ function mergeBackup(mainTable,bTable){
   return added;
 }
 let _cacheTried=false;
+/* ---- start the heavy downloads the moment the page opens (in parallel with the login check) ---- */
+function _fetchMainText(){return fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${SHEET_GID}`).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.text();});}
+function _fetchBackup(){return BACKUP_SHEET_ID?fetchBackupTable().catch(e=>{console.warn('Backup sheet not readable:',e.message);window._backupErr=e.message;return null;}):Promise.resolve(null);}
+function _startPrefetch(){
+  try{
+    const p=_fetchMainText();p.catch(()=>{});
+    window._mainPre={t:Date.now(),p:p,b:_fetchBackup()};
+    /* saved copy from last time: read + parse it now (parsing runs in a worker) so it is ready the instant the login check finishes */
+    window._cachePre=idbGet('csv').then(c=>{if(!(c&&c.v===AUTH_VER&&c.text))return null;return parseCSVAsync(c.text).then(table=>({text:c.text,table})).catch(()=>({text:c.text}));}).catch(()=>null);
+  }catch(e){}
+}
 function loadData(){
   if(document.hidden&&rawRows.length>0){window._pendingRefresh=true;return;}   // background tab / phone locked → don't download + rebuild 70k rows for nobody
   setSyncActive(true);setTrafficLight('yellow');
@@ -3186,10 +3210,11 @@ function loadData(){
   }
   if(!_cacheTried&&rawRows.length===0){
     _cacheTried=true;
-    idbGet('csv').then(c=>{if(c&&c.v===AUTH_VER&&c.text&&rawRows.length===0)onCsvData(c.text,true);});
+    (window._cachePre||idbGet('csv').then(c=>(c&&c.v===AUTH_VER&&c.text)?{text:c.text}:null)).then(c=>{window._cachePre=null;if(c&&c.text&&rawRows.length===0)onCsvData(c.text,true,c.table);}).catch(()=>{});
   }
-  const mainP=fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${SHEET_GID}`).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.text();});
-  const backP=BACKUP_SHEET_ID?fetchBackupTable().catch(e=>{console.warn('Backup sheet not readable:',e.message);window._backupErr=e.message;return null;}):Promise.resolve(null);
+  const _pre=(window._mainPre&&Date.now()-window._mainPre.t<90000)?window._mainPre:null;window._mainPre=null;
+  const mainP=_pre?_pre.p:_fetchMainText();
+  const backP=_pre?_pre.b:_fetchBackup();
   Promise.all([mainP,backP]).then(async([txt,bt])=>{
     const hasB=bt&&bt.length>1;
     /* cheap fingerprint of main sheet + backup sheet → if identical to last time, skip parse / merge / cache write completely (saves ~200 MB of churn on a phone) */
@@ -3217,7 +3242,7 @@ function _csvUnchanged(){
   if(autoRefreshTimer)clearInterval(autoRefreshTimer);autoRefreshTimer=null;
   if(autoRefreshEnabled)autoRefreshTimer=setInterval(loadData,REFRESH_INTERVAL*1000);
 }
-function onCsvData(text,fromCache){
+function onCsvData(text,fromCache,preTable){
   if(!fromCache){const b=document.getElementById('refreshBtn');if(b)b.disabled=false;setSyncActive(false);}
   fastHash(text).then(h=>{
     const newHash=h+'|';
@@ -3226,7 +3251,7 @@ function onCsvData(text,fromCache){
       return;
     }
     _lastCsvHash=newHash;
-    return parseCSVAsync(text).then(t=>{onCsvTable(t);if(fromCache){setTrafficLight('yellow');showToast('⚡ Showing saved data — updating…');}});
+    return (preTable?Promise.resolve(preTable):parseCSVAsync(text)).then(t=>{onCsvTable(t);if(fromCache){setTrafficLight('yellow');showToast('⚡ Showing saved data — updating…');}});
   }).catch(e=>showErr('Parse failed: '+e.message));
 }
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&window._pendingRefresh){window._pendingRefresh=false;try{loadData();}catch(e){}}});
@@ -3820,9 +3845,9 @@ function shootWebScrollTop(){
 function startApp(){renderUserChip(false);
   if(!document.getElementById('splash')&&window._splashTpl)document.body.insertAdjacentHTML('afterbegin',window._splashTpl);
   fillWelcome();
-  const savedTheme=localStorage.getItem('meeg_theme')||(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',savedTheme);const btn=document.getElementById('darkBtn');if(btn){btn.classList.toggle('active',savedTheme==='dark');btn.innerHTML=savedTheme==='dark'?'🌙 Dark':'☀️ Light';}applyAutoRefreshUI();hideSplash();loadData();startVersionPolling();fetchQualityData(true);startUsersWatch();
+  const savedTheme=localStorage.getItem('meeg_theme')||(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',savedTheme);const btn=document.getElementById('darkBtn');if(btn){btn.classList.toggle('active',savedTheme==='dark');btn.innerHTML=savedTheme==='dark'?'🌙 Dark':'☀️ Light';}applyAutoRefreshUI();hideSplash();loadData();startVersionPolling();(function _q(n){if(window._firstDataReady||n>40)fetchQualityData(true);else setTimeout(()=>_q(n+1),300);})(0);startUsersWatch();
 }
-window.addEventListener('load',()=>{
+function _bootApp(){
   initLoginDodge();
   const splash=document.getElementById('splash');
   const email=getLoggedInEmail();
@@ -3833,26 +3858,31 @@ window.addEventListener('load',()=>{
     goLoginStep('email',m||msg||'');
   };
   if(!email){showLogin();loadUsers().catch(()=>{});return;} // not signed in — warm the users list while they type
-  /* has a saved session → keep the login screen hidden (splash shows), confirm the session with the server BEFORE any data is loaded */
   document.getElementById('loginScreen').classList.add('hidden');
+  _startPrefetch();   // data download + saved-copy parse start NOW, in parallel with the login check
   const enter=()=>{startApp();};
   const withNames=()=>{ if(usersLoaded)enter(); else loadUsers().then(enter).catch(enter); };
   const verifyBoot=()=>authCall({action:'verify',token:getAuthToken()}).then(r=>{
     if(r&&r.ok||authSoftFail(r))return r;
     return new Promise(res=>setTimeout(res,1500)).then(()=>authCall({action:'verify',token:getAuthToken()})).catch(()=>r); /* one retry before treating it as a real logout */
   });
+  let entered=false,settled=false;
+  const goIn=()=>{if(entered)return;entered=true;withNames();};
   verifyBoot().then(r=>{
-    keepToken(r);
-    if(r&&r.ok)withNames();
-    else if(authSoftFail(r))withNames();   // server hiccup → don't throw a signed-in person back to the login screen
-    else{
-      clearSession();
-      showLogin(r&&r.error==='not_allowed'?'Your access has been removed 🚫':'Session ended — please sign in again');
-    }
+    settled=true;keepToken(r);
+    if(r&&r.ok||authSoftFail(r)){goIn();return;}
+    const msg=r&&r.error==='not_allowed'?'Your access has been removed 🚫':'Session ended — please sign in again';
+    if(entered){try{sessionStorage.setItem('meeg_login_msg',msg);}catch(e){}logoutUser();return;}   // answered late with a real "no" → sign out
+    clearSession();showLogin(msg);
   }).catch(()=>{ // server unreachable → don't lock people out because of a network hiccup; the 30s watch re-checks later
-    if(AUTH_API_URL)withNames(); else{clearSession();showLogin('Sign-in server is not configured yet');}
+    settled=true;
+    if(AUTH_API_URL)goIn(); else{clearSession();showLogin('Sign-in server is not configured yet');}
   });
-});
+  /* the login server (Apps Script) can take several seconds to wake up — don't make everyone stare at the splash for it:
+     if it hasn't answered in 1.2s, open the app now and keep checking in the background (a real "no" still signs the person out) */
+  setTimeout(()=>{if(!settled&&!entered)goIn();},1200);
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',_bootApp);else _bootApp();
 
 /* =====================================================================
    EXPORT (CSV / Excel) · SHARE LINK (filters in the URL) · QUALITY SCREENSHOT
@@ -4371,6 +4401,15 @@ function up(){var h=new Date().getHours(),t=h<12?'Good morning':h<18?'Good after
 .an-save.on{background:var(--accent);border-color:var(--accent);color:#fff;opacity:1}
 .an-save:disabled{cursor:not-allowed}
 .an-row.an-dirty{box-shadow:inset 3px 0 0 var(--accent)}
+.an-act{display:flex;align-items:center;gap:8px;flex:1;min-width:340px}
+.an-row .an-act .an-iss{flex:1;min-width:0;width:auto}
+.an-save{flex:none}
+.an-save.ok{background:rgba(23,185,120,.14);border-color:rgba(23,185,120,.55);color:#17b978;opacity:1}
+.an-save.ok.syncing{opacity:.9}
+.an-save.fail{background:var(--danger,#c4293f);border-color:var(--danger,#c4293f);color:#fff;opacity:1}
+.an-copy{flex:none;background:var(--elevated);border:1px solid var(--border-light);color:var(--text);border-radius:12px;padding:7px 12px;font:600 .76rem var(--font);cursor:pointer;white-space:nowrap}
+.an-copy:hover{border-color:var(--accent)}
+.an-copy.done{background:rgba(23,185,120,.14);border-color:rgba(23,185,120,.55);color:#17b978}
 #anBig{position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.72);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:20px}
 .an-big-card{max-width:560px;width:100%;text-align:center;background:var(--surface,#10141c);border:2px solid var(--danger,#c4293f);border-radius:22px;padding:36px 32px;box-shadow:0 24px 80px rgba(196,41,63,.45);animation:anPop .18s ease-out}
 .an-big-ico{font-size:3.4rem;line-height:1;margin-bottom:10px}
@@ -4410,34 +4449,53 @@ function anLoadLog(cb){
   fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&headers=1&sheet=${encodeURIComponent(ANALYSIS_LOG_SHEET)}`,{cache:'no-store'})
    .then(r=>r.ok?r.text():Promise.reject()).then(t=>{const rows=parseCSV(t);if(rows.length&&!/task id/i.test(rows[0].join(',')))throw 0;anLog={};if(rows.length>1){const h=rows[0].map(x=>x.trim().toLowerCase());
      const ix=n=>h.indexOf(n);rows.slice(1).forEach(r=>{const id=String(r[ix('task id')]||'').trim();if(id)anLog[id]={analyst:r[ix('analyst')]||'',lr:r[ix('labeler rating')]||'',qr:r[ix('qc rating')]||'',issue:String(r[ix('issue')]||'').trim(),date:r[ix('analysis date')]||''};});}
-     try{localStorage.setItem('an_log',JSON.stringify(anLog));}catch(_){}anLogLoaded=true;cb&&cb();}).catch(()=>{
-     const local=()=>{try{anLog=JSON.parse(localStorage.getItem('an_log')||'{}');}catch(_){anLog={};}anLogLoaded=true;cb&&cb();};
+     try{localStorage.setItem('an_log',JSON.stringify(anLog));}catch(_){}anFinishLoad(cb);}).catch(()=>{
+     const local=()=>{try{anLog=JSON.parse(localStorage.getItem('an_log')||'{}');}catch(_){anLog={};}anFinishLoad(cb);};
      if(!ANALYSIS_API_URL)return local();
      /* the sheet can't be read directly (e.g. the Analysis Log tab is hidden) → ask the script for it */
      fetch(ANALYSIS_API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},cache:'no-store',body:JSON.stringify({action:'log',email:anMe(),token:getAuthToken()})})
       .then(r=>r.json()).then(j=>{if(!j||!j.ok||!Array.isArray(j.rows))throw 0;anLog={};j.rows.forEach(r=>{const id=String(r[0]||'').trim();if(id)anLog[id]={analyst:r[1]||'',lr:r[2]||'',qr:r[3]||'',issue:String(r[4]||'').trim(),date:r[5]||''};});
-        try{localStorage.setItem('an_log',JSON.stringify(anLog));}catch(_){}anLogLoaded=true;cb&&cb();}).catch(local);
+        try{localStorage.setItem('an_log',JSON.stringify(anLog));}catch(_){}anFinishLoad(cb);}).catch(local);
    });
 }
-/* ---- Analysis save model: edits stay as a DRAFT until Enter (in the problem box) or the Save button ---- */
-let anDraft={},anSaving=new Set(),anQueue=Promise.resolve();
+/* ---- Analysis save model ----
+   Rating / problem edits stay a DRAFT until Enter or Save. Pressing Save is INSTANT: the row shows "✓ Saved" at once and the
+   upload to the sheet runs in the background (queued, auto-retried, kept in the browser until it really reached the sheet). */
+let anDraft={},anFailed=new Set(),anFlushing=false,anRetryT=null,anRecent={},anLastAct=0;
+let anPending=(()=>{try{return JSON.parse(localStorage.getItem('an_pending')||'{}')||{};}catch(_){return {};}})();
+function anPendSave(){try{localStorage.setItem('an_pending',JSON.stringify(anPending));}catch(_){}}
 function anCur(id){const l=anLog[id]||{},d=anDraft[id]||{};return{lr:'lr' in d?d.lr:(l.lr||''),qr:'qr' in d?d.qr:(l.qr||''),issue:'issue' in d?d.issue:(l.issue||'')};}
 function anNeedIssue(v){return !!(((v.lr&&v.lr!=='Excellent')||(v.qr&&v.qr!=='Excellent'))&&!String(v.issue||'').trim());}
 function anDraftSet(id,patch){anDraft[id]=Object.assign({},anDraft[id],patch);}
 function anIsDirty(id){const d=anDraft[id];if(!d)return false;const l=anLog[id]||{};return['lr','qr','issue'].some(k=>k in d&&String(d[k]||'').trim()!==String(l[k]||'').trim());}
+function anBtn(id){
+  if(anIsDirty(id))return{t:'💾 Save',c:'on',d:false,tip:'Save (or press Enter in the problem box)'};
+  if(anFailed.has(id)&&anPending[id])return{t:'⚠ Retry',c:'fail',d:false,tip:'Not saved to the sheet yet — click to retry'};
+  if(anLog[id])return{t:'✓ Saved',c:'ok'+(anPending[id]?' syncing':''),d:true,tip:anPending[id]?'Saved — syncing to the sheet…':'Saved'};
+  return{t:'💾 Save',c:'',d:true,tip:''};
+}
+function anBtnHtml(id){const b=anBtn(id);return `<button class="an-save ${b.c}" data-id="${id}" title="${b.tip}"${b.d?' disabled':''} onclick="anCommit('${id}')">${b.t}</button>`;}
 function anMark(id){
   const row=document.querySelector('.an-row[data-id="'+id+'"]');if(!row)return;
-  const dirty=anIsDirty(id),btn=row.querySelector('.an-save'),inp=row.querySelector('.an-iss');
-  row.classList.toggle('an-dirty',dirty);
-  if(btn){btn.disabled=!dirty||anSaving.has(id);btn.classList.toggle('on',dirty);}
+  const b=anBtn(id),btn=row.querySelector('.an-save'),inp=row.querySelector('.an-iss');
+  row.classList.toggle('an-dirty',anIsDirty(id));
+  if(btn){btn.className='an-save '+b.c;btn.disabled=b.d;btn.textContent=b.t;btn.title=b.tip;}
   if(inp)inp.classList.toggle('an-need',anNeedIssue(anCur(id)));
+}
+function anRowRefresh(id){   // re-draw just this row (fast — no full re-render)
+  const el=document.querySelector('.an-row[data-id="'+id+'"]'),t=anAllCache.find(x=>x.id===id);if(!el||!t)return;
+  const tmp=document.createElement('div');tmp.innerHTML=anRow(t);el.replaceWith(tmp.firstElementChild);
+}
+function anRow(t){
+  const l=anLog[t.id]||{},v=anCur(t.id),lock=anLocked(t.id),dirty=anIsDirty(t.id),need=anNeedIssue(v);
+  return `<div class="an-row${dirty?' an-dirty':''}" data-id="${t.id}"><div class="an-c1"><a href="${esc(t.link)}" target="_blank" rel="noopener">${t.id} ↗</a><small>${t.ts}</small></div><div class="an-c2"><span><i>Labeler</i>${esc(t.lab)}</span><span><i>QTC</i>${esc(t.qc)}</span></div><div class="an-c3">${t.type} · ${t.pass}<small>${esc(l.analyst||'—')}</small></div><div class="an-rt"><i>Labeler rating</i>${anRateBtns(t.id,'L',v.lr,lock)}</div><div class="an-rt"><i>QTC rating</i>${anRateBtns(t.id,'Q',v.qr,lock)}</div><div class="an-act"><input class="an-iss${need?' an-need':''}" data-id="${t.id}" placeholder="${need?'Required — write the problem…':'Write the problem… (Enter to save)'}" value="${esc(v.issue||'')}"${lock?' disabled':''} oninput="anTyping('${t.id}',this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();anCommit('${t.id}')}">${anBtnHtml(t.id)}<button class="an-copy" type="button" title="Copy link, names, ratings and the problem (without the analyst name)" onclick="anCopy('${t.id}',this)">📋 Copy</button></div></div>`;
 }
 function anTyping(id,val){anDraftSet(id,{issue:val});anMark(id);}
 function anRate(id,who,val){
   if(!anAllowed()||anLocked(id))return;
   const v=anCur(id),was=who==='L'?v.lr:v.qr;
   anDraftSet(id,who==='L'?{lr:was===val?'':val}:{qr:was===val?'':val});
-  renderAnalysis(document.getElementById('mainContent'));
+  anRowRefresh(id);
   if(anNeedIssue(anCur(id))){   // any rating below Excellent needs the problem written
     showToast('⚠️ '+anMyName()+' — write the problem for task '+id+', then press Enter or Save');
     const i=document.querySelector('.an-iss[data-id="'+id+'"]');if(i)i.focus();
@@ -4460,22 +4518,75 @@ async function anSend(e){
   return{ok:false,error:err};
 }
 function anCommit(id){
-  if(!anAllowed()||anLocked(id)||anSaving.has(id))return;
-  if(!anIsDirty(id)){showToast('Nothing to save for task '+id);return;}
+  if(!anAllowed()||anLocked(id))return;
+  if(!anIsDirty(id)){   // nothing new — if it is the "Retry" state, push the waiting save again
+    if(anPending[id]){anFailed.delete(id);anMark(id);anFlush();}else showToast('Nothing to save for task '+id);
+    return;
+  }
   const v=anCur(id);
   if(anNeedIssue(v)){anBigAlert(id);return;}
   const e={id:id,lr:v.lr||'',qr:v.qr||'',issue:String(v.issue||'').trim(),analyst:(anLog[id]&&anLog[id].analyst&&anIsSV()?anLog[id].analyst:ANALYSIS_USERS[anMe()][0]),date:anYmd(new Date())};
-  anSaving.add(id);
-  const row=document.querySelector('.an-row[data-id="'+id+'"] .an-save');if(row){row.disabled=true;row.textContent='Saving…';}
-  anQueue=anQueue.then(()=>ANALYSIS_API_URL?anSend(e):{ok:true}).then(res=>{
-    anSaving.delete(id);
-    if(res.ok){
-      anLog[id]={analyst:e.analyst,lr:e.lr,qr:e.qr,issue:e.issue,date:e.date};delete anDraft[id];
-      try{localStorage.setItem('an_log',JSON.stringify(anLog));}catch(_){}
-      showToast('✅ Saved task '+id);
-    }else showToast('⚠️ Not saved — '+res.error+' · press Save to retry');
-    if(activeLoc==='__analysis__')renderAnalysis(document.getElementById('mainContent'));
-  });
+  anLog[id]={analyst:e.analyst,lr:e.lr,qr:e.qr,issue:e.issue,date:e.date};   // instant: it is "Saved" right now
+  delete anDraft[id];anFailed.delete(id);
+  anPending[id]=e;anPendSave();anRecent[id]={e:anLog[id],ts:Date.now()};
+  try{localStorage.setItem('an_log',JSON.stringify(anLog));}catch(_){}
+  anRowRefresh(id);
+  anFlush();
+}
+async function anFlush(){   // background upload queue
+  if(anFlushing||!anAllowed())return;
+  if(!ANALYSIS_API_URL){anPending={};anPendSave();return;}
+  anFlushing=true;let bad=false;
+  try{
+    for(let g=0;g<1000;g++){
+      const id=Object.keys(anPending)[0];if(!id)break;
+      const e=anPending[id],res=await anSend(e);
+      if(res.ok){if(anPending[id]===e){delete anPending[id];anPendSave();}anFailed.delete(id);anMark(id);}
+      else if(/^locked|not_allowed|access removed/i.test(res.error)){   // a real refusal — retrying won't help
+        if(anPending[id]===e){delete anPending[id];anPendSave();}delete anRecent[id];
+        showToast('⚠️ Task '+id+' was not saved — '+res.error);anResync();
+      }else{const first=!anFailed.has(id);anFailed.add(id);bad=true;anMark(id);if(first)showToast('⚠️ Not saved to the sheet yet — '+res.error+' · retrying…');break;}
+    }
+  }finally{anFlushing=false;}
+  clearTimeout(anRetryT);
+  if(bad)anRetryT=setTimeout(anFlush,10000);
+  else if(Object.keys(anPending).length)anFlush();
+}
+/* re-read the sheet (so a row deleted from the sheet goes back to "not rated"), keeping anything not uploaded yet */
+function anFinishLoad(cb){
+  Object.keys(anPending).forEach(id=>{const e=anPending[id];anLog[id]={analyst:e.analyst,lr:e.lr,qr:e.qr,issue:e.issue,date:e.date};});
+  const now=Date.now();
+  Object.keys(anRecent).forEach(id=>{const r=anRecent[id];if(now-r.ts>120000){delete anRecent[id];return;}   // a save from the last 2 min may not show in the sheet read yet
+    const x=anLog[id];if(!x||['lr','qr','issue'].some(k=>String(x[k]||'')!==String(r.e[k]||'')))anLog[id]=r.e;});
+  try{localStorage.setItem('an_log',JSON.stringify(anLog));}catch(_){}
+  anLogLoaded=true;cb&&cb();
+  if(Object.keys(anPending).length)anFlush();
+}
+function anResync(){anLoadLog(()=>{if(activeLoc==='__analysis__')renderAnalysis(document.getElementById('mainContent'));});}
+['pointerdown','keydown','input'].forEach(ev=>document.addEventListener(ev,()=>{anLastAct=Date.now();},true));
+setInterval(()=>{   // quiet auto-sync every 30s while the Analysis tab is open and you are idle
+  if(activeLoc!=='__analysis__'||document.hidden||!anLogLoaded||anFlushing)return;
+  if(Date.now()-anLastAct<6000)return;
+  const ae=document.activeElement;if(ae&&ae.classList&&ae.classList.contains('an-iss'))return;
+  anResync();
+},30000);
+window.addEventListener('online',()=>{anFlush();});
+setTimeout(()=>{if(Object.keys(anPending).length)anFlush();},5000);   // anything left from a previous session
+/* copy one row for WhatsApp etc.: link + names + ratings + problem — NOT the analyst's name */
+function anCopyText(id){
+  const t=anAllCache.find(x=>x.id===id);if(!t)return '';
+  const v=anCur(id),L=['Task: '+t.id];
+  if(t.link)L.push('Link: '+t.link);
+  L.push('Labeler: '+t.lab+(v.lr?' — '+v.lr:''));
+  L.push('QTC: '+t.qc+(v.qr?' — '+v.qr:''));
+  if(String(v.issue||'').trim())L.push('Problem: '+String(v.issue).trim());
+  return L.join('\n');
+}
+function anCopy(id,btn){
+  const txt=anCopyText(id);if(!txt)return;
+  const done=()=>{if(!btn)return;const o=btn.textContent;btn.textContent='✓ Copied';btn.classList.add('done');setTimeout(()=>{btn.textContent='📋 Copy';btn.classList.remove('done');},1400);};
+  const fb=()=>{try{const ta=document.createElement('textarea');ta.value=txt;ta.style.cssText='position:fixed;left:-9999px;top:0';document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();done();}catch(e){showToast('⚠️ Could not copy');}};
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(txt).then(done).catch(fb);else fb();
 }
 /* big blocking alert: Enter/Save pressed on a rating below Excellent with no problem written */
 function anBigAlert(id){
@@ -4491,7 +4602,7 @@ function anBigAlert(id){
   setTimeout(()=>document.addEventListener('keydown',onKey,true),0);   // not in the same tick, so the Enter that opened it doesn't close it
   o.querySelector('.an-big-ok').focus();
 }
-window.addEventListener('beforeunload',ev=>{if(Object.keys(anDraft).some(anIsDirty)){ev.preventDefault();ev.returnValue='';}});
+window.addEventListener('beforeunload',ev=>{if(Object.keys(anDraft).some(anIsDirty)||Object.keys(anPending).length){ev.preventDefault();ev.returnValue='';}});
 function anSet(k,v){anF[k]=v;renderAnalysis(document.getElementById('mainContent'));}
 function anSetView(v){anView=v;renderAnalysis(document.getElementById('mainContent'));}
 function anOpts(arr,sel,all){return `<option value="">${all}</option>`+arr.map(x=>`<option${x===sel?' selected':''}>${esc(x)}</option>`).join('');}
@@ -4577,7 +4688,7 @@ function renderAnalysis(mc){
     const labs=[...new Set(all.map(t=>t.lab))].sort(),qcs=[...new Set(all.map(t=>t.qc))].sort(),shown=tasks.sort((a,b)=>b.time-a.time).slice(0,300);meta=tasks.length+' tasks';
     body=`<div class="an-bar">${anRange()}${anDD('lab','👤 Labeler',anCount(all,t=>t.lab))}${anDD('qc','🏷 QTC',anCount(all,t=>t.qc))}${anDD('type','Type',anCount(all,t=>t.type))}${anDD('pass','✅ Pass',anCount(all,t=>t.pass))}${anDD('status','Status',['Not analyzed','Analyzed','Has issue'].map(v=>({v})),true)}<input placeholder="Task id / name…" value="${esc(anF.q)}" onchange="anSet('q',this.value)"><button class="preset${anF.mine?' on':''}" onclick="anSet('mine',!anF.mine)">👤 My tasks</button></div>
       <div class="an-list">`+
-      shown.map(t=>{const l=anLog[t.id]||{},v=anCur(t.id),lock=anLocked(t.id),dirty=anIsDirty(t.id),need=anNeedIssue(v);return `<div class="an-row${dirty?' an-dirty':''}" data-id="${t.id}"><div class="an-c1"><a href="${esc(t.link)}" target="_blank" rel="noopener">${t.id} ↗</a><small>${t.ts}</small></div><div class="an-c2"><span><i>Labeler</i>${esc(t.lab)}</span><span><i>QTC</i>${esc(t.qc)}</span></div><div class="an-c3">${t.type} · ${t.pass}<small>${esc(l.analyst||'—')}</small></div><div class="an-rt"><i>Labeler rating</i>${anRateBtns(t.id,'L',v.lr,lock)}</div><div class="an-rt"><i>QTC rating</i>${anRateBtns(t.id,'Q',v.qr,lock)}</div><input class="an-iss${need?' an-need':''}" data-id="${t.id}" placeholder="${need?'Required — write the problem…':'Write the problem… (Enter to save)'}" value="${esc(v.issue||'')}"${lock?' disabled':''} oninput="anTyping('${t.id}',this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();anCommit('${t.id}')}"><button class="an-save${dirty?' on':''}" data-id="${t.id}"${(lock||!dirty||anSaving.has(t.id))?' disabled':''} onclick="anCommit('${t.id}')">${anSaving.has(t.id)?'Saving…':'💾 Save'}</button></div>`;}).join('')+'</div>'+(tasks.length>300?'<div class="an-note">Showing the latest 300 — narrow the filters to see more.</div>':'');
+      shown.map(anRow).join('')+'</div>'+(tasks.length>300?'<div class="an-note">Showing the latest 300 — narrow the filters to see more.</div>':'');
   }else if(anView==='ratings'){
     const rated=tasks.filter(t=>anLog[t.id]&&(anLog[t.id].lr||anLog[t.id].qr));meta=rated.length+' rated tasks';
     body=anDateBar()+`<div class="an-bar"><label>Group by</label><button class="preset${anGroup==='QC'?' on':''}" onclick="anGroup='QC';anSetView('ratings')">QTC</button><button class="preset${anGroup==='Labeler'?' on':''}" onclick="anGroup='Labeler';anSetView('ratings')">Labeler</button><label>Shift</label>${['','M','N','ON'].map(v=>`<button class="preset${anF.shift===v?' on':''}" onclick="anSet('shift','${v}')">${v||'All'}</button>`).join('')}<button class="btn" onclick="anShot(this)">📸 Screenshot</button></div>`;
